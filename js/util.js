@@ -1,0 +1,129 @@
+/* Trad Center — utilitaires : formatage, sons, confettis, notifications */
+(function () {
+  const nf = (min, max) => new Intl.NumberFormat('fr-FR', { minimumFractionDigits: min, maximumFractionDigits: max });
+  const cache = {};
+  const N = (min, max) => cache[min + '-' + max] || (cache[min + '-' + max] = nf(min, max));
+
+  function digitsFor(v) {
+    const a = Math.abs(v);
+    if (a === 0) return 2;
+    if (a >= 1000) return 2;
+    if (a >= 1) return a >= 100 ? 2 : 3;
+    // petits prix (PEPE, SHIB…) : 4 chiffres significatifs
+    return Math.min(12, Math.max(4, -Math.floor(Math.log10(a)) + 3));
+  }
+  TC.fmt = {
+    eur(v, short) {
+      if (v == null || !isFinite(v)) return '—';
+      if (short && Math.abs(v) >= 1e6) return TC.fmt.compact(v) + ' €';
+      const d = Math.abs(v) >= 1 || v === 0 ? 2 : digitsFor(v);
+      return N(Math.min(2, d), d).format(v) + ' €';
+    },
+    price(v, ccy) {
+      if (v == null || !isFinite(v)) return '—';
+      const d = digitsFor(v);
+      const sym = { EUR: '€', USD: '$', USDT: '$', GBP: '£', GBp: 'p', JPY: '¥', CHF: 'CHF' }[ccy] || ccy || '€';
+      return N(Math.min(2, d), d).format(v) + ' ' + sym;
+    },
+    num(v, d = 2) { return v == null || !isFinite(v) ? '—' : N(d, d).format(v); },
+    qty(v) {
+      if (v == null || !isFinite(v)) return '—';
+      const a = Math.abs(v);
+      const d = a >= 1000 ? 2 : a >= 1 ? 4 : Math.min(10, Math.max(6, -Math.floor(Math.log10(a || 1)) + 4));
+      return N(0, d).format(v);
+    },
+    pct(v, sign = true) { if (v == null || !isFinite(v)) return '—'; return (sign && v > 0 ? '+' : '') + N(2, 2).format(v) + ' %'; },
+    compact(v) { return new Intl.NumberFormat('fr-FR', { notation: 'compact', maximumFractionDigits: 2 }).format(v); },
+    dur(ms) {
+      const s = Math.max(0, Math.floor(ms / 1000));
+      const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), ss = s % 60;
+      if (h) return `${h} h ${String(m).padStart(2, '0')}`;
+      return `${m}:${String(ss).padStart(2, '0')}`;
+    },
+    time(t) { return new Date(t).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }); },
+  };
+
+  TC.esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  TC.$ = (s, r = document) => r.querySelector(s);
+  TC.$$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+
+  /* ---------- Sons (WebAudio, aucun fichier) ---------- */
+  let ac = null;
+  function tone(freq, start, dur, type = 'sine', vol = 0.08) {
+    if (!ac) return;
+    const o = ac.createOscillator(), g = ac.createGain();
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(0, ac.currentTime + start);
+    g.gain.linearRampToValueAtTime(vol, ac.currentTime + start + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + start + dur);
+    o.connect(g); g.connect(ac.destination);
+    o.start(ac.currentTime + start); o.stop(ac.currentTime + start + dur + 0.05);
+  }
+  TC.sound = function (kind) {
+    if (!TC.Game || !TC.Game.state.sound) return;
+    try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === 'suspended') ac.resume(); } catch (e) { return; }
+    const seq = {
+      buy: [[523, 0, .12], [784, .08, .18]],
+      sell: [[784, 0, .12], [523, .08, .18]],
+      win: [[523, 0, .1], [659, .08, .1], [784, .16, .1], [1047, .24, .3]],
+      lose: [[330, 0, .2, 'sawtooth', .05], [220, .15, .35, 'sawtooth', .05]],
+      cash: [[1319, 0, .08, 'square', .04], [1760, .06, .08, 'square', .04], [2093, .12, .25, 'triangle', .06]],
+      click: [[900, 0, .04, 'square', .02]],
+      ach: [[784, 0, .1], [988, .1, .1], [1175, .2, .1], [1568, .3, .4]],
+    }[kind] || [];
+    seq.forEach(s => tone(s[0], s[1], s[2], s[3], s[4]));
+  };
+
+  /* ---------- Notifications ---------- */
+  TC.toast = function (msg, type = 'info', ms = 3800) {
+    const box = TC.$('#toasts');
+    const el = document.createElement('div');
+    el.className = 'toast ' + type;
+    el.innerHTML = msg;
+    box.appendChild(el);
+    requestAnimationFrame(() => el.classList.add('show'));
+    setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 300); }, ms);
+  };
+
+  /* ---------- Fenêtre modale ---------- */
+  TC.modal = function (html, opts = {}) {
+    const m = TC.$('#modal');
+    m.innerHTML = `<div class="modal-card ${opts.cls || ''}"><button class="modal-x" aria-label="Fermer">✕</button>${html}</div>`;
+    m.classList.add('open');
+    const close = () => { m.classList.remove('open'); m.innerHTML = ''; if (opts.onClose) opts.onClose(); };
+    m.onclick = e => { if (e.target === m || e.target.closest('.modal-x') || e.target.closest('[data-close]')) close(); };
+    return { el: m, close };
+  };
+  TC.confirm = function (title, body, okLabel = 'Confirmer', okCls = 'btn-primary') {
+    return new Promise(res => {
+      let done = false;
+      const md = TC.modal(`<h2>${title}</h2><div class="modal-body">${body}</div>
+        <div class="modal-actions"><button class="btn btn-ghost" data-close>Annuler</button><button class="btn ${okCls}" data-ok>${okLabel}</button></div>`,
+        { onClose: () => { if (!done) res(false); } });
+      md.el.querySelector('[data-ok]').onclick = () => { done = true; md.close(); res(true); };
+    });
+  };
+
+  /* ---------- Confettis ---------- */
+  TC.confetti = function (n = 160) {
+    const c = TC.$('#confetti'); const ctx = c.getContext('2d');
+    c.width = innerWidth; c.height = innerHeight;
+    const cols = ['#ffd166', '#06d6a0', '#ef476f', '#118ab2', '#f78c6b', '#ffffff', '#c77dff'];
+    const ps = Array.from({ length: n }, () => ({ x: innerWidth / 2 + (Math.random() - .5) * 200, y: innerHeight / 3, vx: (Math.random() - .5) * 16, vy: -Math.random() * 14 - 4, r: Math.random() * 6 + 3, c: cols[Math.random() * cols.length | 0], a: Math.random() * 6, va: (Math.random() - .5) * .4 }));
+    let f = 0;
+    (function loop() {
+      ctx.clearRect(0, 0, c.width, c.height);
+      ps.forEach(p => { p.x += p.vx; p.y += p.vy; p.vy += .35; p.vx *= .99; p.a += p.va; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.a); ctx.fillStyle = p.c; ctx.fillRect(-p.r, -p.r / 2, p.r * 2, p.r); ctx.restore(); });
+      if (++f < 200) requestAnimationFrame(loop); else ctx.clearRect(0, 0, c.width, c.height);
+    })();
+  };
+
+  /* ---------- Mini graphique (sparkline SVG) ---------- */
+  TC.spark = function (arr, w = 64, h = 22) {
+    if (!arr || arr.length < 2) return `<svg width="${w}" height="${h}"></svg>`;
+    const mn = Math.min(...arr), mx = Math.max(...arr), r = mx - mn || 1;
+    const pts = arr.map((v, i) => `${(i / (arr.length - 1) * w).toFixed(1)},${(h - 2 - (v - mn) / r * (h - 4)).toFixed(1)}`).join(' ');
+    const up = arr[arr.length - 1] >= arr[0];
+    return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><polyline fill="none" stroke="${up ? 'var(--up)' : 'var(--down)'}" stroke-width="1.5" points="${pts}"/></svg>`;
+  };
+})();
