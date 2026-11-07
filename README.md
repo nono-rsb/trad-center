@@ -6,7 +6,7 @@ Jeu de trading **avec les vrais cours du marché**. Vous partez avec **10 €**,
 
 Aucune installation : c'est un site statique (HTML/CSS/JS, sans build).
 
-- **En ligne** : activez GitHub Pages (Settings → Pages → Source : *GitHub Actions*). Le workflow `.github/workflows/pages.yml` publie le jeu à chaque push sur `main`.
+- **En ligne** : <https://nono-rsb.github.io/trad-center/> — le workflow `.github/workflows/pages.yml` republie le jeu sur la branche `gh-pages` à chaque push sur `main`.
 - **En local** : `python3 -m http.server 8000` dans le dossier puis ouvrez <http://localhost:8000>. (Un double-clic sur `index.html` fonctionne aussi.)
 
 La partie est sauvegardée automatiquement dans le navigateur (export/import possible dans ⚙️ Paramètres).
