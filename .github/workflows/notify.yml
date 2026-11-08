@@ -1,0 +1,31 @@
+name: Notifications push
+
+# Serveur de notifications : envois d'argent, demandes d'ami, gros mouvements de marché, alertes de prix.
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: notify
+  cancel-in-progress: false
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Installer
+        working-directory: scripts
+        run: npm install --no-save --no-audit --no-fund firebase@10.14.1 web-push@3.6.7
+      - name: Envoyer les notifications
+        run: node scripts/notify.mjs
+        env:
+          PUSH_SECRET: ${{ secrets.PUSH_SECRET }}

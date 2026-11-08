@@ -43,6 +43,10 @@ Yahoo Finance n'autorisant pas les appels directs depuis un navigateur, le jeu p
 
 Comptes par e-mail, partie sauvegardée en ligne, amis, envois d'euros ou de crypto/actions entre amis, classement amis et mondial. Il s'appuie sur Firebase (gratuit) : activation en 5 minutes, voir **[FIREBASE.md](FIREBASE.md)**. Tant que ce n'est pas activé, le jeu fonctionne normalement hors ligne.
 
+## 🔔 Notifications
+
+Envois reçus, demandes d'ami, grosses hausses/chutes des marchés et alertes de prix personnalisées, même appli fermée (Web Push). Voir **[NOTIFICATIONS.md](NOTIFICATIONS.md)**.
+
 ## 🗂️ Structure
 
 ```
@@ -59,6 +63,8 @@ js/app.js       événements, boucles, notifications
 js/config.js    configuration Firebase (mode en ligne)
 js/net.js       comptes, sauvegarde cloud, amis, envois, classement
 js/social.js    onglet Amis
+js/notify.js    notifications (réglages, alertes, détection en direct, abonnement push)
+scripts/notify.mjs  serveur de notifications (GitHub Actions toutes les 5 min)
 firebase/firestore.rules  règles de sécurité du serveur
 js/vendor/      Lightweight Charts 4.1.3 (Apache 2.0)
 ```

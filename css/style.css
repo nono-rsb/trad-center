@@ -374,3 +374,14 @@ table.log td { font-size: 12px; padding: 6px 8px; }
 @media (max-width: 900px) { .tabs button span { font-size: 8.5px; } .tabs button { font-size: 18px; } }
 @media (max-width: 480px) { .brow { grid-template-columns: 28px 32px 1fr auto; } .brow small { display: none; } }
 @media (max-width: 480px) { #b-install { display: none !important; } }
+
+/* ---------- Notifications ---------- */
+.nbox { background: var(--bg2); border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin-bottom: 10px; font-size: 14px; }
+.nbox.warn { border-color: rgba(255,159,28,.5); color: var(--warn); }
+.nbox.ok { border-color: rgba(22,199,132,.5); }
+.tgl { display: flex; gap: 10px; align-items: center; padding: 8px 0; cursor: pointer; }
+.tgl input { width: 20px; height: 20px; accent-color: var(--accent); }
+.nalert-add { display: grid; gap: 8px; margin: 8px 0 14px; }
+.nalert-add .inp { margin: 0; }
+#n-pr { margin: 6px 0; }
+@media (max-width: 480px) { #b-help { display: none; } }
