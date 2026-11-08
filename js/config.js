@@ -21,3 +21,6 @@ TC.FIREBASE = {
   appId: "1:123:web:abc"
 };
 */
+
+// Clé publique des notifications push (la clé privée est le secret GitHub PUSH_SECRET)
+TC.VAPID_PUBLIC = "BH71jgQBcP3LTn-ZYwpUaUWSDvsLzP0Q7Ogxi6U7q0XEr1PZdeW6XbdARS2U5_fdv33kkgYRazGaJyRACYazG-k";

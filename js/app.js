@@ -183,6 +183,7 @@
       <h4>Sources de données</h4>
       <div class="kv"><span>Crypto (Binance)</span><b>${h.binance}</b><span>Bourse (Yahoo Finance)</span><b>${h.yahoo}</b><span>Devises</span><b>${D.fxStatus}</b><span>1 € =</span><b>${fmt.num(D.fx.USD, 4)} $</b></div>
       <p class="hint">Si votre réseau bloque une source, le jeu utilise le dernier cours connu puis une simulation (badge SIM) jusqu'au retour de la connexion.</p>
+      <div class="modal-actions left"><button class="btn" id="b-help2">❔ Aide</button><button class="btn" id="b-notif2">🔔 Notifications</button></div>
       <h4>Application</h4>
       <button class="btn" id="b-install2">📲 Installer sur l'écran d'accueil</button>
       <h4>Son et vibrations</h4>
@@ -193,6 +194,8 @@
       <button class="btn btn-sell" id="b-reset">🗑️ Recommencer une partie à 10 €</button>
       </div>`);
     md.el.querySelector('#b-install2').onclick = () => install();
+    md.el.querySelector('#b-help2').onclick = () => help();
+    md.el.querySelector('#b-notif2').onclick = () => TC.Notif.open();
     md.el.querySelector('#b-sound2').onclick = e => { S().sound = !S().sound; G.save(); UI.header(); e.target.textContent = S().sound ? '🔊 Activés — couper' : '🔇 Coupés — activer'; };
     md.el.querySelector('#b-reset').onclick = async () => {
       if (await TC.confirm('Tout effacer ?', 'Votre argent, vos positions et vos biens seront perdus. Les succès sont conservés.', 'Recommencer', 'btn-sell')) { G.reset(true); location.reload(); }
@@ -263,6 +266,11 @@
     TC.onImages(() => { if (['car', 'estate', 'luxury', 'collection'].includes(UI.tab)) UI.refreshTab(); UI.header(); });
     setTimeout(() => TC.loadImages(), 300);
     try { const s = localStorage.getItem('tradcenter.sel'); if (s && TC.assetById[s]) UI.sel = s; } catch (e) { }
+    // liens ouverts depuis une notification : ?a=BTC ou ?tab=social
+    const qs = new URLSearchParams(location.search);
+    if (qs.get('a') && TC.assetById[qs.get('a')]) UI.sel = qs.get('a');
+    if (qs.get('tab')) setTimeout(() => setTab(qs.get('tab')), 0);
+    if (qs.toString()) history.replaceState(null, '', location.pathname);
     TC.Chart.init($('#chart'));
     UI.cats(); UI.list(); UI.tfButtons(); UI.ticker(); UI.databar();
     UI.chartHead(); UI.order(); UI.header();
