@@ -47,6 +47,7 @@
     window.scrollTo({ top: 0 });
   }
   TC.goto = id => { setTab('markets'); select(id); };
+  TC.App = { setTab, after: () => afterAction() };
 
   /* ---------------- Événements ---------------- */
   document.addEventListener('click', async e => {
@@ -182,6 +183,8 @@
       <h4>Sources de données</h4>
       <div class="kv"><span>Crypto (Binance)</span><b>${h.binance}</b><span>Bourse (Yahoo Finance)</span><b>${h.yahoo}</b><span>Devises</span><b>${D.fxStatus}</b><span>1 € =</span><b>${fmt.num(D.fx.USD, 4)} $</b></div>
       <p class="hint">Si votre réseau bloque une source, le jeu utilise le dernier cours connu puis une simulation (badge SIM) jusqu'au retour de la connexion.</p>
+      <h4>Application</h4>
+      <button class="btn" id="b-install2">📲 Installer sur l'écran d'accueil</button>
       <h4>Son et vibrations</h4>
       <button class="btn" id="b-sound2">${S().sound ? '🔊 Activés — couper' : '🔇 Coupés — activer'}</button>
       <h4>Sauvegarde</h4>
@@ -189,6 +192,7 @@
       <h4>Zone dangereuse</h4>
       <button class="btn btn-sell" id="b-reset">🗑️ Recommencer une partie à 10 €</button>
       </div>`);
+    md.el.querySelector('#b-install2').onclick = () => install();
     md.el.querySelector('#b-sound2').onclick = e => { S().sound = !S().sound; G.save(); UI.header(); e.target.textContent = S().sound ? '🔊 Activés — couper' : '🔇 Coupés — activer'; };
     md.el.querySelector('#b-reset').onclick = async () => {
       if (await TC.confirm('Tout effacer ?', 'Votre argent, vos positions et vos biens seront perdus. Les succès sont conservés.', 'Recommencer', 'btn-sell')) { G.reset(true); location.reload(); }
@@ -254,6 +258,7 @@
   /* ---------------- Démarrage ---------------- */
   function boot() {
     if (!standalone()) $('#b-install').hidden = false;
+    TC.Net.init();
     if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => { });
     TC.onImages(() => { if (['car', 'estate', 'luxury', 'collection'].includes(UI.tab)) UI.refreshTab(); UI.header(); });
     setTimeout(() => TC.loadImages(), 300);

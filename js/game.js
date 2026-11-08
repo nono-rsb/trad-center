@@ -35,10 +35,19 @@
   let saveT = null;
   G.save = function (now) {
     clearTimeout(saveT);
+    G.state.updatedAt = Date.now();
     const w = () => { try { localStorage.setItem(KEY, JSON.stringify(G.state)); } catch (e) { } };
+    if (TC.Net && TC.Net.queueSync) TC.Net.queueSync();
     if (now) w(); else saveT = setTimeout(w, 400);
   };
-  window.addEventListener('beforeunload', () => G.save(true));
+  window.addEventListener('beforeunload', () => { try { localStorage.setItem(KEY, JSON.stringify(G.state)); } catch (e) { } });
+
+  // Remplace la partie par une autre (ex. sauvegarde en ligne), sans toucher à sa date
+  G.adopt = function (st) {
+    const f = fresh();
+    G.state = Object.assign(f, st, { stats: Object.assign(f.stats, st.stats || {}) });
+    try { localStorage.setItem(KEY, JSON.stringify(G.state)); } catch (e) { }
+  };
 
   G.reset = function (keepAch) {
     const old = G.state;
@@ -297,6 +306,48 @@
     TC.ACHIEVEMENTS.forEach(a => { if (has[a.id] && !s.ach[a.id]) { s.ach[a.id] = Date.now(); got.push(a); } });
     if (got.length) G.save();
     return got;
+  };
+
+  /* ---------------- TRANSFERTS ENTRE AMIS ---------------- */
+  // Retire du portefeuille ce qui va être envoyé. Renvoie le contenu du transfert.
+  G.takeForTransfer = function (kind, asset, amount) {
+    amount = +amount;
+    if (!(amount > 0)) return err('Montant invalide');
+    if (kind === 'cash') {
+      if (amount < 0.01) return err('Minimum : 0,01 €');
+      if (amount > S().cash + 1e-9) return err('Cash insuffisant');
+      amount = Math.min(amount, S().cash);
+      S().cash -= amount;
+      return { ok: true, kind, asset: null, qty: amount, eur: amount };
+    }
+    const h = S().holdings[asset]; const p = px(asset);
+    if (!h || h.qty <= 0) return err('Vous ne détenez pas cet actif');
+    if (!p) return err('Prix indisponible pour le moment');
+    if (amount > h.qty * 1.0001) return err('Quantité insuffisante');
+    const qty = Math.min(amount, h.qty);
+    const costPart = h.cost * qty / h.qty;
+    h.qty -= qty; h.cost -= costPart;
+    if (h.qty <= 1e-12) delete S().holdings[asset];
+    return { ok: true, kind, asset, qty, eur: qty * p, cost: costPart };
+  };
+  // Remet en place un envoi qui a échoué
+  G.refundTransfer = function (t) {
+    if (t.kind === 'cash') S().cash += t.qty;
+    else { const h = S().holdings[t.asset] || { qty: 0, cost: 0 }; h.qty += t.qty; h.cost += t.cost || t.eur; S().holdings[t.asset] = h; }
+    G.save(); emit('trade', { kind: 'refund' });
+  };
+  G.logSent = function (t, toPseudo) {
+    log({ kind: 'send', asset: t.asset, qty: t.kind === 'cash' ? null : t.qty, eur: t.eur, who: toPseudo });
+    S().stats.sent = (S().stats.sent || 0) + t.eur;
+    G.save(true); emit('trade', { kind: 'send' });
+  };
+  G.receive = function (t) {
+    if (t.kind === 'cash') S().cash += t.qty;
+    else if (TC.assetById[t.asset]) { const h = S().holdings[t.asset] || { qty: 0, cost: 0 }; h.qty += t.qty; h.cost += t.eur; S().holdings[t.asset] = h; }
+    else S().cash += t.eur;
+    log({ kind: 'recv', asset: t.asset, qty: t.kind === 'cash' ? null : t.qty, eur: t.eur, who: t.fromPseudo, msg: t.msg });
+    S().stats.received = (S().stats.received || 0) + t.eur;
+    G.save(true); emit('trade', { kind: 'recv' });
   };
 
   G.toggleFav = function (id) {

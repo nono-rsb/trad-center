@@ -39,6 +39,10 @@ Yahoo Finance n'autorisant pas les appels directs depuis un navigateur, le jeu p
 - **💎 Luxe** : Rolex, Patek Philippe, Richard Mille, Birkin, hélicoptère, yachts, jets, club de foot, fusée…
 - **🎯 Objectif**, **🏆 Collection** (revente possible), **🎖️ 28 succès**, **11 rangs** (de « Fauché » à « Maître du monde »), **🎁 bonus quotidien** de 10 €, graphique de patrimoine, historique complet.
 
+## 👥 Mode en ligne
+
+Comptes par e-mail, partie sauvegardée en ligne, amis, envois d'euros ou de crypto/actions entre amis, classement amis et mondial. Il s'appuie sur Firebase (gratuit) : activation en 5 minutes, voir **[FIREBASE.md](FIREBASE.md)**. Tant que ce n'est pas activé, le jeu fonctionne normalement hors ligne.
+
 ## 🗂️ Structure
 
 ```
@@ -52,6 +56,10 @@ js/images.js    vraies photos (API Wikipedia, cache 7 jours)
 sw.js, manifest.webmanifest, icons/   appli installable (écran d'accueil, hors ligne)
 js/ui.js        rendu de l'interface
 js/app.js       événements, boucles, notifications
+js/config.js    configuration Firebase (mode en ligne)
+js/net.js       comptes, sauvegarde cloud, amis, envois, classement
+js/social.js    onglet Amis
+firebase/firestore.rules  règles de sécurité du serveur
 js/vendor/      Lightweight Charts 4.1.3 (Apache 2.0)
 ```
 
