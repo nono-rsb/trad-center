@@ -9,6 +9,8 @@ Aucune installation : c'est un site statique (HTML/CSS/JS, sans build).
 - **En ligne** : <https://nono-rsb.github.io/trad-center/> — le workflow `.github/workflows/pages.yml` republie le jeu sur la branche `gh-pages` à chaque push sur `main`.
 - **En local** : `python3 -m http.server 8000` dans le dossier puis ouvrez <http://localhost:8000>. (Un double-clic sur `index.html` fonctionne aussi.)
 
+**📲 Sur l'écran d'accueil** : sur iPhone, Safari → Partager → « Sur l'écran d'accueil ». Sur Android, Chrome → ⋮ → « Installer l'application ». Le jeu s'ouvre alors en plein écran avec son logo, comme une vraie appli.
+
 La partie est sauvegardée automatiquement dans le navigateur (export/import possible dans ⚙️ Paramètres).
 
 ## 📊 Des cours réels
@@ -46,6 +48,8 @@ js/catalog.js   marchés, boutique, succès, rangs
 js/data.js      flux de prix réels (Binance, Yahoo, BCE, CoinGecko) + repli
 js/game.js      moteur : portefeuille, levier, liquidations, paris, achats, loyers
 js/chart.js     graphiques (TradingView Lightweight Charts, repli canvas)
+js/images.js    vraies photos (API Wikipedia, cache 7 jours)
+sw.js, manifest.webmanifest, icons/   appli installable (écran d'accueil, hors ligne)
 js/ui.js        rendu de l'interface
 js/app.js       événements, boucles, notifications
 js/vendor/      Lightweight Charts 4.1.3 (Apache 2.0)

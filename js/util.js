@@ -61,6 +61,7 @@
   }
   TC.sound = function (kind) {
     if (!TC.Game || !TC.Game.state.sound) return;
+    try { if (navigator.vibrate && kind !== 'click') navigator.vibrate(kind === 'lose' ? [40, 60, 40] : kind === 'cash' || kind === 'ach' || kind === 'win' ? [20, 40, 20, 40, 60] : 15); } catch (e) { }
     try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === 'suspended') ac.resume(); } catch (e) { return; }
     const seq = {
       buy: [[523, 0, .12], [784, .08, .18]],

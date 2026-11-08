@@ -57,7 +57,8 @@
     const it = TC.shopById[S().goal]; const el = $('#goalbar');
     if (!it) { el.innerHTML = ''; return; }
     const pct = Math.min(100, nw / it.price * 100);
-    el.innerHTML = `<span class="g-label">🎯 Objectif</span><span class="g-item">${it.emoji} ${esc(it.brand)} ${esc(it.model)}</span>
+    const src = TC.img(it.id);
+    el.innerHTML = `<span class="g-label">🎯 Objectif</span>${src ? `<img class="g-img" src="${src}" alt="" referrerpolicy="no-referrer">` : ''}<span class="g-item">${src ? '' : it.emoji + ' '}${esc(it.brand)} ${esc(it.model)}</span>
       <div class="g-bar"><i style="width:${Math.max(0.5, pct)}%"></i></div><span class="g-pct">${pct >= 100 ? '✅ Atteint !' : fmt.num(pct, pct < 1 ? 4 : 2) + ' %'}</span>
       <span class="g-price">${fmt.eur(it.price)}</span>`;
   };
@@ -360,16 +361,34 @@
       <div class="shop-grid">${items.map(it => {
         const can = cash >= it.price; const pct = Math.min(100, cash / it.price * 100); const n = ownedCount(it.id);
         const rent = type === 'estate' ? `<div class="rent">🏠 Loyer : <b>${fmt.eur(it.price * TC.RENT_RATE_PER_HOUR)}/h</b></div>` : '';
-        return `<div class="item ${can ? 'can' : ''}">
-          <div class="item-vis" style="background:linear-gradient(135deg,${it.grad[0]},${it.grad[1]})"><span>${it.emoji}</span>${n ? `<i class="owned">✔ ${n > 1 ? n + '× ' : ''}possédé</i>` : ''}${S().goal === it.id ? '<i class="isgoal">🎯 Objectif</i>' : ''}</div>
+        return `<div class="item ${can ? 'can' : ''}" data-item="${it.id}">
+          ${TC.itemVis(it, '', `${n ? `<i class="owned">✔ ${n > 1 ? n + '× ' : ''}possédé</i>` : ''}${S().goal === it.id ? '<i class="isgoal">🎯 Objectif</i>' : ''}${TC.imgPage(it.id) ? `<a class="credit" href="${TC.imgPage(it.id)}" target="_blank" rel="noopener" title="Photo : Wikipedia / Wikimedia Commons">ⓘ</a>` : ''}`)}
           <div class="item-body"><small>${esc(it.brand)}</small><h3>${esc(it.model)}</h3>
             <div class="specs">${Object.entries(it.specs).map(([k, v]) => `<span>${esc(k)} <b>${esc(v)}</b></span>`).join('')}</div>${rent}
             <div class="item-price">${fmt.eur(it.price)}</div>
             <div class="prog"><i style="width:${Math.max(0.5, pct)}%"></i></div>
-            <div class="prog-l">${can ? '✅ Vous pouvez l\'acheter' : `Il manque ${fmt.eur(it.price - cash, true)} · ${fmt.num(pct, pct < 1 ? 3 : 1)} %`}</div>
+            <div class="prog-l" data-progl>${can ? '✅ Vous pouvez l\'acheter' : `Il manque ${fmt.eur(it.price - cash, true)} · ${fmt.num(pct, pct < 1 ? 3 : 1)} %`}</div>
             <div class="item-actions"><button class="btn ${can ? 'btn-gold' : ''}" data-buyitem="${it.id}" ${can ? '' : 'disabled'}>Acheter</button><button class="btn btn-ghost btn-sm" data-goal="${it.id}" title="Définir comme objectif">🎯</button></div>
           </div></div>`;
       }).join('')}</div>`;
+  };
+
+  // mise à jour légère (sans redessiner les photos)
+  UI.shopUpdate = function (type) {
+    const cash = S().cash; const root = $('#tab-' + type);
+    const cb = root.querySelector('.shop-cash b'); if (cb) cb.textContent = fmt.eur(cash);
+    root.querySelectorAll('.item[data-item]').forEach(card => {
+      const it = TC.shopById[card.dataset.item]; const can = cash >= it.price; const pct = Math.min(100, cash / it.price * 100);
+      card.classList.toggle('can', can);
+      card.querySelector('.prog i').style.width = Math.max(0.5, pct) + '%';
+      card.querySelector('[data-progl]').textContent = can ? '✅ Vous pouvez l\'acheter' : `Il manque ${fmt.eur(it.price - cash, true)} · ${fmt.num(pct, pct < 1 ? 3 : 1)} %`;
+      const btn = card.querySelector('[data-buyitem]'); btn.disabled = !can; btn.classList.toggle('btn-gold', can);
+    });
+  };
+  UI.liveTab = function () {
+    if (UI.tab === 'portfolio') UI.portfolio();
+    else if (UI.tab === 'car' || UI.tab === 'estate' || UI.tab === 'luxury') UI.shopUpdate(UI.tab);
+    else if (UI.tab === 'collection') { const el = $('#rent-pend'); if (el) el.textContent = fmt.eur(G.pendingRent()); const b = $('#b-rent'); if (b) b.disabled = G.pendingRent() < 0.01; }
   };
 
   /* ================= COLLECTION ================= */
@@ -379,12 +398,15 @@
     const rph = G.rentPerHour(); const pend = G.pendingRent();
     const card = o => {
       const it = TC.shopById[o.item];
-      return `<div class="item own"><div class="item-vis sm" style="background:linear-gradient(135deg,${it.grad[0]},${it.grad[1]})"><span>${it.emoji}</span></div>
+      return `<div class="item own">${TC.itemVis(it, 'sm')}
         <div class="item-body"><small>${esc(it.brand)}</small><h3>${esc(it.model)}</h3>
         <div class="specs"><span>Acheté <b>${fmt.eur(o.price)}</b></span><span>Le <b>${new Date(o.t).toLocaleDateString('fr-FR')}</b></span>${it.type === 'estate' ? `<span>Loyer <b>${fmt.eur(o.price * TC.RENT_RATE_PER_HOUR)}/h</b></span>` : ''}</div>
         <button class="btn btn-sm btn-ghost" data-sellitem="${o.uid}">Revendre ${fmt.eur(G.itemResale(o))}</button></div></div>`;
     };
+    const star = s.owned.slice().sort((a, b) => b.price - a.price)[0];
+    const starIt = star && TC.shopById[star.item];
     $('#tab-collection').innerHTML = `
+      ${starIt ? `<div class="hero">${TC.itemVis(starIt, 'hero-vis')}<div class="hero-txt"><small>⭐ Pièce maîtresse</small><h2>${esc(starIt.brand)} ${esc(starIt.model)}</h2><b>${fmt.eur(star.price)}</b></div></div>` : ''}
       <div class="cards">
         <div class="card"><span>🏆</span><label>Objets possédés</label><b>${s.owned.length}</b></div>
         <div class="card"><span>✨</span><label>Prestige</label><b>${fmt.num(G.prestige(), 0)}</b></div>
