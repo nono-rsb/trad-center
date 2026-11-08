@@ -106,7 +106,7 @@
     if (b && b.dataset.goal) { S().goal = b.dataset.goal; G.save(); UI.header(); UI.refreshTab(); TC.toast('🎯 Nouvel objectif défini', 'info'); return; }
     if (b && b.dataset.buyitem) {
       const it = TC.shopById[b.dataset.buyitem];
-      if (!(await TC.confirm(`${it.emoji} ${it.brand} ${it.model}`, `<div class="buy-vis" style="background:linear-gradient(135deg,${it.grad[0]},${it.grad[1]})">${it.emoji}</div>Acheter pour <b>${fmt.eur(it.price)}</b> ?<br><small>${TC.SHOP_TYPES[it.type].note}</small>`, 'Acheter 🔑', 'btn-gold'))) return;
+      if (!(await TC.confirm(`${it.emoji} ${it.brand} ${it.model}`, `${TC.itemVis(it, 'modal-vis')}Acheter pour <b>${fmt.eur(it.price)}</b> ?<br><small>${TC.SHOP_TYPES[it.type].note}</small>`, 'Acheter 🔑', 'btn-gold'))) return;
       const r = G.buyItem(it.id); notify(r);
       if (r.ok) { TC.sound('cash'); TC.confetti(); celebrate(it); afterAction(); }
       return;
@@ -121,6 +121,7 @@
     if (b && b.id === 'b-bonus') { const r = G.claimBonus(); notify(r); if (r.ok) { TC.sound('cash'); TC.confetti(60); afterAction(); } return; }
     if (b && b.id === 'b-sound') { S().sound = !S().sound; G.save(); UI.header(); if (S().sound) TC.sound('click'); return; }
     if (b && b.id === 'b-help') return help();
+    if (b && b.id === 'b-install') return install();
     if (b && b.id === 'b-settings') return settings();
   });
 
@@ -135,7 +136,7 @@
   });
 
   function celebrate(it) {
-    TC.modal(`<div class="center"><div class="buy-vis xl" style="background:linear-gradient(135deg,${it.grad[0]},${it.grad[1]})">${it.emoji}</div>
+    TC.modal(`<div class="center">${TC.itemVis(it, 'modal-vis xl')}
       <h2>${it.brand} ${it.model}</h2><p>est désormais à vous ! Retrouvez-la dans votre <b>Collection</b>.</p>
       ${it.type === 'estate' ? `<p>🏠 Ce bien vous rapporte <b>${fmt.eur(it.price * TC.RENT_RATE_PER_HOUR)}</b> de loyer chaque heure.</p>` : ''}
       <div class="modal-actions"><button class="btn btn-gold" data-close>Génial ! 🎉</button></div></div>`);
@@ -156,17 +157,39 @@
       </div><div class="modal-actions"><button class="btn btn-gold" data-close>C'est parti ! 🚀</button></div>`, { cls: 'wide', onClose: () => { if (!S().seenIntro) { S().seenIntro = true; G.save(); } } });
   }
 
+  /* ---------------- Installation (écran d'accueil) ---------------- */
+  let deferredPrompt = null;
+  const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; $('#b-install').hidden = false; });
+  window.addEventListener('appinstalled', () => { $('#b-install').hidden = true; TC.toast('📲 Trad Center est installé sur votre écran d\'accueil !', 'ok'); });
+  async function install() {
+    if (deferredPrompt) { deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; return; }
+    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    TC.modal(`<div class="center"><img src="icons/icon-192.png" class="install-icon" alt=""><h2>Mettre Trad Center sur l'écran d'accueil</h2></div>
+      <div class="modal-body help">${ios ? `
+        <p><b>Sur iPhone / iPad (Safari) :</b></p>
+        <p>1. Touchez le bouton <b>Partager</b> <span class="kbd">⬆️</span> en bas de Safari.</p>
+        <p>2. Choisissez <b>« Sur l'écran d'accueil »</b> <span class="kbd">➕</span>.</p>
+        <p>3. Touchez <b>Ajouter</b>. L'icône Trad Center apparaît comme une vraie appli, en plein écran.</p>` : `
+        <p><b>Sur Android (Chrome) :</b> menu <span class="kbd">⋮</span> → <b>« Installer l'application »</b> ou <b>« Ajouter à l'écran d'accueil »</b>.</p>
+        <p><b>Sur ordinateur (Chrome / Edge) :</b> icône d'installation <span class="kbd">⊕</span> à droite de la barre d'adresse.</p>`}
+      </div><div class="modal-actions"><button class="btn btn-gold" data-close>OK</button></div>`);
+  }
+
   function settings() {
     const h = D.health;
     const md = TC.modal(`<h2>⚙️ Paramètres</h2><div class="modal-body">
       <h4>Sources de données</h4>
       <div class="kv"><span>Crypto (Binance)</span><b>${h.binance}</b><span>Bourse (Yahoo Finance)</span><b>${h.yahoo}</b><span>Devises</span><b>${D.fxStatus}</b><span>1 € =</span><b>${fmt.num(D.fx.USD, 4)} $</b></div>
       <p class="hint">Si votre réseau bloque une source, le jeu utilise le dernier cours connu puis une simulation (badge SIM) jusqu'au retour de la connexion.</p>
+      <h4>Son et vibrations</h4>
+      <button class="btn" id="b-sound2">${S().sound ? '🔊 Activés — couper' : '🔇 Coupés — activer'}</button>
       <h4>Sauvegarde</h4>
       <div class="modal-actions left"><button class="btn" id="b-export">📤 Exporter</button><button class="btn" id="b-import">📥 Importer</button></div>
       <h4>Zone dangereuse</h4>
       <button class="btn btn-sell" id="b-reset">🗑️ Recommencer une partie à 10 €</button>
       </div>`);
+    md.el.querySelector('#b-sound2').onclick = e => { S().sound = !S().sound; G.save(); UI.header(); e.target.textContent = S().sound ? '🔊 Activés — couper' : '🔇 Coupés — activer'; };
     md.el.querySelector('#b-reset').onclick = async () => {
       if (await TC.confirm('Tout effacer ?', 'Votre argent, vos positions et vos biens seront perdus. Les succès sont conservés.', 'Recommencer', 'btn-sell')) { G.reset(true); location.reload(); }
     };
@@ -222,11 +245,7 @@
     });
     if (res.length) afterAction();
     UI.orderLive();
-    if (UI.tab !== 'markets' && slow % 2 === 0) {
-      // évite de détruire un bouton pendant un clic : rafraîchit seulement si aucun survol actif dans un formulaire
-      UI.refreshTab();
-    }
-    if (UI.tab === 'collection') { const el = $('#rent-pend'); if (el) el.textContent = fmt.eur(G.pendingRent()); }
+    if (UI.tab !== 'markets' && (slow % 2 === 0 || UI.tab === 'collection')) UI.liveTab();
     UI.header();
     if (slow % 30 === 0) { G.sampleNW(); G.save(); checkAch(); }
     checkBroke();
@@ -234,6 +253,10 @@
 
   /* ---------------- Démarrage ---------------- */
   function boot() {
+    if (!standalone()) $('#b-install').hidden = false;
+    if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => { });
+    TC.onImages(() => { if (['car', 'estate', 'luxury', 'collection'].includes(UI.tab)) UI.refreshTab(); UI.header(); });
+    setTimeout(() => TC.loadImages(), 300);
     try { const s = localStorage.getItem('tradcenter.sel'); if (s && TC.assetById[s]) UI.sel = s; } catch (e) { }
     TC.Chart.init($('#chart'));
     UI.cats(); UI.list(); UI.tfButtons(); UI.ticker(); UI.databar();
