@@ -322,14 +322,15 @@
       const p = D.eur(b.asset); const winning = p != null && ((p > b.start) === (b.dir === 'up')) && p !== b.start;
       return `<tr><td><b>${b.asset}</b></td><td>${b.dir === 'up' ? '📈 Hausse' : '📉 Baisse'}</td><td>${fmt.eur(b.stake)}</td><td>${fmt.eur(b.start)}</td><td>${fmt.eur(p)}</td><td class="${winning ? 'up' : 'down'}"><b>${winning ? 'Gagnant' : 'Perdant'}</b></td><td>${fmt.dur(b.end - Date.now())}</td></tr>`;
     }).join('');
-    const LOGL = { buy: '🟢 Achat', sell: '🔴 Vente', open: '⚡ Ouverture', close: '✅ Clôture', liq: '💀 Liquidation', bet: '🎲 Pari', betres: '🎲 Résultat pari', item: '🛍️ Achat', itemsell: '♻️ Revente', rent: '🏠 Loyers', bonus: '🎁 Bonus' };
+    const LOGL = { buy: '🟢 Achat', sell: '🔴 Vente', open: '⚡ Ouverture', close: '✅ Clôture', liq: '💀 Liquidation', bet: '🎲 Pari', betres: '🎲 Résultat pari', item: '🛍️ Achat', itemsell: '♻️ Revente', rent: '🏠 Loyers', bonus: '🎁 Bonus', send: '📤 Envoi', recv: '📥 Reçu' };
     const lrow = s.log.slice(0, 80).map(l => {
-      const name = l.item ? (TC.shopById[l.item].brand + ' ' + TC.shopById[l.item].model) : (l.asset || '');
+      const name = l.item ? (TC.shopById[l.item].brand + ' ' + TC.shopById[l.item].model) : (l.kind === 'send' || l.kind === 'recv') ? (l.asset ? '' : 'Euros') : (l.asset || '');
       let det = '';
       if (l.kind === 'buy' || l.kind === 'sell') det = `${fmt.qty(l.qty)} @ ${fmt.eur(l.price)}`;
       if (l.kind === 'open') det = `${l.side} x${l.lev} @ ${fmt.eur(l.price)}`;
       if (l.kind === 'close' || l.kind === 'liq') det = `${l.side} x${l.lev} @ ${fmt.eur(l.price)}${l.reason === 'sl' ? ' (stop-loss)' : l.reason === 'tp' ? ' (take-profit)' : ''}`;
       if (l.kind === 'bet') det = `${l.dir === 'up' ? 'hausse' : 'baisse'} ${l.minutes} min @ ${fmt.eur(l.price)}`;
+      if (l.kind === 'send' || l.kind === 'recv') det = `${l.kind === 'send' ? 'à' : 'de'} ${l.who || ''}${l.asset ? ' · ' + fmt.qty(l.qty) + ' ' + l.asset : ''}`;
       if (l.kind === 'betres') det = `${fmt.eur(l.start)} → ${fmt.eur(l.price)} (${l.result === 'win' ? 'gagné' : l.result === 'push' ? 'égalité' : 'perdu'})`;
       return `<tr><td><small>${fmt.time(l.t)}</small></td><td>${LOGL[l.kind] || l.kind}</td><td><b>${esc(name)}</b> <small>${det}</small></td><td>${fmt.eur(l.eur)}</td><td class="${cls(l.pnl)}">${l.pnl != null ? (l.pnl > 0 ? '+' : '') + fmt.eur(l.pnl) : ''}</td></tr>`;
     }).join('');
@@ -433,5 +434,6 @@
     else if (UI.tab === 'car' || UI.tab === 'estate' || UI.tab === 'luxury') UI.shop(UI.tab);
     else if (UI.tab === 'collection') UI.collection();
     else if (UI.tab === 'ach') UI.ach();
+    else if (UI.tab === 'social' && TC.Social) TC.Social.render();
   };
 })();
