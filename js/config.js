@@ -5,7 +5,14 @@
  * Laissez null pour jouer hors ligne uniquement.
  */
 window.TC = window.TC || {};
-TC.FIREBASE = null;
+TC.FIREBASE = {
+  apiKey: "AIzaSyBJW_UDJMEYtZ5c8zxeQwamwAvPHaKe3Vk",
+  authDomain: "trad-center.firebaseapp.com",
+  projectId: "trad-center",
+  storageBucket: "trad-center.firebasestorage.app",
+  messagingSenderId: "78742939889",
+  appId: "1:78742939889:web:951354d5d72568c2382150"
+};
 /* Exemple :
 TC.FIREBASE = {
   apiKey: "AIza...",
