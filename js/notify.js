@@ -108,7 +108,11 @@
     if (!supported()) throw new Error(isIOS() && !standalone() ? 'ios-install' : 'unsupported');
     const perm = await Notification.requestPermission();
     if (perm !== 'granted') throw new Error('denied');
-    if (pushSupported() && N.user && N.profile) await NT.subscribe();
+    if (pushSupported() && N.user && N.profile) {
+      try { await NT.subscribe(); }
+      catch (e) { console.warn('push', e); NT.pushError = (e && (e.code || e.message)) || 'erreur'; return 'local'; }
+    }
+    NT.pushError = null;
     return true;
   };
   NT.subscribe = async function () {
@@ -147,7 +151,7 @@
       : '<div class="nbox warn">Votre navigateur ne gère pas les notifications.</div>';
     else if (perm === 'denied') status = '<div class="nbox warn">🔕 Notifications bloquées. Autorisez-les dans les réglages du navigateur / du téléphone pour ce site, puis revenez ici.</div>';
     else if (perm !== 'granted') status = '<div class="nbox">🔔 Recevez une notification pour les envois d\'argent, les grosses hausses et chutes, et vos alertes de prix.</div><button class="btn btn-gold btn-xl" data-n="enable">🔔 Activer les notifications</button>';
-    else status = `<div class="nbox ok">✅ Notifications activées${NT.subscribed() ? ' — <b>même appli fermée</b>' : pushSupported() ? (N.user ? '' : ' (appli ouverte)') : ' (appli ouverte)'}.</div>
+    else status = (NT.pushError ? `<div class="nbox warn">⚠️ Le serveur de notifications a refusé l'abonnement (${esc(NT.pushError)}). Les notifications marchent quand l'appli est ouverte.</div>` : '') + `<div class="nbox ok">✅ Notifications activées${NT.subscribed() ? ' — <b>même appli fermée</b>' : pushSupported() ? (N.user ? '' : ' (appli ouverte)') : ' (appli ouverte)'}.</div>
       ${!NT.subscribed() && pushSupported() && N.user && N.profile ? '<button class="btn btn-gold" data-n="enable">📡 Recevoir aussi quand l\'appli est fermée</button>' : ''}
       ${!N.user && N.enabled ? '<p class="hint">Connectez-vous (onglet 👥 Amis) pour les recevoir aussi quand l\'appli est fermée et être prévenu des envois.</p>' : ''}`;
     const opts = TC.ASSETS.map(a => `<option value="${a.id}">${a.id} — ${esc(a.name)}</option>`).join('');
@@ -194,7 +198,12 @@
       }
       if (n === 'enable') {
         b.disabled = true;
-        try { await NT.enable(); md.close(); TC.toast('🔔 Notifications activées !', 'ok'); NT.show('🔔 Trad Center', 'Les notifications fonctionnent.', 'test'); NT.open(); }
+        try {
+          const r = await NT.enable(); md.close();
+          if (r === 'local') TC.toast('🔔 Notifications activées quand l\'appli est ouverte. Le serveur (appli fermée) n\'est pas encore prêt : réessayez plus tard.', 'info', 8000);
+          else TC.toast('🔔 Notifications activées !', 'ok');
+          NT.open();
+        }
         catch (er) {
           b.disabled = false;
           TC.toast(er.message === 'denied' ? '🔕 Vous avez refusé les notifications.' : er.message === 'ios-install' ? '📲 Installez d\'abord l\'appli sur l\'écran d\'accueil.' : '⚠️ Impossible d\'activer : ' + (er.message || er), 'bad', 6000);
