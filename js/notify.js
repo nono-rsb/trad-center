@@ -43,6 +43,7 @@
 
   /* ---------------- Affichage d'une notification ---------------- */
   NT.show = async function (title, body, tag, url, toastType = 'info') {
+    if (!document.hidden) TC.sound('kaching');
     if (!document.hidden) TC.toast(`<b>${esc(title)}</b>${body ? '<br>' + esc(body) : ''}`, toastType, 6000);
     if (!supported() || Notification.permission !== 'granted') return;
     if (!document.hidden) return; // appli à l'écran : le message suffit
@@ -98,7 +99,6 @@
   function moveNotif(a, ch, e, when, dir) {
     const t = `${dir === 'up' ? '🚀' : '📉'} ${a.name} ${fmt.pct(ch)} ${when}`;
     NT.show(t, `Cours : ${fmt.eur(e)}. ${dir === 'up' ? 'Grosse hausse' : 'Grosse chute'} en cours.`, `move-${a.id}-${dir}`, `?a=${a.id}`, dir === 'up' ? 'ok' : 'bad');
-    TC.sound(dir === 'up' ? 'win' : 'lose');
   }
   function checkAlerts(a, e) {
     const pr = prefs(); let changed = false;
@@ -106,7 +106,7 @@
       if (al.asset !== a.id) return true;
       const hit = al.op === '>' ? e >= al.price : e <= al.price;
       if (!hit) return true;
-      if (!NT.subscribed() || !document.hidden) { NT.show(`🎯 ${a.name} ${al.op === '>' ? 'a dépassé' : 'est passé sous'} ${fmt.eur(al.price)}`, `Cours actuel : ${fmt.eur(e)}`, `alert-${al.id}`, `?a=${a.id}`, 'ok'); TC.sound('ach'); }
+      if (!NT.subscribed() || !document.hidden) { NT.show(`🎯 ${a.name} ${al.op === '>' ? 'a dépassé' : 'est passé sous'} ${fmt.eur(al.price)}`, `Cours actuel : ${fmt.eur(e)}`, `alert-${al.id}`, `?a=${a.id}`, 'ok'); }
       changed = true; return false;
     });
     if (changed) { G.save(); NT.syncPrefs(); }
@@ -206,7 +206,7 @@
       ${!NT.subscribed() && pushSupported() && N.user && N.profile ? '<button class="btn btn-gold" data-n="enable">📡 Recevoir aussi quand l\'appli est fermée</button>' : ''}
       ${!N.user && N.enabled ? '<p class="hint">Connectez-vous (onglet 👥 Amis) pour les recevoir aussi quand l\'appli est fermée et être prévenu des envois.</p>' : ''}`;
     const key = await NT.serverKey();
-    const diag = `<p class="diag">Diagnostic : ${ios ? 'iPhone' : android ? 'Android' : 'ordinateur'} · appli installée : ${sa ? 'oui' : 'non'} · autorisation : ${supported() ? perm : 'indisponible'} · push : ${pushSupported() ? 'oui' : 'non'} · compte : ${N.user ? 'oui' : 'non'} · serveur : ${key ? 'prêt' : 'non'} · abonné : ${NT.subscribed() ? 'oui' : 'non'}${NT.lastStep ? ' · étape : ' + esc(NT.lastStep) : ''} · v12</p>`;
+    const diag = `<p class="diag">Diagnostic : ${ios ? 'iPhone' : android ? 'Android' : 'ordinateur'} · appli installée : ${sa ? 'oui' : 'non'} · autorisation : ${supported() ? perm : 'indisponible'} · push : ${pushSupported() ? 'oui' : 'non'} · compte : ${N.user ? 'oui' : 'non'} · serveur : ${key ? 'prêt' : 'non'} · abonné : ${NT.subscribed() ? 'oui' : 'non'}${NT.lastStep ? ' · étape : ' + esc(NT.lastStep) : ''} · v13</p>`;
     const opts = TC.ASSETS.map(a => `<option value="${a.id}">${a.id} — ${esc(a.name)}</option>`).join('');
     const md = TC.modal(`<h2>🔔 Notifications</h2><div class="modal-body">${status}
       <h4>Que voulez-vous recevoir ?</h4>
@@ -263,7 +263,7 @@
         }
         return;
       }
-      if (n === 'test') { const reg = await navigator.serviceWorker.getRegistration(); if (reg) reg.showNotification('🔔 Test Trad Center', { body: 'Les notifications fonctionnent !', icon: 'icons/icon-192.png', badge: 'icons/badge-96.png', tag: 'test' }); return; }
+      if (n === 'test') { TC.sound('kaching'); const reg = await navigator.serviceWorker.getRegistration(); if (reg) reg.showNotification('🔔 Test Trad Center', { body: 'Les notifications fonctionnent !', icon: 'icons/icon-192.png', badge: 'icons/badge-96.png', tag: 'test' }); return; }
       if (n === 'off') { await NT.disablePush(); md.close(); TC.toast('Notifications appli fermée désactivées', 'info'); return; }
       if (n === 'install') { md.close(); $('#b-install').click(); }
     });
@@ -280,4 +280,8 @@
     if (type === 'linked' && NT.subscribed() && supported() && Notification.permission === 'granted') NT.subscribe().catch(() => { });
   });
   document.addEventListener('click', e => { if (e.target.closest('#b-notif')) NT.open(); });
+  if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', ev => {
+    const d = ev.data || {}; if (d.type !== 'push' || document.hidden) return;
+    TC.sound('kaching'); TC.toast(`<b>${esc(d.title || '')}</b>${d.body ? '<br>' + esc(d.body) : ''}`, 'ach', 7000);
+  });
 })();

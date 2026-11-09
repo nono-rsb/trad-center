@@ -201,11 +201,11 @@
     if (type === 'change' || type === 'synced') { if (UI.tab === 'social' && !(type === 'synced' && document.activeElement && document.activeElement.closest && document.activeElement.closest('#tab-social'))) SO.render(); SO.headerBtn(); }
     if (type === 'received') {
       TC.toast(`<div class="t-ach"><span>${esc(d.fromAvatar || '💸')}</span><div><small>Vous avez reçu</small><b>${d.kind === 'cash' ? fmt.eur(d.eur) : fmt.qty(d.qty) + ' ' + esc(d.asset) + ' (' + fmt.eur(d.eur) + ')'}</b> de ${esc(d.fromPseudo)}${d.msg ? `<br><i>« ${esc(d.msg)} »</i>` : ''}</div></div>`, 'ach', 8000);
-      TC.sound('cash'); TC.confetti(120); TC.App && TC.App.after();
+      TC.sound('kaching'); TC.confetti(120); TC.App && TC.App.after();
     }
     if (type === 'referral') {
       TC.toast(`<div class="t-ach"><span>🎁</span><div><small>Parrainage validé</small><b>+${fmt.eur(d.eur)}</b> : ${esc(d.pseudo)} a rejoint Trad Center grâce à toi !</div></div>`, 'ach', 8000);
-      TC.sound('cash'); TC.confetti(120); TC.App && TC.App.after();
+      TC.sound('kaching'); TC.confetti(120); TC.App && TC.App.after();
     }
     if (type === 'request') { TC.toast(`👋 ${esc(d.fromPseudo)} vous demande en ami ! (onglet Amis)`, 'info', 6000); TC.sound('ach'); }
     if (type === 'askSave') {
