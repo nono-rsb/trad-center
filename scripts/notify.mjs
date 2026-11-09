@@ -13,7 +13,7 @@ import { fileURLToPath } from 'node:url';
 import webpush from 'web-push';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, connectAuthEmulator } from 'firebase/auth';
-import { getFirestore, connectFirestoreEmulator, collection, getDocs, doc, getDoc, writeBatch, updateDoc } from 'firebase/firestore/lite';
+import { getFirestore, connectFirestoreEmulator, collection, getDocs, doc, getDoc, writeBatch, updateDoc, query, where } from 'firebase/firestore/lite';
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PAGE = process.env.PAGE_URL || 'https://nono-rsb.github.io/trad-center/';
@@ -153,65 +153,91 @@ async function main() {
   }
 
   const st = loadState(); st.fired = st.fired || {}; st.done = st.done || {}; st.alerts = st.alerts || {}; st.dead = st.dead || {};
-  const users = (await getDocs(collection(db, 'users'))).docs.map(d => ({ uid: d.id, ...d.data() })).filter(u => !u.bot);
-  const pseudo = {}; users.forEach(u => { pseudo[u.uid] = u.pseudo; });
-  const subs = [];
-  users.forEach(u => Object.entries(u.push || {}).forEach(([dev, p]) => { if (p && p.sub && p.sub.endpoint && !st.dead[p.sub.endpoint]) subs.push({ uid: u.uid, dev, ...p }); }));
-  log(users.length, 'joueur(s),', subs.length, 'appareil(s) abonné(s)');
-
-  let sent = 0;
-  const push = async (s, payload) => {
-    try { await webpush.sendNotification(s.sub, JSON.stringify(payload), { TTL: 6 * 3600, urgency: 'high' }); sent++; return true; }
-    catch (e) {
-      if (e.statusCode === 404 || e.statusCode === 410) { st.dead[s.sub.endpoint] = Date.now(); s.dead = true; log('abonnement expiré', s.uid.slice(0, 6)); }
-      else log('push', s.uid.slice(0, 6), e.statusCode || e.message);
-      return false;
-    }
-  };
-
-  // 1. Messages entre joueurs (boîtes d'envoi des profils)
-  const fmtAmt = m => m.asset ? `${nf(8).format(m.qty)} ${m.asset} (${eur(m.eur || 0)})` : eur(m.eur || m.qty || 0);
-  for (const u of users) {
-    const box = (u.outbox || []).filter(m => m && m.id && !st.done[m.id] && Date.now() - (m.at || 0) < 24 * 3600000).slice(-20);
-    for (const m of box) {
-      st.done[m.id] = Date.now();
-      const from = pseudo[u.uid] || 'Un ami';
-      let msg;
-      if (m.kind === 'transfer') msg = { title: `💸 ${from} vous a envoyé ${fmtAmt(m)}`, body: m.msg ? `« ${String(m.msg).slice(0, 120)} »` : 'Ouvrez Trad Center pour en profiter !', tag: 'transfer', url: '?tab=social' };
-      else if (m.kind === 'friend') msg = { title: `👋 ${from} veut être votre ami`, body: 'Acceptez sa demande dans l\'onglet Amis.', tag: 'friend', url: '?tab=social' };
-      else if (m.kind === 'accept') msg = { title: `🤝 ${from} a accepté votre demande d'ami`, body: 'Vous pouvez maintenant vous envoyer de l\'argent et des cryptos.', tag: 'friend', url: '?tab=social' };
-      else continue;
-      for (const s of subs.filter(s => s.uid === m.to && !s.dead && (!s.prefs || s.prefs.transfers !== false))) await push(s, msg);
-    }
+  let lastPx = null, sentTotal = 0, verbose = true;
+  // Profils gardés en mémoire : relecture complète toutes les 30 min, sinon seulement les profils modifiés
+  const cache = new Map(); let fullAt = 0, since = 0;
+  async function loadUsers() {
+    const now = Date.now();
+    const docs = now - fullAt > 30 * 60000
+      ? (fullAt = now, cache.clear(), (await getDocs(collection(db, 'users'))).docs)
+      : (await getDocs(query(collection(db, 'users'), where('updatedAt', '>', since - 120000)))).docs;
+    since = now;
+    docs.forEach(d => cache.set(d.id, { uid: d.id, ...d.data() }));
+    return [...cache.values()].filter(u => !u.bot);
   }
+  async function tick(withPrices) {
+    let sent = 0;
+    const users = await loadUsers();
+    const pseudo = {}; users.forEach(u => { pseudo[u.uid] = u.pseudo; });
+    const subs = [];
+    users.forEach(u => Object.entries(u.push || {}).forEach(([dev, p]) => { if (p && p.sub && p.sub.endpoint && !st.dead[p.sub.endpoint]) subs.push({ uid: u.uid, dev, ...p }); }));
+    if (verbose) log(users.length, 'joueur(s),', subs.length, 'appareil(s) abonné(s)');
 
-  // 2 et 3. Marchés et alertes (seulement si quelqu'un est abonné)
-  const live = subs.filter(s => !s.dead);
-  if (live.length) {
-    const px = process.env.MOCK_PRICES ? JSON.parse(process.env.MOCK_PRICES) : await prices();
-    log(Object.keys(px).length, 'cours récupérés');
-    const events = marketEvents(px, st.fired);
-    if (events.length) log('mouvements :', events.map(e => e.title).join(' | '));
-    for (const s of live) {
-      const lvl = (s.prefs && s.prefs.prices) || 'normal';
-      if (lvl !== 'off') {
-        const mine = events.filter(e => lvl === 'sensible' || e.level === 'normal');
-        for (const e of mine.slice(0, 3)) await push(s, e);
-        if (mine.length > 3) await push(s, { title: `📊 ${mine.length - 3} autre(s) gros mouvement(s)`, body: mine.slice(3, 6).map(e => e.title).join(' · '), tag: 'moves', url: './' });
+    const push = async (s, payload) => {
+      try { await webpush.sendNotification(s.sub, JSON.stringify(payload), { TTL: 6 * 3600, urgency: 'high' }); sent++; return true; }
+      catch (e) {
+        if (e.statusCode === 404 || e.statusCode === 410) { st.dead[s.sub.endpoint] = Date.now(); s.dead = true; log('abonnement expiré', s.uid.slice(0, 6)); }
+        else log('push', s.uid.slice(0, 6), e.statusCode || e.message);
+        return false;
       }
-      for (const al of s.alerts || []) {
-        const key = s.uid + ':' + al.id; if (st.alerts[key]) continue;
-        const p = px[al.asset]; const a = TC.assetById[al.asset];
-        if (p && a && (al.op === '>' ? p.eur >= al.price : p.eur <= al.price)) {
-          st.alerts[key] = Date.now();
-          await push(s, { title: `🎯 ${a.name} ${al.op === '>' ? 'a dépassé' : 'est passé sous'} ${eur(al.price)}`, body: `Cours actuel : ${eur(p.eur)}`, tag: 'alert-' + al.id, url: `?a=${al.asset}` });
+    };
+
+    // 1. Messages entre joueurs (boîtes d'envoi des profils)
+    const fmtAmt = m => m.asset ? `${nf(8).format(m.qty)} ${m.asset} (${eur(m.eur || 0)})` : eur(m.eur || m.qty || 0);
+    for (const u of users) {
+      const box = (u.outbox || []).filter(m => m && m.id && !st.done[m.id] && Date.now() - (m.at || 0) < 24 * 3600000).slice(-20);
+      for (const m of box) {
+        st.done[m.id] = Date.now();
+        const from = pseudo[u.uid] || 'Un ami';
+        let msg;
+        if (m.kind === 'transfer') msg = { title: `💸 ${from} vous a envoyé ${fmtAmt(m)}`, body: m.msg ? `« ${String(m.msg).slice(0, 120)} »` : 'Ouvrez Trad Center pour en profiter !', tag: 'transfer', url: '?tab=social' };
+        else if (m.kind === 'friend') msg = { title: `👋 ${from} veut être votre ami`, body: 'Acceptez sa demande dans l\'onglet Amis.', tag: 'friend', url: '?tab=social' };
+        else if (m.kind === 'accept') msg = { title: `🤝 ${from} a accepté votre demande d'ami`, body: 'Vous pouvez maintenant vous envoyer de l\'argent et des cryptos.', tag: 'friend', url: '?tab=social' };
+        else continue;
+        for (const s of subs.filter(s => s.uid === m.to && !s.dead && (!s.prefs || s.prefs.transfers !== false))) await push(s, msg);
+      }
+    }
+
+    // 2 et 3. Marchés et alertes (seulement si quelqu'un est abonné)
+    const live = subs.filter(s => !s.dead);
+    if (live.length && withPrices) {
+      if (withPrices || !lastPx) { lastPx = process.env.MOCK_PRICES ? JSON.parse(process.env.MOCK_PRICES) : await prices(); log(Object.keys(lastPx).length, 'cours récupérés'); }
+      const px = lastPx;
+      const events = marketEvents(px, st.fired);
+      if (events.length) log('mouvements :', events.map(e => e.title).join(' | '));
+      for (const s of live) {
+        const lvl = (s.prefs && s.prefs.prices) || 'normal';
+        if (lvl !== 'off') {
+          const mine = events.filter(e => lvl === 'sensible' || e.level === 'normal');
+          for (const e of mine.slice(0, 3)) await push(s, e);
+          if (mine.length > 3) await push(s, { title: `📊 ${mine.length - 3} autre(s) gros mouvement(s)`, body: mine.slice(3, 6).map(e => e.title).join(' · '), tag: 'moves', url: './' });
+        }
+        for (const al of s.alerts || []) {
+          const key = s.uid + ':' + al.id; if (st.alerts[key]) continue;
+          const p = px[al.asset]; const a = TC.assetById[al.asset];
+          if (p && a && (al.op === '>' ? p.eur >= al.price : p.eur <= al.price)) {
+            st.alerts[key] = Date.now();
+            await push(s, { title: `🎯 ${a.name} ${al.op === '>' ? 'a dépassé' : 'est passé sous'} ${eur(al.price)}`, body: `Cours actuel : ${eur(p.eur)}`, tag: 'alert-' + al.id, url: `?a=${al.asset}` });
+          }
         }
       }
     }
+    prune(st.done, 3 * 86400000); prune(st.alerts, 30 * 86400000); prune(st.dead, 30 * 86400000);
+    prune(st.done, 3 * 86400000); prune(st.alerts, 30 * 86400000); prune(st.dead, 30 * 86400000);
+    st.lastRun = Date.now(); saveState(st);
+    if (sent || verbose) log('passage terminé,', sent, 'notification(s) envoyée(s)');
+    sentTotal += sent;
   }
-  prune(st.done, 3 * 86400000); prune(st.alerts, 30 * 86400000); prune(st.dead, 30 * 86400000);
-  st.lastRun = Date.now(); saveState(st);
-  log('terminé,', sent, 'notification(s) envoyée(s)');
-}
 
+  // Boucle : messages entre joueurs toutes les 30 s, marchés toutes les 3 min
+  const end = Date.now() + (+process.env.LOOP_MINUTES || 0) * 60000;
+  let n = 0;
+  do {
+    try { await tick(n % 6 === 0); } catch (e) { log('erreur passage :', e.code || e.message); }
+    verbose = false; n++;
+    if (Date.now() + 30000 < end) await new Promise(r => setTimeout(r, 30000));
+  } while (Date.now() + 30000 < end);
+  log('fin,', sentTotal, 'notification(s) au total');
+  if (process.env.LOOP_MINUTES) fs.writeFileSync(path.join(ROOT, 'scripts', '.loop-ok'), '1'); // autorise la relance
+}
 main().then(() => process.exit(0)).catch(e => { console.error('Erreur :', e); process.exit(0); /* ne pas spammer d'e-mails d'échec */ });

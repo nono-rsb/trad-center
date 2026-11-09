@@ -26,7 +26,7 @@
       const now = Date.now();
       const box = ((snap.exists && snap.data().outbox) || []).filter(m => now - m.at < 24 * 3600000).slice(-29);
       box.push(Object.assign({ id: Math.random().toString(36).slice(2, 12), to, kind, at: now }, extra || {}));
-      await ref.update({ outbox: box });
+      await ref.update({ outbox: box, updatedAt: now });
     } catch (e) { console.warn('notify', e); }
   };
   function loadScript(src) {
