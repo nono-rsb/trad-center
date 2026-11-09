@@ -1,17 +1,15 @@
 name: Notifications push
 
 # Serveur de notifications : envois d'argent, demandes d'ami, gros mouvements de marché, alertes de prix.
-# Chaque exécution surveille pendant ~50 min (messages toutes les 30 s, marchés toutes les 3 min)
-# puis relance la suivante. La planification sert de filet de sécurité si la chaîne s'arrête.
+# Exécutions courtes et planifiées (pas de serveur permanent) : chaque passage surveille ~4 min.
 # Seul réglage : le secret PUSH_SECRET (un mot de passe inventé), voir NOTIFICATIONS.md.
 on:
   schedule:
-    - cron: '*/15 * * * *'
+    - cron: '*/10 * * * *'
   workflow_dispatch:
 
 permissions:
   contents: read
-  actions: write
 
 concurrency:
   group: notify
@@ -20,7 +18,7 @@ concurrency:
 jobs:
   notify:
     runs-on: ubuntu-latest
-    timeout-minutes: 58
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -39,18 +37,10 @@ jobs:
         run: node scripts/notify.mjs
         env:
           PUSH_SECRET: ${{ secrets.PUSH_SECRET }}
-          LOOP_MINUTES: '50'
+          LOOP_MINUTES: '4'
       - name: Sauver la mémoire
         if: always() && hashFiles('scripts/state.json') != ''
         uses: actions/cache/save@v4
         with:
           path: scripts/state.json
           key: notify-state-${{ github.run_id }}
-      - name: Relancer la surveillance
-        if: always()
-        env:
-          GH_TOKEN: ${{ github.token }}
-          HAS_SECRET: ${{ secrets.PUSH_SECRET != '' }}
-        run: |
-          # relance seulement après une surveillance complète (évite une boucle rapide en cas de panne)
-          if [ "$HAS_SECRET" = "true" ] && [ -f scripts/.loop-ok ]; then gh workflow run notify.yml --ref "${{ github.ref_name }}" || true; fi
