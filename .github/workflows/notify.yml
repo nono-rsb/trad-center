@@ -1,6 +1,7 @@
 name: Notifications push
 
 # Serveur de notifications : envois d'argent, demandes d'ami, gros mouvements de marché, alertes de prix.
+# Seul réglage : le secret PUSH_SECRET (un mot de passe inventé), voir NOTIFICATIONS.md.
 on:
   schedule:
     - cron: '*/5 * * * *'
@@ -22,6 +23,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      - name: Mémoire (anti-doublons)
+        uses: actions/cache/restore@v4
+        with:
+          path: scripts/state.json
+          key: notify-state-${{ github.run_id }}
+          restore-keys: notify-state-
       - name: Installer
         working-directory: scripts
         run: npm install --no-save --no-audit --no-fund firebase@10.14.1 web-push@3.6.7
@@ -29,3 +36,9 @@ jobs:
         run: node scripts/notify.mjs
         env:
           PUSH_SECRET: ${{ secrets.PUSH_SECRET }}
+      - name: Sauver la mémoire
+        if: always() && hashFiles('scripts/state.json') != ''
+        uses: actions/cache/save@v4
+        with:
+          path: scripts/state.json
+          key: notify-state-${{ github.run_id }}

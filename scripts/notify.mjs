@@ -2,15 +2,18 @@
 //  1. Envoie les notifications en attente (envois d'argent, demandes d'ami) : collection pushQueue
 //  2. Détecte les gros mouvements de marché (crypto via Binance, bourse via Yahoo Finance)
 //  3. Déclenche les alertes de prix personnalisées
-// Secret requis : PUSH_SECRET = {"botEmail","botPassword","vapidPublic","vapidPrivate"}
+// Secret requis : PUSH_SECRET = un mot de passe inventé par le propriétaire (secret GitHub).
+// Toutes les clés en sont dérivées : compte Firebase du serveur et clés VAPID des notifications.
+// Aucune règle Firestore spéciale : le serveur est un joueur « invisible » (profil bot:true).
 import fs from 'node:fs';
+import crypto from 'node:crypto';
 import vm from 'node:vm';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import webpush from 'web-push';
 import { initializeApp } from 'firebase/app';
-import { getAuth, signInWithEmailAndPassword, connectAuthEmulator } from 'firebase/auth';
-import { getFirestore, connectFirestoreEmulator, collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore/lite';
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, connectAuthEmulator } from 'firebase/auth';
+import { getFirestore, connectFirestoreEmulator, collection, getDocs, doc, getDoc, writeBatch, updateDoc } from 'firebase/firestore/lite';
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PAGE = process.env.PAGE_URL || 'https://nono-rsb.github.io/trad-center/';
@@ -93,68 +96,121 @@ function marketEvents(px, fired) {
   return ev;
 }
 
+/* ---------------- Clés dérivées du mot de passe ---------------- */
+function derive(pass) {
+  const h = label => crypto.createHmac('sha256', pass).update(label).digest();
+  let seed = h('tradcenter-vapid-v1'), i = 0;
+  const ecdh = crypto.createECDH('prime256v1');
+  for (;;) { try { ecdh.setPrivateKey(seed); break; } catch (e) { seed = h('tradcenter-vapid-v1-' + (++i)); } }
+  return {
+    vapidPrivate: seed.toString('base64url'),
+    vapidPublic: ecdh.getPublicKey().toString('base64url'),
+    botEmail: 'push-server@trad-center.firebaseapp.com',
+    botPassword: h('tradcenter-bot-v1').toString('base64url').slice(0, 32),
+  };
+}
+
+/* ---------------- Mémoire (cache GitHub Actions) ---------------- */
+const STATE_FILE = path.join(ROOT, 'scripts', 'state.json');
+function loadState() { try { return JSON.parse(fs.readFileSync(STATE_FILE, 'utf8')); } catch (e) { return {}; } }
+function saveState(st) { fs.writeFileSync(STATE_FILE, JSON.stringify(st)); }
+function prune(map, maxAge) { const now = Date.now(); for (const k in map) if (now - map[k] > maxAge) delete map[k]; }
+
 /* ---------------- Envoi ---------------- */
 async function main() {
-  if (!process.env.PUSH_SECRET) { log('PUSH_SECRET absent : rien à faire (voir NOTIFICATIONS.md)'); return; }
+  const pass = (process.env.PUSH_SECRET || '').trim();
+  if (!pass) { log('PUSH_SECRET absent : rien à faire (voir NOTIFICATIONS.md)'); return; }
   if (!TC.FIREBASE) { log('Firebase non configuré'); return; }
-  const sec = JSON.parse(process.env.PUSH_SECRET);
-  webpush.setVapidDetails(PAGE, sec.vapidPublic, sec.vapidPrivate);
+  const K = derive(pass);
+  webpush.setVapidDetails(PAGE, K.vapidPublic, K.vapidPrivate);
 
   const app = initializeApp(process.env.EMULATOR ? { ...TC.FIREBASE, projectId: process.env.EMULATOR } : TC.FIREBASE);
   const auth = getAuth(app), db = getFirestore(app);
   if (process.env.EMULATOR) { connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true }); connectFirestoreEmulator(db, '127.0.0.1', 8080); }
-  await signInWithEmailAndPassword(auth, sec.botEmail, sec.botPassword);
 
-  const subs = (await getDocs(collection(db, 'pushSubs'))).docs.map(d => ({ id: d.id, ref: d.ref, ...d.data() }));
-  log(subs.length, 'abonnement(s)');
+  // Connexion (création du compte au premier lancement)
+  let cred;
+  try { cred = await signInWithEmailAndPassword(auth, K.botEmail, K.botPassword); }
+  catch (e) {
+    if (!/user-not-found|invalid-credential|invalid-login/.test(e.code || '')) throw e;
+    try { cred = await createUserWithEmailAndPassword(auth, K.botEmail, K.botPassword); log('compte du serveur créé'); }
+    catch (e2) { log('Impossible de créer le compte du serveur (mot de passe PUSH_SECRET changé ?)', e2.code); return; }
+  }
+  const botUid = cred.user.uid;
+
+  // Profil du serveur : publie la clé publique des notifications (lue par l'appli)
+  const meRef = doc(db, 'users', botUid);
+  const mine = await getDoc(meRef);
+  if (!mine.exists()) {
+    const taken = await getDoc(doc(db, 'usernames', 'tradcenter_bot'));
+    if (taken.exists() && taken.data().uid !== botUid) { log('Le pseudo réservé tradcenter_bot est déjà pris'); return; }
+    const b = writeBatch(db);
+    if (!taken.exists()) b.set(doc(db, 'usernames', 'tradcenter_bot'), { uid: botUid });
+    b.set(meRef, { pseudo: 'Trad Center', pseudoLower: 'tradcenter_bot', bot: true, avatar: '🔔', vapid: K.vapidPublic, nw: 0, rank: '', items: 0, topItem: null, createdAt: Date.now(), updatedAt: Date.now() });
+    await b.commit(); log('profil du serveur publié');
+  } else if (mine.data().vapid !== K.vapidPublic) {
+    await updateDoc(meRef, { vapid: K.vapidPublic, updatedAt: Date.now() }); log('clé publique mise à jour');
+  }
+
+  const st = loadState(); st.fired = st.fired || {}; st.done = st.done || {}; st.alerts = st.alerts || {}; st.dead = st.dead || {};
+  const users = (await getDocs(collection(db, 'users'))).docs.map(d => ({ uid: d.id, ...d.data() })).filter(u => !u.bot);
+  const pseudo = {}; users.forEach(u => { pseudo[u.uid] = u.pseudo; });
+  const subs = [];
+  users.forEach(u => Object.entries(u.push || {}).forEach(([dev, p]) => { if (p && p.sub && p.sub.endpoint && !st.dead[p.sub.endpoint]) subs.push({ uid: u.uid, dev, ...p }); }));
+  log(users.length, 'joueur(s),', subs.length, 'appareil(s) abonné(s)');
+
   let sent = 0;
   const push = async (s, payload) => {
     try { await webpush.sendNotification(s.sub, JSON.stringify(payload), { TTL: 6 * 3600, urgency: 'high' }); sent++; return true; }
     catch (e) {
-      if (e.statusCode === 404 || e.statusCode === 410) { log('abonnement expiré, supprimé', s.id); await deleteDoc(s.ref).catch(() => { }); s.dead = true; }
-      else log('push', s.id, e.statusCode || e.message);
+      if (e.statusCode === 404 || e.statusCode === 410) { st.dead[s.sub.endpoint] = Date.now(); s.dead = true; log('abonnement expiré', s.uid.slice(0, 6)); }
+      else log('push', s.uid.slice(0, 6), e.statusCode || e.message);
       return false;
     }
   };
 
-  // 1. File d'attente (envois d'argent, demandes d'ami)
-  const queue = (await getDocs(collection(db, 'pushQueue'))).docs;
-  for (const q of queue) {
-    const m = q.data();
-    if (Date.now() - (m.createdAt || 0) < 24 * 3600000) {
-      for (const s of subs.filter(s => s.uid === m.to && !s.dead && (!s.prefs || s.prefs.transfers !== false))) await push(s, { title: m.title, body: m.body, tag: m.tag || 'transfer', url: m.url || '?tab=social' });
+  // 1. Messages entre joueurs (boîtes d'envoi des profils)
+  const fmtAmt = m => m.asset ? `${nf(8).format(m.qty)} ${m.asset} (${eur(m.eur || 0)})` : eur(m.eur || m.qty || 0);
+  for (const u of users) {
+    const box = (u.outbox || []).filter(m => m && m.id && !st.done[m.id] && Date.now() - (m.at || 0) < 24 * 3600000).slice(-20);
+    for (const m of box) {
+      st.done[m.id] = Date.now();
+      const from = pseudo[u.uid] || 'Un ami';
+      let msg;
+      if (m.kind === 'transfer') msg = { title: `💸 ${from} vous a envoyé ${fmtAmt(m)}`, body: m.msg ? `« ${String(m.msg).slice(0, 120)} »` : 'Ouvrez Trad Center pour en profiter !', tag: 'transfer', url: '?tab=social' };
+      else if (m.kind === 'friend') msg = { title: `👋 ${from} veut être votre ami`, body: 'Acceptez sa demande dans l\'onglet Amis.', tag: 'friend', url: '?tab=social' };
+      else if (m.kind === 'accept') msg = { title: `🤝 ${from} a accepté votre demande d'ami`, body: 'Vous pouvez maintenant vous envoyer de l\'argent et des cryptos.', tag: 'friend', url: '?tab=social' };
+      else continue;
+      for (const s of subs.filter(s => s.uid === m.to && !s.dead && (!s.prefs || s.prefs.transfers !== false))) await push(s, msg);
     }
-    await deleteDoc(q.ref);
   }
-  if (queue.length) log(queue.length, 'message(s) de la file traités');
 
   // 2 et 3. Marchés et alertes (seulement si quelqu'un est abonné)
   const live = subs.filter(s => !s.dead);
-  if (!live.length) { log('terminé,', sent, 'notification(s)'); return; }
-  const stateRef = doc(db, 'pushState', 'main');
-  const st = (await getDoc(stateRef)).data() || { fired: {} };
-  const px = process.env.MOCK_PRICES ? JSON.parse(process.env.MOCK_PRICES) : await prices();
-  log(Object.keys(px).length, 'cours récupérés');
-  const events = marketEvents(px, st.fired);
-  if (events.length) log('mouvements :', events.map(e => e.title).join(' | '));
-  for (const s of live) {
-    const lvl = (s.prefs && s.prefs.prices) || 'normal';
-    if (lvl !== 'off') {
-      const mine = events.filter(e => lvl === 'sensible' || e.level === 'normal');
-      for (const e of mine.slice(0, 3)) await push(s, e);
-      if (mine.length > 3) await push(s, { title: `📊 ${mine.length - 3} autre(s) gros mouvement(s)`, body: mine.slice(3, 6).map(e => e.title).join(' · '), tag: 'moves', url: './' });
+  if (live.length) {
+    const px = process.env.MOCK_PRICES ? JSON.parse(process.env.MOCK_PRICES) : await prices();
+    log(Object.keys(px).length, 'cours récupérés');
+    const events = marketEvents(px, st.fired);
+    if (events.length) log('mouvements :', events.map(e => e.title).join(' | '));
+    for (const s of live) {
+      const lvl = (s.prefs && s.prefs.prices) || 'normal';
+      if (lvl !== 'off') {
+        const mine = events.filter(e => lvl === 'sensible' || e.level === 'normal');
+        for (const e of mine.slice(0, 3)) await push(s, e);
+        if (mine.length > 3) await push(s, { title: `📊 ${mine.length - 3} autre(s) gros mouvement(s)`, body: mine.slice(3, 6).map(e => e.title).join(' · '), tag: 'moves', url: './' });
+      }
+      for (const al of s.alerts || []) {
+        const key = s.uid + ':' + al.id; if (st.alerts[key]) continue;
+        const p = px[al.asset]; const a = TC.assetById[al.asset];
+        if (p && a && (al.op === '>' ? p.eur >= al.price : p.eur <= al.price)) {
+          st.alerts[key] = Date.now();
+          await push(s, { title: `🎯 ${a.name} ${al.op === '>' ? 'a dépassé' : 'est passé sous'} ${eur(al.price)}`, body: `Cours actuel : ${eur(p.eur)}`, tag: 'alert-' + al.id, url: `?a=${al.asset}` });
+        }
+      }
     }
-    // alertes personnalisées
-    const alerts = s.alerts || []; const keep = [];
-    for (const al of alerts) {
-      const p = px[al.asset]; const a = TC.assetById[al.asset];
-      const hit = p && a && (al.op === '>' ? p.eur >= al.price : p.eur <= al.price);
-      if (hit && !s.dead) await push(s, { title: `🎯 ${a.name} ${al.op === '>' ? 'a dépassé' : 'est passé sous'} ${eur(al.price)}`, body: `Cours actuel : ${eur(p.eur)}`, tag: 'alert-' + al.id, url: `?a=${al.asset}` });
-      else keep.push(al);
-    }
-    if (keep.length !== alerts.length && !s.dead) await updateDoc(s.ref, { alerts: keep, lastPush: Date.now() });
   }
-  await setDoc(stateRef, { fired: st.fired, lastRun: Date.now() });
+  prune(st.done, 3 * 86400000); prune(st.alerts, 30 * 86400000); prune(st.dead, 30 * 86400000);
+  st.lastRun = Date.now(); saveState(st);
   log('terminé,', sent, 'notification(s) envoyée(s)');
 }
 

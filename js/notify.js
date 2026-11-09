@@ -23,7 +23,19 @@
   }
   NT.prefs = prefs;
   const supported = () => 'Notification' in window && 'serviceWorker' in navigator;
-  const pushSupported = () => supported() && 'PushManager' in window && !!TC.VAPID_PUBLIC;
+  const pushSupported = () => supported() && 'PushManager' in window;
+  // Clé publique publiée par le serveur de notifications dans son profil (pseudo réservé « tradcenter_bot »)
+  let vapid = null;
+  NT.serverKey = async function () {
+    if (vapid) return vapid;
+    const db = N.db(); if (!db) return null;
+    try {
+      const u = await db.collection('usernames').doc('tradcenter_bot').get(); if (!u.exists) return null;
+      const p = await db.collection('users').doc(u.data().uid).get();
+      vapid = p.exists && p.data().bot && p.data().vapid || null;
+    } catch (e) { }
+    return vapid;
+  };
   const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
   const deviceId = () => { let d = localStorage.getItem('tradcenter.device'); if (!d) { d = Math.random().toString(36).slice(2, 12); try { localStorage.setItem('tradcenter.device', d); } catch (e) { } } return d; };
@@ -63,7 +75,7 @@
       const h = hist[a.id] || (hist[a.id] = []);
       h.push([now, e]); while (h.length && now - h[0][0] > 65 * 60000) h.shift();
       // alertes personnalisées : évaluées ici seulement si le serveur ne s'en charge pas
-      if (!NT.subscribed()) checkAlerts(a, e);
+      checkAlerts(a, e);
       if (pr.prices === 'off') return;
       const k = pr.prices === 'sensible' ? 0.5 : 1;
       const g = group(a);
@@ -94,15 +106,16 @@
       if (al.asset !== a.id) return true;
       const hit = al.op === '>' ? e >= al.price : e <= al.price;
       if (!hit) return true;
-      NT.show(`🎯 ${a.name} ${al.op === '>' ? 'a dépassé' : 'est passé sous'} ${fmt.eur(al.price)}`, `Cours actuel : ${fmt.eur(e)}`, `alert-${al.id}`, `?a=${a.id}`, 'ok');
-      TC.sound('ach'); changed = true; return false;
+      if (!NT.subscribed() || !document.hidden) { NT.show(`🎯 ${a.name} ${al.op === '>' ? 'a dépassé' : 'est passé sous'} ${fmt.eur(al.price)}`, `Cours actuel : ${fmt.eur(e)}`, `alert-${al.id}`, `?a=${a.id}`, 'ok'); TC.sound('ach'); }
+      changed = true; return false;
     });
     if (changed) { G.save(); NT.syncPrefs(); }
   }
 
   /* ---------------- Abonnement Web Push (appli fermée) ---------------- */
   function b64ToU8(s) { const p = '='.repeat((4 - s.length % 4) % 4); const b = atob((s + p).replace(/-/g, '+').replace(/_/g, '/')); return Uint8Array.from(b, c => c.charCodeAt(0)); }
-  const subDoc = () => N.db().collection('pushSubs').doc(N.user.uid + '_' + deviceId());
+  const me = () => N.db().collection('users').doc(N.user.uid);
+  const field = () => 'push.' + deviceId();
 
   NT.enable = async function () {
     if (!supported()) throw new Error(isIOS() && !standalone() ? 'ios-install' : 'unsupported');
@@ -116,27 +129,25 @@
     return true;
   };
   NT.subscribe = async function () {
+    const key = await NT.serverKey();
+    if (!key) throw new Error('serveur de notifications pas encore activé');
     const reg = await navigator.serviceWorker.ready;
     let sub = await reg.pushManager.getSubscription();
-    if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToU8(TC.VAPID_PUBLIC) });
+    if (sub && localStorage.getItem('tradcenter.pushkey') !== key) { await sub.unsubscribe().catch(() => { }); sub = null; }
+    if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToU8(key) });
     const pr = prefs();
-    await subDoc().set({ uid: N.user.uid, sub: JSON.parse(JSON.stringify(sub)), prefs: { transfers: pr.transfers !== false, prices: pr.prices || 'normal' }, alerts: pr.alerts || [], ua: navigator.userAgent.slice(0, 120), updatedAt: Date.now() });
-    try { localStorage.setItem('tradcenter.pushsub', '1'); } catch (e) { }
+    await me().update({ [field()]: { sub: JSON.parse(JSON.stringify(sub)), prefs: { transfers: pr.transfers !== false, prices: pr.prices || 'normal' }, alerts: pr.alerts || [], at: Date.now() } });
+    try { localStorage.setItem('tradcenter.pushsub', '1'); localStorage.setItem('tradcenter.pushkey', key); } catch (e) { }
   };
   NT.syncPrefs = async function () {
     if (!NT.subscribed() || !N.user || !N.db()) return;
     const pr = prefs();
-    try { await subDoc().update({ prefs: { transfers: pr.transfers !== false, prices: pr.prices || 'normal' }, alerts: pr.alerts || [], updatedAt: Date.now() }); }
-    catch (e) { if (String(e.code).includes('not-found')) { try { localStorage.removeItem('tradcenter.pushsub'); } catch (er) { } } }
+    try { await me().update({ [field() + '.prefs']: { transfers: pr.transfers !== false, prices: pr.prices || 'normal' }, [field() + '.alerts']: pr.alerts || [], [field() + '.at']: Date.now() }); } catch (e) { }
   };
-  // le serveur retire les alertes déclenchées : on récupère la liste à jour
-  NT.pullAlerts = async function () {
-    if (!NT.subscribed() || !N.user || !N.db()) return;
-    try { const s = await subDoc().get(); if (s.exists) { prefs().alerts = s.data().alerts || []; G.save(); } else localStorage.removeItem('tradcenter.pushsub'); } catch (e) { }
-  };
+  NT.pullAlerts = async function () { };
   NT.disablePush = async function () {
     try { const reg = await navigator.serviceWorker.ready; const sub = await reg.pushManager.getSubscription(); if (sub) await sub.unsubscribe(); } catch (e) { }
-    try { if (N.user) await subDoc().delete(); } catch (e) { }
+    try { if (N.user) await me().update({ [field()]: firebase.firestore.FieldValue.delete() }); } catch (e) { }
     try { localStorage.removeItem('tradcenter.pushsub'); } catch (e) { }
   };
 
@@ -224,7 +235,7 @@
       NT.show(`💸 ${d.fromPseudo} vous a envoyé ${d.kind === 'cash' ? fmt.eur(d.eur) : fmt.qty(d.qty) + ' ' + d.asset}`, d.msg ? `« ${d.msg} »` : '', 'transfer', '?tab=social');
     }
     if (type === 'linked' && supported() && Notification.permission === 'granted' && pushSupported() && !NT.subscribed()) NT.subscribe().catch(() => { });
-    if (type === 'linked' && NT.subscribed()) NT.pullAlerts();
+    if (type === 'linked' && NT.subscribed() && supported() && Notification.permission === 'granted') NT.subscribe().catch(() => { });
   });
   document.addEventListener('click', e => { if (e.target.closest('#b-notif')) NT.open(); });
 })();

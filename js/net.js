@@ -16,12 +16,19 @@
   const pairId = (a, b) => a < b ? a + '_' + b : b + '_' + a;
   const PSEUDO_RE = /^[a-zA-Z0-9_]{3,16}$/;
   N.db = () => db;
-  // Demande au serveur de notifications de prévenir un autre joueur (même appli fermée)
-  N.pushTo = function (to, title, body, tag, url) {
+  // Demande au serveur de notifications de prévenir un autre joueur (même appli fermée).
+  // Le message est rangé dans la « boîte d'envoi » de son propre profil ; le serveur rédige le texte lui-même.
+  N.notifyPlayer = async function (to, kind, extra) {
     if (!db || !N.user) return;
-    db.collection('pushQueue').add({ from: N.user.uid, to, title: title.slice(0, 90), body: body.slice(0, 280), tag: tag || '', url: url || '', createdAt: Date.now() }).catch(e => console.warn('push', e));
+    try {
+      const ref = db.collection('users').doc(N.user.uid);
+      const snap = await ref.get();
+      const now = Date.now();
+      const box = ((snap.exists && snap.data().outbox) || []).filter(m => now - m.at < 24 * 3600000).slice(-29);
+      box.push(Object.assign({ id: Math.random().toString(36).slice(2, 12), to, kind, at: now }, extra || {}));
+      await ref.update({ outbox: box });
+    } catch (e) { console.warn('notify', e); }
   };
-
   function loadScript(src) {
     return new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => rej(new Error('script ' + src)); document.head.appendChild(s); });
   }
@@ -241,7 +248,7 @@
     if (reverse) { await N.accept(reverse); return 'accepted'; }
     const op = await db.collection('users').doc(other).get();
     await db.collection('friendRequests').doc(me + '_' + other).set({ from: me, to: other, fromPseudo: N.profile.pseudo, fromAvatar: N.profile.avatar, toPseudo: op.exists ? op.data().pseudo : pseudo, createdAt: Date.now() });
-    N.pushTo(other, `👋 ${N.profile.pseudo} veut être votre ami`, 'Acceptez sa demande dans l\'onglet Amis.', 'friend', '?tab=social');
+    N.notifyPlayer(other, 'friend');
     return 'sent';
   };
   N.accept = async function (req) {
@@ -249,7 +256,7 @@
     b.set(db.collection('friendships').doc(pairId(req.from, me)), { members: [req.from, me], createdAt: Date.now() });
     b.delete(db.collection('friendRequests').doc(req.id));
     await b.commit();
-    N.pushTo(req.from, `🤝 ${N.profile.pseudo} a accepté votre demande d'ami`, 'Vous pouvez maintenant vous envoyer de l\'argent et des cryptos.', 'friend', '?tab=social');
+    N.notifyPlayer(req.from, 'accept');
   };
   N.decline = req => db.collection('friendRequests').doc(req.id).delete();
   N.removeFriend = uid => db.collection('friendships').doc(pairId(uid, N.user.uid)).delete();
@@ -266,8 +273,7 @@
     } catch (e) { G.refundTransfer(t); throw e; }
     G.logSent(t, friend.pseudo);
     N.flush();
-    const what = t.kind === 'cash' ? TC.fmt.eur(t.eur) : TC.fmt.qty(t.qty) + ' ' + t.asset + ' (' + TC.fmt.eur(t.eur) + ')';
-    N.pushTo(friend.uid, `💸 ${N.profile.pseudo} vous a envoyé ${what}`, msg ? `« ${msg.slice(0, 120)} »` : 'Ouvrez Trad Center pour en profiter !', 'transfer', '?tab=social');
+    N.notifyPlayer(friend.uid, 'transfer', { asset: t.asset || null, qty: t.qty, eur: t.eur, msg: (msg || '').slice(0, 120) });
     return t;
   };
 
@@ -276,7 +282,7 @@
     N.boardScope = scope;
     if (scope === 'friends') { N.board = null; emit('change'); return; }
     const snap = await db.collection('users').orderBy('nw', 'desc').limit(50).get();
-    N.board = snap.docs.map(d => Object.assign({ uid: d.id }, d.data()));
+    N.board = snap.docs.map(d => Object.assign({ uid: d.id }, d.data())).filter(u => !u.bot);
     emit('change');
   };
 })();

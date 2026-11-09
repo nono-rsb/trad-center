@@ -7,8 +7,6 @@ service cloud.firestore {
     function me() { return request.auth.uid; }
     function pair(a, b) { return a < b ? a + '_' + b : b + '_' + a; }
     function areFriends(a, b) { return exists(/databases/$(db)/documents/friendships/$(pair(a, b))); }
-    // Compte du serveur de notifications (GitHub Actions, scripts/notify.mjs)
-    function isBot() { return signedIn() && request.auth.uid == 'akdK1tbiz1d0GaRxEzDZDaCX6Oo2'; }
 
     // Pseudo -> uid (pseudos uniques)
     match /usernames/{name} {
@@ -73,36 +71,6 @@ service cloud.firestore {
         && resource.data.claimed == false
         && request.resource.data.claimed == true
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['claimed', 'claimedAt']);
-    }
-
-    // Abonnements aux notifications push : id = <uid>_<appareil>
-    match /pushSubs/{id} {
-      allow read: if isBot() || (signedIn() && resource.data.uid == me());
-      allow create, update: if signedIn()
-        && request.resource.data.uid == me()
-        && id.matches(me() + '_[a-z0-9]+');
-      allow update: if isBot()
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['alerts', 'lastPush']);
-      allow delete: if isBot() || (signedIn() && resource.data.uid == me());
-    }
-
-    // Notifications à envoyer à un autre joueur (envoi d'argent, demande d'ami)
-    match /pushQueue/{id} {
-      allow create: if signedIn()
-        && request.resource.data.from == me()
-        && request.resource.data.to is string
-        && request.resource.data.to != me()
-        && (areFriends(me(), request.resource.data.to)
-            || exists(/databases/$(db)/documents/friendRequests/$(me() + '_' + request.resource.data.to))
-            || exists(/databases/$(db)/documents/friendships/$(pair(me(), request.resource.data.to))))
-        && request.resource.data.title is string && request.resource.data.title.size() <= 100
-        && request.resource.data.body is string && request.resource.data.body.size() <= 300;
-      allow read, delete: if isBot();
-    }
-
-    // Mémoire du serveur de notifications (anti-doublons)
-    match /pushState/{id} {
-      allow read, write: if isBot();
     }
   }
 }
