@@ -37,14 +37,15 @@
       <button class="btn btn-gold btn-xl" data-soc="pseudo">Valider</button><p class="hint">3 à 16 caractères : lettres, chiffres, _</p>
       <button class="btn btn-ghost btn-sm" data-soc="logout">Se déconnecter</button></div>`;
     if (!N.profile) return `<div class="panel empty big">Chargement du profil…</div>`;
-    return profileCard() + friendsBlock() + boardBlock() + historyBlock();
+    return profileCard() + inviteBlock() + friendsBlock() + boardBlock() + historyBlock();
   }
 
   function authForm() {
     const up = SO.authMode === 'signup';
     return `<div class="panel auth">
       <div class="center"><img src="icons/icon-192.png" class="install-icon" alt=""><h2>${up ? 'Créer mon compte' : 'Connexion'}</h2>
-      <p>${up ? 'Sauvegardez votre partie en ligne, ajoutez vos amis, envoyez-leur de l\'argent ou des bitcoins et comparez vos fortunes.' : 'Retrouvez votre partie sur tous vos appareils.'}</p></div>
+      <p>${up ? 'Sauvegardez votre partie en ligne, ajoutez vos amis, envoyez-leur de l\'argent ou des bitcoins et comparez vos fortunes.' : 'Retrouvez votre partie sur tous vos appareils.'}</p>
+      ${up && localStorage.getItem('tradcenter.ref') ? '<p class="nbox ok">🎁 Vous avez été invité : créez votre compte puis activez les notifications 🔔 pour offrir 20 € à votre ami.</p>' : ''}</div>
       <div class="seg seg-2"><button data-soc="mode-signup" class="${up ? 'active' : ''}">Créer un compte</button><button data-soc="mode-login" class="${up ? '' : 'active'}">J'ai déjà un compte</button></div>
       ${up ? `<label class="fld">Pseudo<div class="inp"><input id="a-pseudo" maxlength="16" placeholder="ex : LoupDeBourse" autocomplete="nickname"></div></label>` : ''}
       <label class="fld">Adresse e-mail<div class="inp"><input id="a-email" type="email" placeholder="vous@exemple.fr" autocomplete="email"></div></label>
@@ -65,6 +66,15 @@
         <div class="muted small">${G.rank().r[2]} ${G.rank().r[1]} · ${fmt.eur(G.netWorth())} · ${N.lastSync ? '☁️ sauvegardé ' + new Date(N.lastSync).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '☁️ synchronisation…'}</div></div>
       <div class="pactions"><button class="btn btn-sm" data-soc="share">📤 Inviter</button><button class="btn btn-sm btn-ghost" data-soc="logout">Déconnexion</button></div>
     </div>`;
+  }
+
+  function inviteBlock() {
+    const r = N.referrals || []; const ok = r.filter(x => x.ok).length;
+    return `<div class="panel invite"><div class="inv-top"><div class="big-emoji">🎁</div><div><h3>Invite tes amis : +${N.REF_BONUS} € par ami</h3>
+      <p>Envoie ton lien. Dès que ton ami <b>crée son compte</b> et <b>active les notifications</b>, tu gagnes <b>${N.REF_BONUS} €</b> et vous devenez amis automatiquement.</p></div></div>
+      <div class="inv-link"><input readonly value="${esc(N.inviteLink())}"><button class="btn btn-gold" data-soc="share">📤 Partager</button><button class="btn" data-soc="copylink">📋</button></div>
+      ${r.length ? `<div class="inv-list">${r.map(x => `<span class="${x.ok ? 'up' : 'muted'}">${x.ok ? '✅' : '⏳'} ${esc(x.pseudo || '')}${x.ok ? '' : ' (notifications pas encore activées)'}</span>`).join('')}</div>` : ''}
+      <p class="hint">${ok} ami(s) validé(s) · ${fmt.eur(ok * N.REF_BONUS)} gagnés</p></div>`;
   }
 
   function friendsBlock() {
@@ -168,9 +178,9 @@
     if (a === 'checkverify') return busy(b, async () => { await N.refreshUser(); TC.toast(N.user.emailVerified ? '✅ Adresse vérifiée !' : 'Pas encore vérifiée : cliquez le lien dans l\'e-mail.', N.user.emailVerified ? 'ok' : 'info'); });
     if (a === 'avatar') return avatarModal();
     if (a === 'add') return busy(b, async () => { const r = await N.addFriend($('#f-add').value); $('#f-add').value = ''; TC.toast(r === 'accepted' ? '🤝 Vous êtes maintenant amis !' : '📨 Demande d\'ami envoyée.', 'ok'); });
-    if (a === 'copy' || a === 'share') {
-      const url = location.origin + location.pathname;
-      const text = `Rejoins-moi sur Trad Center 📈 : pars de 10 € et deviens assez riche pour une Lamborghini ! Ajoute-moi : @${N.profile.pseudo}`;
+    if (a === 'copy' || a === 'share' || a === 'copylink') {
+      const url = N.inviteLink();
+      const text = `Rejoins-moi sur Trad Center 📈 : pars de 10 € et deviens assez riche pour une Lamborghini ! Crée ton compte avec mon lien :`;
       if (a === 'share' && navigator.share) { try { await navigator.share({ title: 'Trad Center', text, url }); } catch (er) { } return; }
       try { await navigator.clipboard.writeText(a === 'copy' ? '@' + N.profile.pseudo : text + ' ' + url); TC.toast('📋 Copié !', 'ok'); } catch (er) { }
       return;
@@ -191,6 +201,10 @@
     if (type === 'change' || type === 'synced') { if (UI.tab === 'social' && !(type === 'synced' && document.activeElement && document.activeElement.closest && document.activeElement.closest('#tab-social'))) SO.render(); SO.headerBtn(); }
     if (type === 'received') {
       TC.toast(`<div class="t-ach"><span>${esc(d.fromAvatar || '💸')}</span><div><small>Vous avez reçu</small><b>${d.kind === 'cash' ? fmt.eur(d.eur) : fmt.qty(d.qty) + ' ' + esc(d.asset) + ' (' + fmt.eur(d.eur) + ')'}</b> de ${esc(d.fromPseudo)}${d.msg ? `<br><i>« ${esc(d.msg)} »</i>` : ''}</div></div>`, 'ach', 8000);
+      TC.sound('cash'); TC.confetti(120); TC.App && TC.App.after();
+    }
+    if (type === 'referral') {
+      TC.toast(`<div class="t-ach"><span>🎁</span><div><small>Parrainage validé</small><b>+${fmt.eur(d.eur)}</b> : ${esc(d.pseudo)} a rejoint Trad Center grâce à toi !</div></div>`, 'ach', 8000);
       TC.sound('cash'); TC.confetti(120); TC.App && TC.App.after();
     }
     if (type === 'request') { TC.toast(`👋 ${esc(d.fromPseudo)} vous demande en ami ! (onglet Amis)`, 'info', 6000); TC.sound('ach'); }

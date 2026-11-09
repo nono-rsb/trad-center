@@ -1,0 +1,12 @@
+{
+  "id": "parrainage-2026-11",
+  "emoji": "🎁",
+  "title": "Invite tes potes : +20 € par ami !",
+  "text": "Nouveau sur Trad Center : partage ton lien d'invitation depuis l'onglet 👥 Amis. Dès que ton ami crée son compte et active les notifications, tu gagnes 20 € et vous devenez amis. Tradez, envoyez-vous du Bitcoin et grimpez au classement !",
+  "button": "Inviter mes amis",
+  "tab": "social",
+  "push": {
+    "title": "🎁 Invite tes potes : +20 € par ami !",
+    "body": "Partage ton lien dans l'onglet Amis : 20 € dès que ton ami crée son compte et active les notifications."
+  }
+}

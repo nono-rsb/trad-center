@@ -386,3 +386,7 @@ table.log td { font-size: 12px; padding: 6px 8px; }
 #n-pr { margin: 6px 0; }
 @media (max-width: 480px) { #b-help { display: none; } }
 .diag { font-size: 11px; color: var(--muted); margin-top: 14px; font-family: var(--mono); }
+.invite { border-color: rgba(240,185,11,.45); background: linear-gradient(135deg, rgba(240,185,11,.10), var(--panel)); }
+.inv-top { display: flex; gap: 14px; align-items: center; } .inv-top .big-emoji { font-size: 44px; } .inv-top h3 { margin: 0 0 4px; } .inv-top p { margin: 0; font-size: 13.5px; }
+.inv-link { display: flex; gap: 6px; margin-top: 12px; } .inv-link input { flex: 1; min-width: 0; background: var(--bg2); border: 1px solid var(--line); border-radius: 10px; padding: 9px 10px; color: var(--muted); font-family: var(--mono); font-size: 12px; }
+.inv-list { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 10px; font-size: 13px; }
