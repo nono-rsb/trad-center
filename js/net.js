@@ -14,7 +14,17 @@
 
   let auth = null, db = null, unsubs = [], syncT = null, linked = false;
   const pairId = (a, b) => a < b ? a + '_' + b : b + '_' + a;
-  const PSEUDO_RE = /^[a-zA-Z0-9_]{3,16}$/;
+  // Pseudo affiché : lettres (accents compris), chiffres et _ ; identifiant unique : sans accents, en minuscules
+  const PSEUDO_RE = /^[\p{L}0-9_]{3,16}$/u;
+  const KEY_RE = /^[a-z0-9_]{3,16}$/;
+  const keyOf = p => (p || '').trim().replace(/^@/, '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[œ]/gi, 'oe').replace(/[æ]/gi, 'ae').replace(/ß/g, 'ss').toLowerCase();
+  const PSEUDO_ERR = 'Pseudo : 3 à 16 caractères, lettres, chiffres ou _ (pas d\'espace ni de symbole).';
+  function checkPseudo(p) {
+    p = (p || '').trim().replace(/\s+/g, '_');
+    if (!PSEUDO_RE.test(p) || !KEY_RE.test(keyOf(p))) throw userErr(PSEUDO_ERR);
+    return p;
+  }
+  N.keyOf = keyOf;
   N.db = () => db;
   // Demande au serveur de notifications de prévenir un autre joueur (même appli fermée).
   // Le message est rangé dans la « boîte d'envoi » de son propre profil ; le serveur rédige le texte lui-même.
@@ -92,12 +102,12 @@
 
   /* ---------------- Comptes ---------------- */
   N.pseudoFree = async function (pseudo) {
-    const s = await db.collection('usernames').doc(pseudo.toLowerCase()).get();
+    const s = await db.collection('usernames').doc(keyOf(pseudo)).get();
     return !s.exists;
   };
   async function createProfile(uid, pseudo) {
-    if (!PSEUDO_RE.test(pseudo)) throw userErr('Pseudo : 3 à 16 caractères (lettres, chiffres, _).');
-    const lower = pseudo.toLowerCase();
+    pseudo = checkPseudo(pseudo);
+    const lower = keyOf(pseudo);
     const prof = { pseudo, pseudoLower: lower, avatar: N.AVATARS[Math.floor(Math.random() * N.AVATARS.length)], nw: G.netWorth(), rank: G.rank().r[1], items: 0, topItem: null, createdAt: Date.now(), updatedAt: Date.now() };
     const b = db.batch();
     b.set(db.collection('usernames').doc(lower), { uid });
@@ -109,8 +119,7 @@
     return prof;
   }
   N.signUp = async function (email, pw, pseudo) {
-    pseudo = (pseudo || '').trim();
-    if (!PSEUDO_RE.test(pseudo)) throw userErr('Pseudo : 3 à 16 caractères (lettres, chiffres, _).');
+    pseudo = checkPseudo(pseudo);
     if (!(await N.pseudoFree(pseudo))) throw userErr('Ce pseudo est déjà pris.');
     N.creating = true;
     try {
@@ -124,7 +133,7 @@
     } finally { N.creating = false; }
   };
   N.choosePseudo = async function (pseudo) {
-    pseudo = (pseudo || '').trim();
+    pseudo = checkPseudo(pseudo);
     if (!(await N.pseudoFree(pseudo))) throw userErr('Ce pseudo est déjà pris.');
     N.profile = await createProfile(N.user.uid, pseudo); await applyReferral();
     N.needPseudo = false; emit('change');
@@ -239,7 +248,9 @@
   N.addFriend = async function (pseudo) {
     pseudo = (pseudo || '').trim().replace(/^@/, '');
     if (!pseudo) throw userErr('Entrez un pseudo.');
-    const u = await db.collection('usernames').doc(pseudo.toLowerCase()).get();
+    const k = keyOf(pseudo);
+    if (!KEY_RE.test(k)) throw userErr(`Aucun joueur nommé « ${pseudo} ».`);
+    const u = await db.collection('usernames').doc(k).get();
     if (!u.exists) throw userErr(`Aucun joueur nommé « ${pseudo} ».`);
     const other = u.data().uid; const me = N.user.uid;
     if (other === me) throw userErr('C\'est vous 😄');
