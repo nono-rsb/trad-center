@@ -117,24 +117,38 @@
   const me = () => N.db().collection('users').doc(N.user.uid);
   const field = () => 'push.' + deviceId();
 
+  // Préparés à l'avance : sur iPhone, l'abonnement doit partir tout de suite après le toucher
+  let swReg = null;
+  if ('serviceWorker' in navigator) navigator.serviceWorker.ready.then(r => { swReg = r; }).catch(() => { });
+
   NT.enable = async function () {
     if (!supported()) throw new Error(isIOS() && !standalone() ? 'ios-install' : 'unsupported');
-    const perm = await Notification.requestPermission();
+    let perm = Notification.permission;
+    if (perm !== 'granted') perm = await Notification.requestPermission(); // ne pas redemander si déjà accordé (iOS répond « refusé »)
     if (perm !== 'granted') throw new Error('denied');
     if (pushSupported() && N.user && N.profile) {
       try { await NT.subscribe(); }
-      catch (e) { console.warn('push', e); NT.pushError = (e && (e.code || e.message)) || 'erreur'; return 'local'; }
+      catch (e) { console.warn('push', e); NT.pushError = ((e && (e.name || e.code)) || 'erreur') + (e && e.message ? ' : ' + e.message : ''); return 'local'; }
     }
     NT.pushError = null;
     return true;
   };
   NT.subscribe = async function () {
-    const key = await NT.serverKey();
+    const key = vapid || await NT.serverKey();
     if (!key) throw new Error('serveur de notifications pas encore activé');
-    const reg = await navigator.serviceWorker.ready;
-    let sub = await reg.pushManager.getSubscription();
-    if (sub && localStorage.getItem('tradcenter.pushkey') !== key) { await sub.unsubscribe().catch(() => { }); sub = null; }
-    if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToU8(key) });
+    const reg = swReg || await navigator.serviceWorker.ready;
+    let sub;
+    if (localStorage.getItem('tradcenter.pushkey') && localStorage.getItem('tradcenter.pushkey') !== key) {
+      const old = await reg.pushManager.getSubscription(); if (old) await old.unsubscribe().catch(() => { });
+    }
+    try { sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToU8(key) }); }
+    catch (e) {
+      // abonnement existant avec une autre clé : on le remplace
+      const old = await reg.pushManager.getSubscription();
+      if (!old) throw e;
+      await old.unsubscribe().catch(() => { });
+      sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToU8(key) });
+    }
     const pr = prefs();
     await me().update({ [field()]: { sub: JSON.parse(JSON.stringify(sub)), prefs: { transfers: pr.transfers !== false, prices: pr.prices || 'normal' }, alerts: pr.alerts || [], at: Date.now() }, updatedAt: Date.now() });
     try { localStorage.setItem('tradcenter.pushsub', '1'); localStorage.setItem('tradcenter.pushkey', key); } catch (e) { }
@@ -202,7 +216,7 @@
     const save = () => { G.save(); NT.syncPrefs(); };
     el.querySelector('#n-tr').onchange = e => { pr.transfers = e.target.checked; save(); };
     el.querySelector('#n-pr').onclick = e => { const b = e.target.closest('[data-v]'); if (!b) return; pr.prices = b.dataset.v; el.querySelectorAll('#n-pr button').forEach(x => x.classList.toggle('active', x === b)); save(); };
-    el.addEventListener('click', async e => {
+    el.querySelector('.modal-card').addEventListener('click', async e => {
       const b = e.target.closest('button'); if (!b) return;
       if (b.dataset.del) { pr.alerts = pr.alerts.filter(a => a.id !== b.dataset.del); save(); renderAlerts(); return; }
       const n = b.dataset.n;
@@ -221,7 +235,7 @@
         b.disabled = true;
         try {
           const r = await NT.enable(); md.close();
-          if (r === 'local') TC.toast('🔔 Notifications activées quand l\'appli est ouverte. Le serveur (appli fermée) n\'est pas encore prêt : réessayez plus tard.', 'info', 8000);
+          if (r === 'local') TC.toast('⚠️ Abonnement appli fermée impossible : ' + esc(NT.pushError || '') + '. Envoyez une capture de 🔔 à Claude.', 'bad', 10000);
           else TC.toast('🔔 Notifications activées !', 'ok');
           NT.open();
         }
