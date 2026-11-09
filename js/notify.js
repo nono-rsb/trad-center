@@ -133,24 +133,41 @@
     NT.pushError = null;
     return true;
   };
+  // Journal de l'activation, enregistré dans le profil pour le dépannage
+  function trace(step, err) {
+    NT.lastStep = step + (err ? ' ✗ ' + err : '');
+    try {
+      if (N.user && N.db()) me().update({ pushDebug: { step, err: err || null, ua: navigator.userAgent.slice(0, 160), standalone: standalone(), perm: supported() ? Notification.permission : 'n/a', at: Date.now() } }).catch(() => { });
+    } catch (e) { }
+  }
+  const withTimeout = (p, ms, step) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('délai dépassé (' + step + ')')), ms))]);
+
   NT.subscribe = async function () {
-    const key = vapid || await NT.serverKey();
-    if (!key) throw new Error('serveur de notifications pas encore activé');
-    const reg = swReg || await navigator.serviceWorker.ready;
+    trace('début');
+    const key = vapid || await withTimeout(NT.serverKey(), 10000, 'clé serveur');
+    if (!key) { trace('clé serveur', 'absente'); throw new Error('serveur de notifications pas encore activé'); }
+    let reg = swReg;
+    if (!reg) { try { reg = await withTimeout(navigator.serviceWorker.ready, 10000, 'service worker'); } catch (e) { trace('service worker', e.message); throw e; } }
     let sub;
-    if (localStorage.getItem('tradcenter.pushkey') && localStorage.getItem('tradcenter.pushkey') !== key) {
-      const old = await reg.pushManager.getSubscription(); if (old) await old.unsubscribe().catch(() => { });
-    }
-    try { sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToU8(key) }); }
-    catch (e) {
-      // abonnement existant avec une autre clé : on le remplace
-      const old = await reg.pushManager.getSubscription();
-      if (!old) throw e;
-      await old.unsubscribe().catch(() => { });
-      sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToU8(key) });
-    }
+    try {
+      if (localStorage.getItem('tradcenter.pushkey') && localStorage.getItem('tradcenter.pushkey') !== key) {
+        const old = await reg.pushManager.getSubscription(); if (old) await old.unsubscribe().catch(() => { });
+      }
+      try { sub = await withTimeout(reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToU8(key) }), 20000, 'abonnement Apple/Google'); }
+      catch (e) {
+        if (/délai/.test(e.message)) throw e;
+        const old = await reg.pushManager.getSubscription();
+        if (!old) throw e;
+        await old.unsubscribe().catch(() => { });
+        sub = await withTimeout(reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToU8(key) }), 20000, 'abonnement Apple/Google');
+      }
+    } catch (e) { trace('abonnement', (e.name || '') + ' ' + e.message); throw e; }
+    trace('abonné, enregistrement');
     const pr = prefs();
-    await me().update({ [field()]: { sub: JSON.parse(JSON.stringify(sub)), prefs: { transfers: pr.transfers !== false, prices: pr.prices || 'normal' }, alerts: pr.alerts || [], at: Date.now() }, updatedAt: Date.now() });
+    try {
+      await withTimeout(me().update({ [field()]: { sub: JSON.parse(JSON.stringify(sub)), prefs: { transfers: pr.transfers !== false, prices: pr.prices || 'normal' }, alerts: pr.alerts || [], at: Date.now() }, updatedAt: Date.now() }), 15000, 'enregistrement');
+    } catch (e) { trace('enregistrement', (e.code || '') + ' ' + e.message); throw e; }
+    trace('terminé');
     try { localStorage.setItem('tradcenter.pushsub', '1'); localStorage.setItem('tradcenter.pushkey', key); } catch (e) { }
   };
   NT.syncPrefs = async function () {
@@ -188,7 +205,7 @@
       ${!NT.subscribed() && pushSupported() && N.user && N.profile ? '<button class="btn btn-gold" data-n="enable">📡 Recevoir aussi quand l\'appli est fermée</button>' : ''}
       ${!N.user && N.enabled ? '<p class="hint">Connectez-vous (onglet 👥 Amis) pour les recevoir aussi quand l\'appli est fermée et être prévenu des envois.</p>' : ''}`;
     const key = await NT.serverKey();
-    const diag = `<p class="diag">Diagnostic : ${ios ? 'iPhone' : android ? 'Android' : 'ordinateur'} · appli installée : ${sa ? 'oui' : 'non'} · autorisation : ${supported() ? perm : 'indisponible'} · push : ${pushSupported() ? 'oui' : 'non'} · compte : ${N.user ? 'oui' : 'non'} · serveur : ${key ? 'prêt' : 'non'} · abonné : ${NT.subscribed() ? 'oui' : 'non'}</p>`;
+    const diag = `<p class="diag">Diagnostic : ${ios ? 'iPhone' : android ? 'Android' : 'ordinateur'} · appli installée : ${sa ? 'oui' : 'non'} · autorisation : ${supported() ? perm : 'indisponible'} · push : ${pushSupported() ? 'oui' : 'non'} · compte : ${N.user ? 'oui' : 'non'} · serveur : ${key ? 'prêt' : 'non'} · abonné : ${NT.subscribed() ? 'oui' : 'non'}${NT.lastStep ? ' · étape : ' + esc(NT.lastStep) : ''} · v9b</p>`;
     const opts = TC.ASSETS.map(a => `<option value="${a.id}">${a.id} — ${esc(a.name)}</option>`).join('');
     const md = TC.modal(`<h2>🔔 Notifications</h2><div class="modal-body">${status}
       <h4>Que voulez-vous recevoir ?</h4>
@@ -232,7 +249,7 @@
         return;
       }
       if (n === 'enable') {
-        b.disabled = true;
+        b.disabled = true; b.textContent = '⏳ Activation…';
         try {
           const r = await NT.enable(); md.close();
           if (r === 'local') TC.toast('⚠️ Abonnement appli fermée impossible : ' + esc(NT.pushError || '') + '. Envoyez une capture de 🔔 à Claude.', 'bad', 10000);
@@ -240,7 +257,7 @@
           NT.open();
         }
         catch (er) {
-          b.disabled = false;
+          b.disabled = false; b.textContent = '🔔 Réessayer';
           TC.toast(er.message === 'denied' ? '🔕 Le téléphone a refusé les notifications : ouvrez 🔔 pour voir comment les autoriser.' : er.message === 'ios-install' ? '📲 Installez d\'abord l\'appli sur l\'écran d\'accueil.' : '⚠️ Impossible d\'activer : ' + (er.message || er), 'bad', 6000);
         }
         return;
