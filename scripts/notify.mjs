@@ -192,11 +192,26 @@ async function main() {
         let msg;
         if (m.kind === 'transfer') msg = { title: `💸 ${from} vous a envoyé ${fmtAmt(m)}`, body: m.msg ? `« ${String(m.msg).slice(0, 120)} »` : 'Ouvrez Trad Center pour en profiter !', tag: 'transfer', url: '?tab=social' };
         else if (m.kind === 'friend') msg = { title: `👋 ${from} veut être votre ami`, body: 'Acceptez sa demande dans l\'onglet Amis.', tag: 'friend', url: '?tab=social' };
-        else if (m.kind === 'accept') msg = { title: `🤝 ${from} a accepté votre demande d'ami`, body: 'Vous pouvez maintenant vous envoyer de l\'argent et des cryptos.', tag: 'friend', url: '?tab=social' };
+        else if (m.kind === 'referral') msg = { title: `🎁 +20 € ! ${from} a rejoint Trad Center grâce à toi`, body: 'Ouvre l\'appli pour encaisser ta prime de parrainage.', tag: 'referral', url: '?tab=social' };
+      else if (m.kind === 'accept') msg = { title: `🤝 ${from} a accepté votre demande d'ami`, body: 'Vous pouvez maintenant vous envoyer de l\'argent et des cryptos.', tag: 'friend', url: '?tab=social' };
         else continue;
         for (const s of subs.filter(s => s.uid === m.to && !s.dead && (!s.prefs || s.prefs.transfers !== false))) await push(s, msg);
       }
     }
+
+    // Annonce à tous les joueurs abonnés (fichier announce.json, une seule fois par annonce)
+    try {
+      const ann = JSON.parse(fs.readFileSync(path.join(ROOT, 'announce.json'), 'utf8'));
+      st.ann = st.ann || {};
+      if (ann && ann.id && ann.push) {
+        for (const s of subs.filter(s => !s.dead)) {
+          const k = ann.id + ':' + s.sub.endpoint.slice(-40);
+          if (st.ann[k]) continue;
+          st.ann[k] = Date.now();
+          await push(s, { title: ann.push.title, body: ann.push.body, tag: 'announce', url: ann.tab ? '?tab=' + ann.tab : './' });
+        }
+      }
+    } catch (e) { }
 
     // 2 et 3. Marchés et alertes (seulement si quelqu'un est abonné)
     const live = subs.filter(s => !s.dead);
@@ -222,8 +237,8 @@ async function main() {
         }
       }
     }
-    prune(st.done, 3 * 86400000); prune(st.alerts, 30 * 86400000); prune(st.dead, 30 * 86400000);
-    prune(st.done, 3 * 86400000); prune(st.alerts, 30 * 86400000); prune(st.dead, 30 * 86400000);
+    prune(st.done, 3 * 86400000); prune(st.alerts, 30 * 86400000); prune(st.dead, 30 * 86400000); if (st.ann) prune(st.ann, 60 * 86400000);
+    prune(st.done, 3 * 86400000); prune(st.alerts, 30 * 86400000); prune(st.dead, 30 * 86400000); if (st.ann) prune(st.ann, 60 * 86400000);
     st.lastRun = Date.now(); saveState(st);
     if (sent || verbose) log('passage terminé,', sent, 'notification(s) envoyée(s)');
     sentTotal += sent;

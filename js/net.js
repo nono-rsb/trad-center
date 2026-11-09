@@ -115,7 +115,7 @@
     N.creating = true;
     try {
       const cred = await auth.createUserWithEmailAndPassword(email.trim(), pw);
-      try { N.profile = await createProfile(cred.user.uid, pseudo); }
+      try { N.profile = await createProfile(cred.user.uid, pseudo); await applyReferral(); }
       catch (e) { N.needPseudo = true; emit('change'); throw e; }
       N.needPseudo = false;
       try { await cred.user.sendEmailVerification(); } catch (e) { }
@@ -126,7 +126,7 @@
   N.choosePseudo = async function (pseudo) {
     pseudo = (pseudo || '').trim();
     if (!(await N.pseudoFree(pseudo))) throw userErr('Ce pseudo est déjà pris.');
-    N.profile = await createProfile(N.user.uid, pseudo);
+    N.profile = await createProfile(N.user.uid, pseudo); await applyReferral();
     N.needPseudo = false; emit('change');
     await linkSave();
   };
@@ -276,6 +276,52 @@
     N.notifyPlayer(friend.uid, 'transfer', { asset: t.asset || null, qty: t.qty, eur: t.eur, msg: (msg || '').slice(0, 120) });
     return t;
   };
+
+  /* ---------------- Parrainage ---------------- */
+  N.REF_BONUS = 20;
+  N.inviteLink = () => location.origin + location.pathname + '?ref=' + encodeURIComponent(N.user.uid);
+  // Nouveau joueur arrivé par un lien : on note le parrain et on lui envoie une demande d'ami
+  async function applyReferral() {
+    let ref = null; try { ref = localStorage.getItem('tradcenter.ref'); } catch (e) { }
+    if (!ref || !N.user || !N.profile || ref === N.user.uid || N.profile.referredBy) return;
+    if (Date.now() - (N.profile.createdAt || 0) > 24 * 3600000) return; // seulement pour un compte tout neuf
+    try {
+      const p = await db.collection('users').doc(ref).get(); if (!p.exists || p.data().bot) return;
+      await db.collection('users').doc(N.user.uid).update({ referredBy: ref, updatedAt: Date.now() });
+      N.profile.referredBy = ref;
+      await db.collection('friendRequests').doc(N.user.uid + '_' + ref).set({ from: N.user.uid, to: ref, fromPseudo: N.profile.pseudo, fromAvatar: N.profile.avatar, toPseudo: p.data().pseudo, createdAt: Date.now() });
+      N.notifyPlayer(ref, 'friend');
+    } catch (e) { console.warn('ref', e); }
+  }
+  // Appelé quand le filleul a activé les notifications : le parrain peut toucher sa prime
+  N.referralDone = async function () {
+    if (!N.profile || !N.profile.referredBy || N.profile.refOk) return;
+    try {
+      await db.collection('users').doc(N.user.uid).update({ refOk: true, updatedAt: Date.now() });
+      N.profile.refOk = true;
+      N.notifyPlayer(N.profile.referredBy, 'referral');
+    } catch (e) { console.warn('ref', e); }
+  };
+  // Le parrain encaisse 20 € par filleul validé (une seule fois chacun)
+  N.checkReferrals = async function () {
+    if (!db || !N.user || !linked) return;
+    try {
+      const snap = await db.collection('users').where('referredBy', '==', N.user.uid).get();
+      const paid = G.state.refPaid || (G.state.refPaid = {});
+      N.referrals = snap.docs.map(d => ({ uid: d.id, pseudo: d.data().pseudo, ok: !!d.data().refOk, paid: !!paid[d.id] }));
+      for (const d of snap.docs) {
+        if (!d.data().refOk || paid[d.id]) continue;
+        paid[d.id] = Date.now();
+        G.state.cash += N.REF_BONUS;
+        G.state.log.unshift({ t: Date.now(), kind: 'bonus', eur: N.REF_BONUS, who: d.data().pseudo });
+        G.save(true);
+        emit('referral', { pseudo: d.data().pseudo, eur: N.REF_BONUS });
+      }
+      emit('change');
+    } catch (e) { console.warn('ref', e); }
+  };
+  N.on(t => { if (t === 'linked') { N.checkReferrals(); applyReferral(); } });
+  setInterval(() => N.checkReferrals(), 120000);
 
   /* ---------------- Classement ---------------- */
   N.loadBoard = async function (scope) {

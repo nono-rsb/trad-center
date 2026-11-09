@@ -158,6 +158,20 @@
       </div><div class="modal-actions"><button class="btn btn-gold" data-close>C'est parti ! 🚀</button></div>`, { cls: 'wide', onClose: () => { if (!S().seenIntro) { S().seenIntro = true; G.save(); } } });
   }
 
+  /* ---------------- Annonces (fichier announce.json du site) ---------------- */
+  async function announce() {
+    try {
+      const a = await (await fetch('announce.json?t=' + Date.now(), { cache: 'no-store' })).json();
+      if (!a || !a.id || localStorage.getItem('tradcenter.announce') === a.id) return;
+      if ($('#modal').classList.contains('open')) { setTimeout(announce, 5000); return; }
+      localStorage.setItem('tradcenter.announce', a.id);
+      TC.modal(`<div class="center"><div class="big-emoji">${a.emoji || '📣'}</div><h2>${TC.esc(a.title)}</h2>
+        <p>${TC.esc(a.text)}</p>
+        <div class="modal-actions"><button class="btn btn-ghost" data-close>Plus tard</button><button class="btn btn-gold" id="b-ann">${TC.esc(a.button || 'OK')}</button></div></div>`);
+      $('#b-ann').onclick = () => { $('#modal').click(); if (a.tab) setTab(a.tab); };
+    } catch (e) { }
+  }
+
   /* ---------------- Installation (écran d'accueil) ---------------- */
   let deferredPrompt = null;
   const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
@@ -270,7 +284,9 @@
     const qs = new URLSearchParams(location.search);
     if (qs.get('a') && TC.assetById[qs.get('a')]) UI.sel = qs.get('a');
     if (qs.get('tab')) setTimeout(() => setTab(qs.get('tab')), 0);
+    if (qs.get('ref')) { try { if (!localStorage.getItem('tradcenter.ref')) localStorage.setItem('tradcenter.ref', qs.get('ref').slice(0, 64)); } catch (e) { } }
     if (qs.toString()) history.replaceState(null, '', location.pathname);
+    setTimeout(announce, 2500);
     TC.Chart.init($('#chart'));
     UI.cats(); UI.list(); UI.tfButtons(); UI.ticker(); UI.databar();
     UI.chartHead(); UI.order(); UI.header();
