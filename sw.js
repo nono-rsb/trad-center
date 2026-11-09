@@ -1,7 +1,7 @@
 /* Trad Center — service worker : jeu installable et jouable hors connexion.
  * Fichiers du jeu : réseau d'abord (toujours la dernière version), cache en secours.
  * Les API de prix et les photos ne sont jamais mises en cache ici. */
-const CACHE = 'tradcenter-v12';
+const CACHE = 'tradcenter-v13';
 const FILES = [...new Set(['./', 'index.html', 'manifest.webmanifest', 'css/style.css', 'js/config.js', 'js/catalog.js', 'js/util.js', 'js/data.js', 'js/images.js', 'js/game.js', 'js/chart.js', 'js/ui.js', 'js/net.js', 'js/app.js', 'js/social.js', 'js/notify.js', 'js/vendor/lightweight-charts.standalone.production.js', 'icons/logo.svg', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png', 'icons/badge-96.png', 'announce.json'])];
 self.addEventListener('install', e => {
   self.skipWaiting();
@@ -19,10 +19,13 @@ self.addEventListener('fetch', e => {
 self.addEventListener('push', e => {
   let d = {};
   try { d = e.data ? e.data.json() : {}; } catch (er) { d = { body: e.data ? e.data.text() : '' }; }
-  e.waitUntil(self.registration.showNotification(d.title || 'Trad Center', {
-    body: d.body || '', tag: d.tag || undefined, renotify: !!d.tag,
-    icon: 'icons/icon-192.png', badge: 'icons/badge-96.png', data: { url: d.url || './' },
-  }));
+  e.waitUntil(Promise.all([
+    self.registration.showNotification(d.title || 'Trad Center', {
+      body: d.body || '', tag: d.tag || undefined, renotify: !!d.tag,
+      icon: 'icons/icon-192.png', badge: 'icons/badge-96.png', data: { url: d.url || './' },
+    }),
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => list.forEach(c => c.postMessage({ type: 'push', title: d.title, body: d.body }))),
+  ]));
 });
 self.addEventListener('notificationclick', e => {
   e.notification.close();

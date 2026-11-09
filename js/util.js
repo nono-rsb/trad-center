@@ -63,6 +63,7 @@
     if (!TC.Game || !TC.Game.state.sound) return;
     try { if (navigator.vibrate && kind !== 'click') navigator.vibrate(kind === 'lose' ? [40, 60, 40] : kind === 'cash' || kind === 'ach' || kind === 'win' ? [20, 40, 20, 40, 60] : 15); } catch (e) { }
     try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === 'suspended') ac.resume(); } catch (e) { return; }
+    if (kind === 'kaching') return kaching();
     const seq = {
       buy: [[523, 0, .12], [784, .08, .18]],
       sell: [[784, 0, .12], [523, .08, .18]],
@@ -74,6 +75,38 @@
     }[kind] || [];
     seq.forEach(s => tone(s[0], s[1], s[2], s[3], s[4]));
   };
+
+  /* ---------- « Ka-ching » : tiroir-caisse + clochette + pièces (son original synthétisé) ---------- */
+  function kachingInto(C, out) {
+    const noise = dur => { const n = Math.floor(C.sampleRate * dur), b = C.createBuffer(1, n, C.sampleRate), d = b.getChannelData(0); for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1; const src = C.createBufferSource(); src.buffer = b; return src; };
+    const burst = (t, dur, freq, q, vol) => { // bruit filtré : mécanisme, pièces
+      const src = noise(dur), f = C.createBiquadFilter(), g = C.createGain();
+      f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = q;
+      g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      src.connect(f); f.connect(g); g.connect(out); src.start(t); src.stop(t + dur + 0.02);
+    };
+    const bell = (t, base, vol, dur) => { // clochette métallique : partiels inharmoniques
+      [[1, 1], [2.76, 0.55], [5.4, 0.3], [8.93, 0.18], [1.5, 0.25]].forEach(([r, a]) => {
+        const o = C.createOscillator(), g = C.createGain();
+        o.type = 'sine'; o.frequency.value = base * r;
+        g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol * a, t + 0.004);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + dur / Math.sqrt(r));
+        o.connect(g); g.connect(out); o.start(t); o.stop(t + dur + 0.05);
+      });
+    };
+    const t = C.currentTime + 0.02;
+    burst(t, 0.06, 1800, 1.2, 0.5);          // « ka » : le tiroir qui s'ouvre
+    burst(t + 0.015, 0.09, 600, 2, 0.35);
+    bell(t + 0.07, 1568, 0.22, 1.4);          // « ching » : deux coups de clochette
+    bell(t + 0.17, 2093, 0.18, 1.6);
+    for (let i = 0; i < 7; i++) burst(t + 0.2 + i * 0.045 + Math.random() * 0.02, 0.05, 5000 + Math.random() * 3000, 8, 0.12); // pièces
+  }
+  TC.kachingInto = kachingInto;
+  let master = null;
+  function kaching() {
+    if (!master) { master = ac.createGain(); master.gain.value = 0.55; master.connect(ac.destination); }
+    kachingInto(ac, master);
+  }
 
   /* ---------- Notifications ---------- */
   TC.toast = function (msg, type = 'info', ms = 3800) {
