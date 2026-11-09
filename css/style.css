@@ -385,3 +385,4 @@ table.log td { font-size: 12px; padding: 6px 8px; }
 .nalert-add .inp { margin: 0; }
 #n-pr { margin: 6px 0; }
 @media (max-width: 480px) { #b-help { display: none; } }
+.diag { font-size: 11px; color: var(--muted); margin-top: 14px; font-family: var(--mono); }

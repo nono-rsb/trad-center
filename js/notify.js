@@ -136,13 +136,13 @@
     if (sub && localStorage.getItem('tradcenter.pushkey') !== key) { await sub.unsubscribe().catch(() => { }); sub = null; }
     if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToU8(key) });
     const pr = prefs();
-    await me().update({ [field()]: { sub: JSON.parse(JSON.stringify(sub)), prefs: { transfers: pr.transfers !== false, prices: pr.prices || 'normal' }, alerts: pr.alerts || [], at: Date.now() } });
+    await me().update({ [field()]: { sub: JSON.parse(JSON.stringify(sub)), prefs: { transfers: pr.transfers !== false, prices: pr.prices || 'normal' }, alerts: pr.alerts || [], at: Date.now() }, updatedAt: Date.now() });
     try { localStorage.setItem('tradcenter.pushsub', '1'); localStorage.setItem('tradcenter.pushkey', key); } catch (e) { }
   };
   NT.syncPrefs = async function () {
     if (!NT.subscribed() || !N.user || !N.db()) return;
     const pr = prefs();
-    try { await me().update({ [field() + '.prefs']: { transfers: pr.transfers !== false, prices: pr.prices || 'normal' }, [field() + '.alerts']: pr.alerts || [], [field() + '.at']: Date.now() }); } catch (e) { }
+    try { await me().update({ [field() + '.prefs']: { transfers: pr.transfers !== false, prices: pr.prices || 'normal' }, [field() + '.alerts']: pr.alerts || [], [field() + '.at']: Date.now(), updatedAt: Date.now() }); } catch (e) { }
   };
   NT.pullAlerts = async function () { };
   NT.disablePush = async function () {
@@ -157,14 +157,24 @@
     const pr = prefs();
     const perm = supported() ? Notification.permission : 'unsupported';
     let status;
-    if (!supported()) status = isIOS() && !standalone()
-      ? `<div class="nbox warn">📲 Sur iPhone, les notifications marchent uniquement depuis l'appli installée. Installez Trad Center sur l'écran d'accueil (Safari → Partager → « Sur l'écran d'accueil »), ouvrez-le depuis l'icône, puis revenez ici. <button class="btn btn-sm" data-n="install">Comment faire ?</button></div>`
-      : '<div class="nbox warn">Votre navigateur ne gère pas les notifications.</div>';
-    else if (perm === 'denied') status = '<div class="nbox warn">🔕 Notifications bloquées. Autorisez-les dans les réglages du navigateur / du téléphone pour ce site, puis revenez ici.</div>';
+    const ios = isIOS(), sa = standalone();
+    const android = /android/i.test(navigator.userAgent);
+    if (ios && !sa) status = `<div class="nbox warn">📲 <b>Sur iPhone, les notifications ne marchent que dans l'appli installée</b>, jamais dans Safari ou Chrome.<br>
+        1. Dans Safari, touchez Partager ⬆️ → « Sur l'écran d'accueil » → Ajouter.<br>
+        2. Fermez le navigateur et ouvrez Trad Center <b>depuis la nouvelle icône</b>.<br>
+        3. Reconnectez-vous (l'appli installée a sa propre mémoire), puis 🔔 → Activer.<br>
+        (iOS 16.4 minimum : Réglages → Général → Informations → Version.)</div><button class="btn btn-sm" data-n="install">Voir comment installer</button>`;
+    else if (!supported()) status = '<div class="nbox warn">Ce navigateur ne gère pas les notifications. Utilisez Chrome (Android) ou l\'appli installée (iPhone).</div>';
+    else if (perm === 'denied') status = `<div class="nbox warn">🔕 <b>Le téléphone bloque les notifications de Trad Center.</b><br>${ios
+      ? 'Ouvrez <b>Réglages → Notifications → Trad Center</b> et activez « Autoriser les notifications », puis rouvrez l\'appli.'
+      : android ? 'Dans Chrome : touchez l\'icône à gauche de l\'adresse (ou ⋮ → ℹ️ Infos) → <b>Autorisations → Notifications → Autoriser</b>. Si l\'appli est installée : Paramètres Android → Applications → Trad Center → Notifications.'
+      : 'Autorisez les notifications pour ce site dans les réglages du navigateur (icône à gauche de l\'adresse).'}</div>`;
     else if (perm !== 'granted') status = '<div class="nbox">🔔 Recevez une notification pour les envois d\'argent, les grosses hausses et chutes, et vos alertes de prix.</div><button class="btn btn-gold btn-xl" data-n="enable">🔔 Activer les notifications</button>';
-    else status = (NT.pushError ? `<div class="nbox warn">⚠️ Le serveur de notifications a refusé l'abonnement (${esc(NT.pushError)}). Les notifications marchent quand l'appli est ouverte.</div>` : '') + `<div class="nbox ok">✅ Notifications activées${NT.subscribed() ? ' — <b>même appli fermée</b>' : pushSupported() ? (N.user ? '' : ' (appli ouverte)') : ' (appli ouverte)'}.</div>
+    else status = (NT.pushError ? `<div class="nbox warn">⚠️ Le serveur de notifications a refusé l'abonnement (${esc(NT.pushError)}). Les notifications marchent quand l'appli est ouverte.</div>` : '') + `<div class="nbox ok">✅ Notifications activées${NT.subscribed() ? ' — <b>même appli fermée</b>' : ' (appli ouverte)'}.</div>
       ${!NT.subscribed() && pushSupported() && N.user && N.profile ? '<button class="btn btn-gold" data-n="enable">📡 Recevoir aussi quand l\'appli est fermée</button>' : ''}
       ${!N.user && N.enabled ? '<p class="hint">Connectez-vous (onglet 👥 Amis) pour les recevoir aussi quand l\'appli est fermée et être prévenu des envois.</p>' : ''}`;
+    const key = await NT.serverKey();
+    const diag = `<p class="diag">Diagnostic : ${ios ? 'iPhone' : android ? 'Android' : 'ordinateur'} · appli installée : ${sa ? 'oui' : 'non'} · autorisation : ${supported() ? perm : 'indisponible'} · push : ${pushSupported() ? 'oui' : 'non'} · compte : ${N.user ? 'oui' : 'non'} · serveur : ${key ? 'prêt' : 'non'} · abonné : ${NT.subscribed() ? 'oui' : 'non'}</p>`;
     const opts = TC.ASSETS.map(a => `<option value="${a.id}">${a.id} — ${esc(a.name)}</option>`).join('');
     const md = TC.modal(`<h2>🔔 Notifications</h2><div class="modal-body">${status}
       <h4>Que voulez-vous recevoir ?</h4>
@@ -180,7 +190,7 @@
         <button class="btn btn-gold" data-n="add">Ajouter l'alerte</button></div>
       ${perm === 'granted' ? '<button class="btn btn-ghost btn-sm" data-n="test">Envoyer une notification de test</button>' : ''}
       ${NT.subscribed() ? '<button class="btn btn-ghost btn-sm" data-n="off">Ne plus recevoir quand l\'appli est fermée</button>' : ''}
-      </div>`, { cls: 'wide' });
+      ${diag}</div>`, { cls: 'wide' });
     const el = md.el;
     const sel = el.querySelector('#n-asset'); sel.value = TC.UI.sel;
     const fillPrice = () => { const p = D.eur(sel.value); el.querySelector('#n-price').placeholder = p ? 'actuel : ' + fmt.num(p, p < 1 ? 6 : 2) : 'Prix'; };
@@ -217,7 +227,7 @@
         }
         catch (er) {
           b.disabled = false;
-          TC.toast(er.message === 'denied' ? '🔕 Vous avez refusé les notifications.' : er.message === 'ios-install' ? '📲 Installez d\'abord l\'appli sur l\'écran d\'accueil.' : '⚠️ Impossible d\'activer : ' + (er.message || er), 'bad', 6000);
+          TC.toast(er.message === 'denied' ? '🔕 Le téléphone a refusé les notifications : ouvrez 🔔 pour voir comment les autoriser.' : er.message === 'ios-install' ? '📲 Installez d\'abord l\'appli sur l\'écran d\'accueil.' : '⚠️ Impossible d\'activer : ' + (er.message || er), 'bad', 6000);
         }
         return;
       }

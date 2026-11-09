@@ -7,12 +7,12 @@ Bouton **🔔** en haut de l'écran → **Activer les notifications**.
 - 🚀📉 **Grosses hausses / chutes** : Bitcoin et Ethereum ±3 % en 1 h ou ±5 % en 24 h, autres cryptos ±6 % / ±10 %, actions ±4 % / ±6 %, indices ±1,5 % / ±2,5 %, matières premières ±3 % / ±4 %, devises ±1 % / ±1,5 % (mode « Sensible » : moitié moins)
 - 🎯 **Alertes de prix** : « préviens-moi quand le Bitcoin atteint 100 000 € »
 
-Appli ouverte : alertes instantanées. Appli fermée : il faut être connecté à un compte (onglet 👥 Amis), et les notifications arrivent avec quelques minutes de décalage (serveur toutes les ~5 à 15 min).
+Appli ouverte : alertes instantanées. Appli fermée : il faut être connecté à un compte (onglet 👥 Amis) ; les envois et demandes d'ami arrivent en moins d'une minute, les mouvements de marché en quelques minutes.
 
 **iPhone** : iOS 16.4 ou plus récent, et l'appli doit être **installée sur l'écran d'accueil** (Safari → Partager → « Sur l'écran d'accueil ») puis ouverte depuis son icône avant d'activer les notifications.
 
 ## Pour le propriétaire du jeu (une seule fois)
-Le serveur de notifications est le workflow GitHub Actions [`notify.yml`](.github/workflows/notify.yml), qui lance [`scripts/notify.mjs`](scripts/notify.mjs) toutes les 5 minutes (GitHub peut retarder de quelques minutes).
+Le serveur de notifications est le workflow GitHub Actions [`notify.yml`](.github/workflows/notify.yml), qui lance [`scripts/notify.mjs`](scripts/notify.mjs) en continu : chaque exécution surveille ~50 min (messages toutes les 30 s, marchés toutes les 3 min) puis relance la suivante ; une planification toutes les 15 min sert de filet de sécurité.
 
 **Seul réglage : inventer un mot de passe et l'enregistrer comme secret GitHub.**
 1. Ouvrez <https://github.com/nono-rsb/trad-center/settings/secrets/actions/new>
