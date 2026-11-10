@@ -418,6 +418,13 @@
         const lb = label(txt, p.me ? { bg: 'rgba(255,200,40,.95)', color: '#2a1a00', scale: 1.1 } : p.mayor ? { bg: 'rgba(255,215,90,.92)', color: '#2a1a00', scale: 1.15, border: '#fff' } : p.friend ? { bg: 'rgba(40,110,230,.9)', scale: .95 } : {});
         lb.position.set(s.x, h + 3.2, s.z); world.add(lb); labels.push(lb);
         lotPos[p.uid] = { x: s.x, z: s.z, h };
+        if (p.mayor) { // palais du Maire : dalle dorée, tapis rouge, drapeaux, projecteurs
+          const gold = col(0xf5c518, { metalness: .85, roughness: .25 });
+          [[0, -10.6, BLOCK - 2, .7], [0, 10.6, BLOCK - 2, .7], [-10.6, 0, .7, BLOCK - 2], [10.6, 0, .7, BLOCK - 2]].forEach(([x, z, w, d]) => g.add(box(w, .5, d, gold, x, .35, z)));
+          g.add(box(2.6, .08, 8, col(0xc1121f), 0, .45, 8));
+          [-3, 3].forEach(x => { g.add(cyl(.1, .1, 7, col(0xdddddd), x, .45, 9.5, 6)); [0x0055a4, 0xffffff, 0xef4135].forEach((c, k) => g.add(box(.6, 1.1, .05, col(c), x + .3 + k * .6, 6.2, 9.5))); g.add(mesh(new T.SphereGeometry(.22, 8, 6), gold, x, 7.5, 9.5)); });
+          [[-9, -9], [9, -9], [-9, 9], [9, 9]].forEach(([x, z]) => { const l = mesh(new T.CylinderGeometry(.3, 2.2, 40, 16, 1, true), new T.MeshBasicMaterial({ color: 0xfff1b0, transparent: true, opacity: night ? .16 : .05, depthWrite: false }), x, 20.5, z, false); l.rotation.z = x > 0 ? -.12 : .12; g.add(l); });
+        }
         if (p.mayor) { const cr = emojiSprite('👑', 5); cr.position.set(s.x, h + 7.5, s.z); world.add(cr); animated.push(t => { cr.position.y = h + 7.5 + Math.sin(t * 2) * .6; }); }
       }
       b.traverse(o => { if (o.isMesh) pickables.push(o); });
