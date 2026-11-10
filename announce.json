@@ -1,16 +1,8 @@
 {
-  "id": "maj-2026-11-10-style",
-  "emoji": "🎨",
-  "title": "Habille ton avatar !",
-  "items": [
-    { "icon": "🧢", "title": "Articles de marque", "text": "Casquette New Era, Ray-Ban, chaîne en or, Air Jordan, Rolex… dans Collection → Mon style." },
-    { "icon": "🖼️", "title": "Cadres d'avatar", "text": "Néon Vice, Or massif, Arc-en-ciel, Diamant : tes amis les voient dans les classements." },
-    { "icon": "✓", "title": "Trad Center+ : badge vérifié", "text": "999 € (du jeu) par mois : badge ✓ bleu, cadre exclusif et bonus quotidien +50 %." }
-  ],
-  "button": "Personnaliser mon avatar 🎨",
-  "tab": "collection",
+  "id": "teddy-2026-11",
+  "silent": true,
   "push": {
-    "title": "🎨 Nouveau : habille ton avatar + badge vérifié ✓",
-    "body": "Casquettes, Ray-Ban, chaînes, Jordan, cadres… et l'abonnement Trad Center+ avec badge ✓. Viens voir !"
+    "title": "🥋 Événement surprise sur Trad Center !",
+    "body": "Une question très importante t'attend… Ouvre l'appli pour répondre."
   }
 }

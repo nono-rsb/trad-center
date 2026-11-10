@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 440">
+  <!-- Caricature originale et bienveillante d'un judoka champion (dessin Trad Center) -->
+  <defs>
+    <radialGradient id="sk" cx="45%" cy="38%" r="65%"><stop offset="0" stop-color="#9a6644"/><stop offset="1" stop-color="#5e3a24"/></radialGradient>
+    <linearGradient id="gi" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#dfe6f2"/></linearGradient>
+  </defs>
+  <!-- kimono -->
+  <path d="M40 440 C50 330 110 300 200 300 C290 300 350 330 360 440 Z" fill="url(#gi)" stroke="#c9d2e3" stroke-width="4"/>
+  <path d="M200 300 L150 440 M200 300 L250 440" stroke="#c9d2e3" stroke-width="10" fill="none"/>
+  <path d="M152 300 L200 380 L248 300" fill="url(#sk)"/>
+  <!-- ceinture noire -->
+  <rect x="70" y="405" width="260" height="26" rx="8" fill="#111"/>
+  <path d="M190 418 l-30 30 h22 l18-22 l18 22 h22 l-30-30z" fill="#111"/>
+  <!-- cou -->
+  <rect x="165" y="250" width="70" height="60" rx="20" fill="url(#sk)"/>
+  <!-- grosse tête -->
+  <ellipse cx="200" cy="165" rx="125" ry="135" fill="url(#sk)"/>
+  <!-- oreilles -->
+  <ellipse cx="76" cy="175" rx="22" ry="32" fill="#7a4d31"/><ellipse cx="324" cy="175" rx="22" ry="32" fill="#7a4d31"/>
+  <!-- crâne rasé qui brille -->
+  <ellipse cx="160" cy="70" rx="42" ry="16" fill="#fff" opacity=".25" transform="rotate(-18 160 70)"/>
+  <!-- sourcils : un haut, un bas -->
+  <path d="M110 112 q35 -30 70 -8" stroke="#1d120c" stroke-width="12" stroke-linecap="round" fill="none"/>
+  <path d="M225 120 q35 8 68 -4" stroke="#1d120c" stroke-width="12" stroke-linecap="round" fill="none"/>
+  <!-- yeux qui louchent -->
+  <circle cx="148" cy="150" r="30" fill="#fff"/><circle cx="258" cy="150" r="24" fill="#fff"/>
+  <circle cx="163" cy="156" r="13" fill="#1d120c"/><circle cx="246" cy="156" r="11" fill="#1d120c"/>
+  <circle cx="167" cy="151" r="4" fill="#fff"/><circle cx="249" cy="152" r="3" fill="#fff"/>
+  <!-- nez -->
+  <path d="M195 165 q-18 40 6 46 q22 2 18 -12" stroke="#4a2c1a" stroke-width="7" fill="none" stroke-linecap="round"/>
+  <!-- énorme sourire avec langue -->
+  <path d="M112 222 q88 92 178 0 q-88 30 -178 0z" fill="#3a0d12"/>
+  <path d="M122 226 q78 22 158 0 v10 q-79 18 -158 0z" fill="#fff"/>
+  <ellipse cx="215" cy="262" rx="30" ry="20" fill="#ff6b81"/>
+  <path d="M215 248 v24" stroke="#d94a62" stroke-width="3"/>
+  <!-- gouttes de sueur -->
+  <path d="M318 98 q10 18 0 26 q-10 -8 0 -26z" fill="#7fd3ff"/>
+  <!-- médaille d'or -->
+  <path d="M180 300 l20 45 l20 -45" stroke="#1d4ed8" stroke-width="10" fill="none"/>
+  <circle cx="200" cy="362" r="26" fill="#f5c542" stroke="#b8862b" stroke-width="5"/><text x="200" y="371" font-size="26" text-anchor="middle" font-family="Arial" font-weight="900" fill="#8a5a00">1</text>
+</svg>

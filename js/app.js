@@ -224,6 +224,7 @@
     try {
       const a = await (await fetch('announce.json?t=' + Date.now(), { cache: 'no-store' })).json();
       if (!a || !a.id || localStorage.getItem('tradcenter.announce') === a.id) return;
+      if (a.silent) { localStorage.setItem('tradcenter.announce', a.id); return; } // notification seulement (l'événement s'affiche tout seul)
       if ($('#modal').classList.contains('open')) { setTimeout(announce, 5000); return; }
       localStorage.setItem('tradcenter.announce', a.id);
       TC.modal(`<div class="center"><div class="big-emoji">${a.emoji || '📣'}</div><h2>${TC.esc(a.title)}</h2>
