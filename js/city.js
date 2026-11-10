@@ -88,7 +88,146 @@
     G.save(true); TC.toast(`${b.e} ${esc(b.name)} revendu ${fmt.eur(v)}`, 'ok'); after();
   };
   // ce que voient les autres joueurs sur la carte
-  C.pub = () => { const o = {}; Object.entries(st().biz).forEach(([id, x]) => { o[id] = x.lvl; }); return { biz: o }; };
+  C.pub = () => {
+    const o = {}, at = {}; Object.entries(st().biz).forEach(([id, x]) => { o[id] = x.lvl; at[id] = x.at || 0; });
+    const own = [...new Set(S().owned.slice().sort((a, b) => b.price - a.price).map(x => x.item))].slice(0, 16);
+    return { biz: o, at, own };
+  };
+
+  /* ---------- Rachat du commerce d'un autre joueur ----------
+   * L'acheteur paie 2 × ce que le commerce a coûté (niveaux compris) et le récupère au même niveau.
+   * Le paiement est noté dans son propre profil (champ tk_<uid du vendeur>) ; le vendeur l'encaisse
+   * automatiquement à sa prochaine ouverture du jeu, et reçoit une notification.
+   * Un commerce acheté ou racheté depuis moins de 24 h est protégé. */
+  C.PROTECT = 24 * 3600000; C.TAKE_MULT = 2;
+  C.invOf = (id, l) => { const p = C.byId[id].price; let t = p; for (let n = 1; n < l; n++) t += p * C.UP * n; return t; };
+  C.takePrice = (id, l) => Math.round(C.invOf(id, l) * C.TAKE_MULT * 100) / 100;
+  C.takeBlock = function (p, id) {
+    const l = ((p.city && p.city.biz) || {})[id]; if (!l) return 'Plus disponible';
+    if (!N || !N.user || !N.profile) return 'Crée un compte pour racheter';
+    if (p.me) return null;
+    if (lvl(id)) return 'Tu as déjà ce commerce';
+    const at = ((p.city && p.city.at) || {})[id] || 0;
+    if (Date.now() - at < C.PROTECT) return '🛡️ Protégé encore ' + fmt.dur(C.PROTECT - (Date.now() - at));
+    return null;
+  };
+  C.takeover = async function (p, id) {
+    const b = C.byId[id], l = p.city.biz[id], price = C.takePrice(id, l);
+    const why = C.takeBlock(p, id); if (why) return TC.toast(why, 'bad');
+    if (S().cash < price) return TC.toast(`Il te faut ${fmt.eur(price)} de cash`, 'bad');
+    if (!(await TC.confirm('Racheter ce commerce ?', `${b.e} <b>${esc(b.name)}</b> niveau ${l} de <b>${esc(p.pseudo)}</b> pour <b>${fmt.eur(price)}</b> (2 × son prix).<br><br>${esc(p.pseudo)} touchera cet argent. Il rapportera <b>${fmt.eur(b.price * C.RATE * l)} / heure</b> et sera protégé 24 h.`, 'Racheter 🤝', 'btn-gold'))) return;
+    C.collect(true);
+    S().cash -= price;
+    st().biz[id] = { lvl: l, inv: price, at: Date.now(), from: p.uid };
+    log({ kind: 'item', asset: `${b.e} ${b.name} racheté à ${p.pseudo}`, eur: price });
+    try {
+      const ref = N.db().collection('users').doc(N.user.uid), f = 'tk_' + p.uid;
+      const snap = await ref.get();
+      const arr = (((snap.data() || {})[f]) || []).filter(e => Date.now() - e.at < 7 * 86400000).slice(-9);
+      arr.push({ id: Math.random().toString(36).slice(2, 12), biz: id, lvl: l, pay: price, at: Date.now() });
+      await ref.update({ [f]: arr, updatedAt: Date.now() });
+    } catch (e) {
+      S().cash += price; delete st().biz[id]; S().log.shift(); G.save(true);
+      return TC.toast('Rachat impossible : ' + N.errMsg(e), 'bad');
+    }
+    if (p.city && p.city.biz) delete p.city.biz[id];
+    if (!S().ach.first_biz) S().ach.first_biz = Date.now();
+    G.save(true); N.flush(); N.notifyPlayer(p.uid, 'takeover', { eur: price, biz: b.name });
+    TC.sound('kaching'); TC.confetti(120);
+    TC.toast(`🤝 ${b.e} ${esc(b.name)} racheté à ${esc(p.pseudo)} !`, 'ok', 6000);
+    after();
+  };
+  // côté vendeur : encaisser les rachats faits par les autres
+  let tkBusy = false;
+  C.checkTakeovers = async function () {
+    if (tkBusy || !N || !N.user || !N.db()) return; tkBusy = true;
+    try {
+      const f = 'tk_' + N.user.uid;
+      const snap = await N.db().collection('users').where(f, '!=', null).get();
+      const seen = st().tkSeen || (st().tkSeen = {}); const got = [];
+      snap.docs.forEach(d => {
+        if (TC.Admin && TC.Admin.isBanned(d.id)) return;
+        const who = N.prof(d.id, d.data()).pseudo || 'Un joueur';
+        (d.data()[f] || []).forEach(e => {
+          if (!e || !e.id || seen[e.id] || !C.byId[e.biz]) return;
+          seen[e.id] = Date.now();
+          const x = st().biz[e.biz]; if (!x || (x.at || 0) > e.at) return; // déjà revendu, ou racheté depuis
+          C.collect(true);
+          delete st().biz[e.biz];
+          const pay = Math.max(0, Math.min(+e.pay || 0, C.takePrice(e.biz, C.MAX_LVL)));
+          S().cash += pay;
+          log({ kind: 'biz', asset: `${C.byId[e.biz].e} ${C.byId[e.biz].name} racheté par ${who}`, eur: pay });
+          got.push({ who, b: C.byId[e.biz], pay });
+        });
+      });
+      Object.keys(seen).forEach(k => { if (Date.now() - seen[k] > 10 * 86400000) delete seen[k]; });
+      if (got.length) {
+        G.save(true); N.flush(); TC.sound('kaching');
+        TC.modal(`<div class="center"><div class="big-emoji">🤝</div><h2>On a racheté ${got.length > 1 ? 'tes commerces' : 'ton commerce'} !</h2>
+          ${got.map(g => `<p>${g.b.e} <b>${esc(g.b.name)}</b> racheté par <b>${esc(g.who)}</b> : <b class="up">+${fmt.eur(g.pay)}</b></p>`).join('')}
+          <p class="muted">Tu peux en racheter un autre, ou reprendre le sien dans 24 h (onglet Ville).</p>
+          <div class="modal-actions"><button class="btn btn-gold btn-xl" data-close>Encaisser 💰</button></div></div>`);
+        if (TC.App) TC.App.after();
+      }
+    } catch (e) { console.warn('rachats', e); }
+    tkBusy = false;
+  };
+
+  /* ---------- Élection du maire (chaque semaine) ----------
+   * Chaque joueur avec un compte vote une fois par semaine (il peut changer d'avis jusqu'au dimanche soir).
+   * Le vote est rangé dans son profil (champ vote_<semaine>). Lundi, l'élu devient Maire : couronne sur la carte et 300 €. */
+  C.ELECT_PRIZE = 300;
+  const W = () => TC.Weekly;
+  const tallies = {};
+  C.tally = async function (weekId, maxAge = 30000) {
+    const c = tallies[weekId]; if (c && Date.now() - c.at < maxAge) return c.rows;
+    if (!N || !N.db() || !N.user) return [];
+    const f = 'vote_' + weekId;
+    const snap = await N.db().collection('users').where(f, '>', '').get();
+    const count = {};
+    snap.docs.forEach(d => { const v = d.data()[f]; if (d.data().bot || v === d.id || (TC.Admin && TC.Admin.isBanned(d.id))) return; count[v] = (count[v] || 0) + 1; });
+    const ids = Object.keys(count).filter(u => !(TC.Admin && TC.Admin.isBanned(u)));
+    const profs = await Promise.all(ids.map(u => (roster().find(x => x.uid === u) ? Promise.resolve(roster().find(x => x.uid === u)) : N.db().collection('users').doc(u).get().then(s => s.exists ? N.prof(u, s.data()) : null).catch(() => null))));
+    const rows = ids.map((u, i) => ({ uid: u, votes: count[u], p: profs[i] })).filter(r => r.p).sort((a, b) => b.votes - a.votes || (b.p.nw || 0) - (a.p.nw || 0));
+    tallies[weekId] = { at: Date.now(), rows };
+    return rows;
+  };
+  C.elected = null;
+  C.mayorUid = function () {
+    const r = roster();
+    if (C.elected && r.some(x => x.uid === C.elected.uid)) return C.elected.uid;
+    return r[0] && (r[0].nw || 0) > 0 ? r[0].uid : null;
+  };
+  C.myVote = () => N && N.profile ? N.profile['vote_' + W().current().id] || null : null;
+  C.vote = async function (uid) {
+    if (!N || !N.user || !N.profile) return TC.toast('Crée un compte pour voter', 'bad');
+    if (uid === N.user.uid) return TC.toast('Tu ne peux pas voter pour toi 😄', 'info');
+    const f = 'vote_' + W().current().id;
+    try {
+      await N.db().collection('users').doc(N.user.uid).update({ [f]: uid, updatedAt: Date.now() });
+      N.profile[f] = uid; delete tallies[W().current().id];
+      const p = roster().find(x => x.uid === uid);
+      TC.sound('ach'); TC.toast(`🗳️ Vote enregistré pour ${esc((p && p.pseudo) || 'ce joueur')} !`, 'ok');
+    } catch (e) { TC.toast(N.errMsg(e), 'bad'); }
+  };
+  C.checkElection = async function () {
+    if (!N || !N.user || !N.db() || !W()) return;
+    try {
+      const prev = W().previous(); const rows = await C.tally(prev.id, 0);
+      C.elected = rows[0] ? { uid: rows[0].uid, pseudo: rows[0].p.pseudo, votes: rows[0].votes, week: prev.id } : null;
+      const paid = st().mayorPaid || (st().mayorPaid = {});
+      if (C.elected && C.elected.uid === N.user.uid && !paid[prev.id]) {
+        paid[prev.id] = Date.now(); S().cash += C.ELECT_PRIZE; if (TC.Weekly) TC.Weekly.flow(C.ELECT_PRIZE);
+        log({ kind: 'bonus', asset: 'Élu Maire de Trad City 👑', eur: C.ELECT_PRIZE }); G.save(true);
+        TC.sound('kaching'); TC.confetti(220);
+        TC.modal(`<div class="center"><div class="big-emoji">👑</div><h2>Tu es élu Maire de Trad City !</h2>
+          <p>${C.elected.votes} joueur${C.elected.votes > 1 ? 's ont' : ' a'} voté pour toi cette semaine.</p><p>Ta couronne brille sur la carte et tu gagnes <b>+${fmt.eur(C.ELECT_PRIZE)}</b> 🎉</p>
+          <div class="modal-actions"><button class="btn btn-gold btn-xl" data-close>Merci les électeurs 🙌</button></div></div>`);
+        if (TC.App) TC.App.after();
+      }
+      if (UI().tab === 'city') C.render();
+    } catch (e) { console.warn('élection', e); }
+  };
 
   function after() { if (TC.App) TC.App.after(); if (UI().tab === 'city') C.render(); }
   const UI = () => TC.UI || {};
@@ -133,7 +272,7 @@
     const t = C.tier(p.nw);
     const biz = Object.entries((p.city && p.city.biz) || {}).filter(([id]) => C.byId[id]).sort((a, b) => C.byId[b[0]].price - C.byId[a[0]].price);
     const friend = !p.me && N && (N.friends || []).some(f => f.uid === p.uid);
-    const mayor = i === 0 && (p.nw || 0) > 0;
+    const mayor = p.uid === C.mayorUid();
     return `<button class="lot t${t.i} ${p.me ? 'me' : ''} ${friend ? 'fr' : ''} ${mayor ? 'mayor' : ''}" data-lot="${esc(p.uid)}">
       ${mayor ? '<i class="lot-crown">👑</i>' : ''}
       <span class="lot-av">${TC.Style ? TC.Style.avatar(p, 's') : esc(p.avatar || '👤')}</span>
@@ -192,7 +331,7 @@
     const players = r.map((p, i) => {
       const top = p.topItem && TC.shopById[p.topItem];
       const isCar = top && top.type === 'car';
-      return { uid: p.uid, pseudo: p.pseudo || '?', tier: C.tier(p.nw).i, biz: (p.city && p.city.biz) || {}, me: !!p.me, mayor: i === 0 && (p.nw || 0) > 0,
+      return { uid: p.uid, pseudo: p.pseudo || '?', tier: C.tier(p.nw).i, biz: (p.city && p.city.biz) || {}, me: !!p.me, mayor: p.uid === C.mayorUid(),
         friend: !p.me && N && (N.friends || []).some(f => f.uid === p.uid), plus: TC.Style ? TC.Style.isPlus(p) : false,
         car: isCar ? { color: parseInt(String(top.grad && top.grad[0] || '#d00000').replace('#', ''), 16) } : null };
     });
@@ -200,6 +339,11 @@
   }
   function map3dHtml() {
     const r = roster(); const guest = !N || !N.enabled || !N.user || !N.profile;
+    const inn = TC.City3D && TC.City3D.insideOf && TC.City3D.insideOf();
+    if (inn) return `<div class="city3d" id="city3d-host"><div class="c3-load">🏠 On ouvre la porte…</div>
+      <div class="c3-top"><b>🏠 ${inn.me ? 'Chez toi' : 'Chez ' + esc(inn.pseudo)}</b><span>${esc(C.tier(inn.nw).name)}</span></div>
+      <div class="c3-hud"><button data-c3="out">⬅️ Ville</button></div>
+      <div class="c3-help">☝️ Glisse pour faire le tour · 🤏 pince pour zoomer</div></div>`;
     return `<div class="city3d" id="city3d-host"><div class="c3-load">🏗️ Construction de Trad City…</div>
       <div class="c3-top"><b>🗺️ Trad City</b><span>${r.length} habitant${r.length > 1 ? 's' : ''}</span></div>
       <div class="c3-hud"><button data-c3="me">📍 Moi</button><button data-c3="mayor">👑 Maire</button><button data-c3="night">${TC.City3D && TC.City3D.ready && TC.City3D.isNight() ? '☀️' : '🌙'}</button><button data-c3="2d">2D</button></div>
@@ -231,7 +375,8 @@
     if (a === 'retry') { V3.retry(); view2d = false; try { localStorage.setItem('tradcenter.city2d', '0'); } catch (x) { } return C.render(); }
     if (a === '2d' || a === '3d') { view2d = a === '2d'; try { localStorage.setItem('tradcenter.city2d', view2d ? '1' : '0'); } catch (x) { } return C.render(); }
     if (a === 'me') return V3.focus(N && N.user ? N.user.uid : 'me');
-    if (a === 'mayor') { const m = roster()[0]; if (m) V3.focus(m.uid); return; }
+    if (a === 'mayor') { const m = C.mayorUid(); if (m) V3.focus(m); return; }
+    if (a === 'out') { V3.exit(); return C.render(); }
     if (a === 'night') { V3.setNight(!V3.isNight()); C.render(); }
   });
   C.live = function () {
@@ -244,7 +389,8 @@
   /* ---------- Fiche d'un terrain ---------- */
   function lotModal(uid) {
     const p = roster().find(x => x.uid === uid); if (!p) return;
-    const i = roster().indexOf(p), t = C.tier(p.nw);
+    const i = roster().indexOf(p), t = C.tier(p.nw), isMayor = p.uid === C.mayorUid(), voted = C.myVote() === p.uid;
+    const can3d = TC.City3D && TC.City3D.ready && !TC.City3D.failed && $('#city3d-host');
     const biz = Object.entries((p.city && p.city.biz) || {}).filter(([id]) => C.byId[id]).sort((a, b) => C.byId[b[0]].price - C.byId[a[0]].price);
     const top = p.topItem && TC.shopById[p.topItem];
     const friend = N && (N.friends || []).find(f => f.uid === p.uid);
@@ -252,13 +398,19 @@
     const md = TC.modal(`<div class="lot-card"><div class="lot-big">${t.e}</div>
         ${TC.Style ? TC.Style.avatar(p, 'xl') : ''}
         <h2>${p.me ? 'Ton terrain' : esc(p.pseudo || '?')} ${TC.Style ? TC.Style.badge(p) : ''}</h2>
-        <p class="muted">${i === 0 ? '👑 Maire de Trad City · ' : ''}${esc(t.name)} · n°${i + 1} de la ville</p>
+        <p class="muted">${isMayor ? '👑 Maire de Trad City · ' : ''}${esc(t.name)} · n°${i + 1} de la ville</p>
+        ${can3d ? `<button class="btn btn-gold btn-xl lot-visit" data-visit="${esc(p.uid)}">🏠 ${p.me ? 'Entrer chez moi' : 'Visiter sa maison'}</button>` : ''}
         <div class="kv"><span>Patrimoine</span><b>${fmt.eur(p.nw || 0)}</b><span>Rang</span><b>${esc(p.rank || G.rank(p.nw || 0).r[1])}</b>
           ${top ? `<span>Plus bel objet</span><b>${top.emoji} ${esc(top.brand + ' ' + top.model)}</b>` : ''}${p.items ? `<span>Objets</span><b>${p.items}</b>` : ''}</div>
-        <h4>🏪 Commerces</h4>${biz.length ? `<div class="lot-bizl">${biz.map(([id, l]) => `<span>${C.byId[id].e} ${esc(C.byId[id].name)} <b>${'★'.repeat(l)}</b></span>`).join('')}</div>` : '<p class="muted">Aucun commerce pour l\'instant.</p>'}
+        <h4>🏪 Commerces</h4>${biz.length ? `<div class="lot-takes">${biz.map(([id, l]) => { const why = p.me ? null : C.takeBlock(p, id), pr = C.takePrice(id, l);
+          return `<div class="take"><span>${C.byId[id].e} ${esc(C.byId[id].name)} <b>${'★'.repeat(l)}</b></span>${p.me ? '' : why ? `<small>${esc(why)}</small>` : `<button class="btn btn-sm btn-gold" data-take="${id}" ${S().cash >= pr ? '' : 'disabled'}>Racheter ${fmt.eur(pr, true)}</button>`}</div>`; }).join('')}</div>` : '<p class="muted">Aucun commerce pour l\'instant.</p>'}
+        ${!p.me && N && N.user && N.profile ? `<button class="btn ${voted ? 'btn-ghost' : ''} lot-vote" data-vote="${esc(p.uid)}" ${voted ? 'disabled' : ''}>${voted ? '✅ Ton vote de Maire va à ce joueur' : '🗳️ Voter pour ce joueur comme Maire'}</button>` : ''}
         <div class="modal-actions">${p.me ? '<button class="btn btn-gold" data-close>OK</button>'
           : friend ? `<button class="btn btn-gold" data-citysend="${esc(p.uid)}">💸 Lui envoyer de l'argent</button>`
           : N && N.user ? `<button class="btn btn-gold" data-cityadd="${esc(p.pseudo)}" ${asked ? 'disabled' : ''}>${asked ? 'Demande envoyée' : '➕ Ajouter en ami'}</button>` : ''}</div></div>`, { cls: 'lot-modal' });
+    md.el.querySelectorAll('[data-take]').forEach(x => { x.onclick = () => { md.close(); C.takeover(p, x.dataset.take); }; });
+    const vb = md.el.querySelector('[data-vote]'); if (vb) vb.onclick = async () => { vb.disabled = true; await C.vote(p.uid); vb.textContent = '✅ Ton vote de Maire va à ce joueur'; };
+    const vi = md.el.querySelector('[data-visit]'); if (vi) vi.onclick = () => { md.close(); C.visit(p); };
     const s = md.el.querySelector('[data-citysend]');
     if (s) s.onclick = () => { md.close(); if (TC.Social && TC.Social.sendModal) TC.Social.sendModal(friend); };
     const a = md.el.querySelector('[data-cityadd]');
@@ -268,17 +420,35 @@
       catch (e) { a.disabled = false; TC.toast(N.errMsg(e), 'bad'); }
     };
   }
+  async function mairie() {
+    const cur = W().current(), d = Math.floor(cur.left / 86400000), h = Math.floor(cur.left / 3600000) % 24;
+    const mu = C.mayorUid(), m = roster().find(x => x.uid === mu);
+    const logged = N && N.user && N.profile;
+    const md = TC.modal(`<div class="lot-card mairie"><div class="lot-big">🏤</div><h2>Mairie de Trad City</h2>
+      <p>${m ? `Maire actuel : <b>${m.me ? 'toi' : esc(m.pseudo || '?')}</b> 👑 ${C.elected && C.elected.uid === mu ? `(élu avec ${C.elected.votes} voix)` : '(le plus riche, en attendant une élection)'}` : 'Pas encore de maire.'}</p>
+      <div class="nbox">🗳️ <b>Élection de la semaine</b> · fin dans ${d ? d + ' j ' : ''}${h} h<br><small>Chaque joueur a 1 voix (pas pour lui-même). Lundi, l'élu devient Maire : couronne sur la carte et <b>+${fmt.eur(C.ELECT_PRIZE)}</b>.</small></div>
+      <h4>📊 Résultats en direct</h4><div class="elect" id="elect-res"><div class="empty">${logged ? 'Dépouillement…' : 'Crée un compte pour voir et voter.'}</div></div>
+      ${logged ? `<h4>Voter pour…</h4><div class="elect-c">${roster().filter(x => !x.me).slice(0, 30).map(x => `<button class="btn btn-sm ${C.myVote() === x.uid ? 'btn-gold' : ''}" data-vote="${esc(x.uid)}">${esc(x.avatar || '👤')} ${esc(x.pseudo || '?')}${C.myVote() === x.uid ? ' ✅' : ''}</button>`).join('') || '<p class="muted">Personne d\'autre en ville pour l\'instant.</p>'}</div>` : ''}
+      <div class="modal-actions"><button class="btn btn-ghost" data-close>Fermer</button></div></div>`, { cls: 'lot-modal' });
+    md.el.querySelectorAll('[data-vote]').forEach(b => { b.onclick = async () => { await C.vote(b.dataset.vote); md.close(); mairie(); }; });
+    if (!logged) return;
+    try {
+      const rows = await C.tally(cur.id); const el = md.el.querySelector('#elect-res'); if (!el) return;
+      const tot = rows.reduce((t, r) => t + r.votes, 0);
+      el.innerHTML = rows.length ? rows.slice(0, 8).map((r, i) => `<div class="er"><span>${['🥇', '🥈', '🥉'][i] || i + 1}</span><b>${esc(r.p.pseudo || '?')}${r.uid === N.user.uid ? ' (toi)' : ''}</b><i style="width:${Math.round(r.votes / tot * 100)}%"></i><em>${r.votes} voix</em></div>`).join('') : '<div class="empty">Aucun vote pour l\'instant : sois le premier !</div>';
+    } catch (e) { const el = md.el.querySelector('#elect-res'); if (el) el.innerHTML = '<div class="empty">Résultats indisponibles</div>'; }
+  }
+  // Visite de la maison en 3D
+  C.visit = function (p) {
+    if (!TC.City3D || !TC.City3D.ready) return;
+    const own = p.me ? [...new Set(S().owned.slice().sort((a, b) => b.price - a.price).map(x => x.item))].slice(0, 16) : ((p.city && p.city.own) || (p.topItem ? [p.topItem] : []));
+    TC.City3D.enter({ uid: p.uid, pseudo: p.pseudo || '?', avatar: p.avatar || (TC.Style && TC.Style.mine().avatar), tier: C.tier(p.nw).i, nw: p.nw || 0, own, me: !!p.me });
+    C.render(); window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
   function landmark(id) {
     const l = LANDMARKS.find(x => x.id === id); if (!l) return;
     if (l.go === 'parc') { TC.toast(TC.season && TC.season.noel ? '🎄 Le sapin de la ville brille dans le parc !' : '🌳 Un banc, des pigeons… et tout le monde parle du Bitcoin.', 'info'); return; }
-    if (l.go === 'mairie') {
-      const r = roster(), m = r[0];
-      TC.modal(`<div class="lot-card"><div class="lot-big">🏤</div><h2>Mairie de Trad City</h2>
-        <p>${m ? `Le Maire est <b>${m.me ? 'toi' : esc(m.pseudo || '?')}</b> 👑, le plus riche de la ville avec <b>${fmt.eur(m.nw || 0)}</b>.` : 'Pas encore de maire.'}</p>
-        <p class="muted">Deviens le plus riche pour prendre sa place. Et chaque lundi, le n°1 de la semaine gagne 500 € (onglet Amis).</p>
-        <div class="modal-actions"><button class="btn btn-gold" data-close>OK</button></div></div>`, { cls: 'lot-modal' });
-      return;
-    }
+    if (l.go === 'mairie') return mairie();
     if (l.go === 'chest') { UI().shopType = 'chest'; TC.App.setTab('shop'); return; }
     TC.App.setTab(l.go);
   }
@@ -291,5 +461,6 @@
     const s = t.closest('[data-bizsell]'); if (s) return C.sell(s.dataset.bizsell);
     if (t.closest('#city-collect')) { C.collect(); after(); }
   });
-  if (N && N.on) N.on(ev => { if (ev === 'linked') players = null; });
+  if (N && N.on) N.on(ev => { if (ev === 'linked') { players = null; C.checkTakeovers(); C.checkElection(); } });
+  setInterval(() => { C.checkTakeovers(); C.checkElection(); }, 5 * 60000);
 })();
