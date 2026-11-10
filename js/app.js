@@ -99,6 +99,7 @@
       return;
     }
     if (b && b.dataset.goto) return TC.goto(b.dataset.goto);
+    if (t.closest('#gta') && !TC.season.noel) { TC.goto('TTWO'); return; } // bandeau GTA VI → action Take-Two (Rockstar)
     if (b && b.dataset.sellall) {
       const id = b.dataset.sellall; const h = S().holdings[id]; if (!h) return;
       if (!(await TC.confirm('Tout vendre ?', `Vendre <b>${fmt.qty(h.qty)} ${id}</b> pour environ <b>${fmt.eur(G.holdingValue(id) * (1 - G.FEE_SPOT))}</b> ?`, 'Vendre', 'btn-sell'))) return;
@@ -169,13 +170,18 @@
     else if (now.getDate() === 25) el.innerHTML = `<span class="gta-palm">🎅</span><div class="gta-txt"><small>Trad Center vous souhaite un</small><b class="gta-out">JOYEUX NOËL 🎄</b></div><span class="gta-palm r">🎁</span>`;
     else el.innerHTML = `<span class="gta-palm">🎆</span><div class="gta-txt"><small>Nouvel An dans</small><span class="gta-date">01.01.${y + 1}</span></div>${countdown(ny - now)}<span class="gta-palm r">🥂</span>`;
   }
+  // Action de la maison mère de Rockstar Games, cliquable depuis le bandeau
+  function ttwoChip() {
+    const p = D.eur('TTWO'), c = D.change('TTWO');
+    return p ? `<button class="ttwo-chip" data-goto="TTWO" title="Trader l'action Take-Two (Rockstar Games)">R★ <b>${fmt.eur(p)}</b> <i class="${c >= 0 ? 'up' : 'down'}">${fmt.pct(c)}</i></button>` : `<button class="ttwo-chip" data-goto="TTWO">R★ Trader l'action</button>`;
+  }
   function gta() {
     const el = $('#gta'); if (!el) return;
     if (TC.season.noel) { el.title = 'Joyeuses fêtes !'; return noelBanner(el); }
     const ms = GTA_DATE - Date.now();
-    if (ms <= 0) { el.innerHTML = `<span class="gta-palm">🌴</span><div class="gta-txt"><small>Grand Theft Auto VI</small><b class="gta-out">EST SORTI 🎉</b></div><span class="gta-palm r">🌴</span>`; return; }
-    el.innerHTML = `<span class="gta-palm">🌴</span><div class="gta-txt"><small>Sortie de GTA VI</small><span class="gta-date">19.11.2026</span></div>
-      ${countdown(ms)}<span class="gta-palm r">🌴</span>`;
+    if (ms <= 0) { el.innerHTML = `<span class="gta-palm">🌴</span><div class="gta-txt"><small>Grand Theft Auto VI · Rockstar Games</small><b class="gta-out">EST SORTI 🎉</b></div><span class="gta-ttwo">${ttwoChip()}</span><span class="gta-palm r">🌴</span>`; return; }
+    el.innerHTML = `<span class="gta-palm">🌴</span><div class="gta-txt"><small>Sortie de GTA VI</small><span class="gta-date">Rockstar Games · 19.11.2026</span></div>
+      ${countdown(ms)}<span class="gta-ttwo">${ttwoChip()}</span><span class="gta-palm r">🌴</span>`;
   }
 
   /* ---------------- Neige (thème de Noël) ---------------- */

@@ -64,6 +64,7 @@ TC.ASSETS = [
   { id: 'RNO',  name: 'Renault',        cat: 'stock', src: 'yahoo', y: 'RNO.PA',  ccy: 'EUR', ref: 45,   color: '#ffcc33', icon: '◇' },
   { id: 'STLA', name: 'Stellantis',     cat: 'stock', src: 'yahoo', y: 'STLAP.PA',ccy: 'EUR', ref: 9,    color: '#243782', icon: 'S' },
   { id: 'P911', name: 'Porsche AG',     cat: 'stock', src: 'yahoo', y: 'P911.DE', ccy: 'EUR', ref: 45,   color: '#b12b28', icon: 'P' },
+  { id: 'TTWO', name: 'Take-Two (Rockstar Games)', cat: 'stock', src: 'yahoo', y: 'TTWO', ccy: 'USD', ref: 240, color: '#f5a623', icon: 'R★' },
   { id: 'UBI',  name: 'Ubisoft',        cat: 'stock', src: 'yahoo', y: 'UBI.PA',  ccy: 'EUR', ref: 11,   color: '#0070ff', icon: 'U' },
 
   // ---------- MATIÈRES PREMIÈRES ----------
