@@ -382,7 +382,7 @@
   N.loadXmasBoard = async function () {
     const y = new Date().getFullYear();
     const snap = await db.collection('users').orderBy('xmasGain', 'desc').limit(30).get();
-    N.xmasBoard = snap.docs.map(d => prof(d.id, d.data())).filter(u => !u.bot && u.xmasYear === y && !(TC.Admin && TC.Admin.isBanned(d.id))).slice(0, 10);
+    N.xmasBoard = snap.docs.map(d => prof(d.id, d.data())).filter(u => !u.bot && u.xmasYear === y && !(TC.Admin && TC.Admin.isBanned(u.uid))).slice(0, 10);
     N.xmasChamp = N.xmasBoard.length ? N.xmasBoard[0].uid : null;
     return N.xmasBoard;
   };
@@ -392,7 +392,7 @@
     N.boardScope = scope;
     if (scope === 'friends') { N.board = null; emit('change'); return; }
     const snap = await db.collection('users').orderBy('nw', 'desc').limit(50).get();
-    N.board = snap.docs.map(d => prof(d.id, d.data())).filter(u => !u.bot && !(TC.Admin && TC.Admin.isBanned(d.id)));
+    N.board = snap.docs.map(d => prof(d.id, d.data())).filter(u => !u.bot && !(TC.Admin && TC.Admin.isBanned(u.uid)));
     emit('change');
   };
 })();
