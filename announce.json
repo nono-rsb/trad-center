@@ -1,8 +1,16 @@
 {
-  "id": "teddy-2026-11",
-  "silent": true,
+  "id": "maj-2026-11-10-bot",
+  "emoji": "🤖",
+  "title": "Nouveau : le bot de trading",
+  "items": [
+    { "icon": "🤖", "title": "Bot de trading (100 €)", "text": "Portefeuille → Bot : il achète ce qui monte, revend dès qu'il gagne, coupe les pertes et peut parier." },
+    { "icon": "⚖️", "title": "3 modes", "text": "Prudent, Équilibré ou Audacieux, avec le budget que tu choisis." },
+    { "icon": "⚠️", "title": "Pas magique", "text": "Aucun bot ne gagne à tous les coups : il peut aussi perdre. Il tourne quand le jeu est ouvert." }
+  ],
+  "button": "Voir le bot 🤖",
+  "tab": "portfolio",
   "push": {
-    "title": "🥋 Événement surprise sur Trad Center !",
-    "body": "Une question très importante t'attend… Ouvre l'appli pour répondre."
+    "title": "🤖 Nouveau : un bot qui trade pour toi",
+    "body": "Débloque le bot de trading (100 €) : il achète, revend et parie à ta place. Mode prudent, équilibré ou audacieux."
   }
 }

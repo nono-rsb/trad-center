@@ -334,7 +334,7 @@
       if (l.kind === 'betres') det = `${fmt.eur(l.start)} → ${fmt.eur(l.price)} (${l.result === 'win' ? 'gagné' : l.result === 'push' ? 'égalité' : 'perdu'})`;
       return `<tr><td><small>${fmt.time(l.t)}</small></td><td>${LOGL[l.kind] || l.kind}</td><td><b>${esc(name)}</b> <small>${det}</small></td><td>${fmt.eur(l.eur)}</td><td class="${cls(l.pnl)}">${l.pnl != null ? (l.pnl > 0 ? '+' : '') + fmt.eur(l.pnl) : ''}</td></tr>`;
     }).join('');
-    $('#tab-portfolio').innerHTML = `
+    $('#tab-portfolio').innerHTML = (TC.Bot ? TC.Bot.panel() : '') + `
       <div class="cards">${cards.map(c => `<div class="card"><span>${c[2]}</span><label>${c[0]}</label><b>${c[1]}</b></div>`).join('')}</div>
       <div class="panel"><h3>📈 Évolution de votre patrimoine</h3><div id="nw-chart" class="nw-chart"></div></div>
       <div class="panel"><h3>📦 Actifs au comptant</h3>${rows ? `<div class="tw"><table><thead><tr><th>Actif</th><th>Quantité</th><th>Prix moyen</th><th>Cours</th><th>Valeur</th><th>+/- value</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>` : '<div class="empty">Aucun actif. Allez dans <b>Marchés</b> pour investir vos premiers euros !</div>'}</div>
