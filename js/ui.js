@@ -43,6 +43,7 @@
     const pe = $('#s-pnl'); if (pe) { pe.textContent = (pnl > 0 ? '+' : '') + fmt.eur(pnl, true); pe.className = cls(pnl); }
     const rk = G.rank(nw); const sr = $('#s-rank'); if (sr) sr.textContent = rk.r[2] + ' ' + rk.r[1];
     const sim = $('#s-sim'); if (sim) sim.hidden = !D.anySim();
+    UI._split = { cash: S().cash, inv, items: G.itemsValue(), biz: TC.City ? TC.City.value() : 0, nw };
     const ready = G.bonusReadyIn();
     const bb = $('#b-bonus'); bb.disabled = ready > 0; bb.querySelector('span').textContent = ready > 0 ? '' : ' +' + G.BONUS + ' €'; bb.title = ready > 0 ? 'Prochain bonus dans ' + fmt.dur(ready) : 'Récupérer ' + G.BONUS + ' € gratuits';
     bb.classList.toggle('pulse', ready === 0);
@@ -445,6 +446,19 @@
       <div class="panel"><h3>🏅 Rangs</h3><div class="ranks">${TC.RANKS.map(r => `<div class="rk ${G.netWorth() >= r[0] ? 'on' : ''}"><span>${r[2]}</span><b>${r[1]}</b><small>${fmt.eur(r[0], true)}</small></div>`).join('')}</div></div>`;
   };
 
+  // détail : cash (ce qu'on peut dépenser tout de suite) et patrimoine (tout ce qu'on possède)
+  document.addEventListener('click', e => {
+    if (!e.target.closest('#nw-box')) return;
+    const x = UI._split || {}, row = (l, v, h) => `<span>${l}${h ? `<small>${h}</small>` : ''}</span><b>${fmt.eur(v || 0)}</b>`;
+    const other = (x.nw || 0) - (x.cash || 0) - (x.inv || 0) - (x.items || 0) - (x.biz || 0);
+    TC.modal(`<h2>💰 Mon argent</h2><div class="modal-body">
+      <div class="split"><div><label>💵 Cash</label><b>${fmt.eur(x.cash || 0)}</b><small>L'argent disponible tout de suite : pour acheter, parier, envoyer.</small></div>
+        <div><label>🏦 Patrimoine</label><b>${fmt.eur(x.nw || 0)}</b><small>Tout ce que tu possèdes, si tu revendais tout maintenant.</small></div></div>
+      <h4>Détail du patrimoine</h4>
+      <div class="kv split-kv">${row('💵 Cash', x.cash)}${row('📈 Placements', x.inv, 'cryptos, actions, levier, paris')}${row('🏎️ Objets achetés', x.items, 'voitures, maisons, luxe (prix de revente)')}${row('🏪 Commerces', x.biz, 'prix de revente')}${Math.abs(other) > 0.01 ? row('➕ Autres', other) : ''}<span><b>= Patrimoine</b></span><b>${fmt.eur(x.nw || 0)}</b></div>
+      <p class="hint">Le patrimoine sert aux classements et à ton rang. Pour acheter, seul le cash compte : revends un placement pour récupérer du cash.</p>
+      <div class="modal-actions"><button class="btn btn-gold" data-close>OK</button></div></div>`);
+  });
   UI.refreshTab = function () {
     if (UI.tab === 'portfolio') UI.portfolio();
     else if (UI.tab === 'shop') UI.shop();

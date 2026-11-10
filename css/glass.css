@@ -545,3 +545,24 @@ html:not(.noel) body::after { display: none; }
 @media (max-width: 600px) { .bot-sum { grid-template-columns: repeat(3, 1fr); } .bot-curve { grid-column: 1 / -1; } .bot-curve svg { width: 100%; } }
 .bot-st { white-space: nowrap; }
 .adm-gift { margin: 10px 0; padding: 10px 12px; border-radius: 14px; background: rgba(255,213,96,.1); border: 1px solid rgba(255,213,96,.35); } .adm-gift small { color: var(--muted); } .adm-gift input { min-width: 0; flex: 1; }
+/* En-tête : cash et patrimoine bien séparés */
+button.nw { border: 0; background: none; color: inherit; font: inherit; cursor: pointer; padding: 0; flex-direction: row; justify-content: center; gap: 10px; }
+.nw-c { display: flex; flex-direction: column; align-items: center; min-width: 0; padding: 4px 12px; border-radius: 14px; }
+.nw-c.cash { background: rgba(22,199,132,.12); border: 1px solid rgba(22,199,132,.35); }
+.nw-c.pat { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); }
+.nw-c label { font-size: 10px; letter-spacing: .08em; }
+.nw-c b { font-size: 20px !important; }
+.nw-c.cash b { color: #7dffc4 !important; -webkit-text-fill-color: #7dffc4 !important; }
+.nw-c small { font-size: 10px; }
+.split { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px; }
+.split > div { display: flex; flex-direction: column; gap: 3px; padding: 10px 12px; border-radius: 14px; background: rgba(255,255,255,.06); }
+.split > div:first-child { background: rgba(22,199,132,.12); }
+.split label { font-weight: 700; font-size: 13px; } .split b { font-family: var(--mono); font-size: 18px; } .split small { color: var(--muted); font-size: 12px; }
+.split-kv small { display: block; color: var(--muted); font-size: 11px; }
+@media (max-width: 700px) {
+  .topbar { flex-wrap: wrap; row-gap: 8px; }
+  button.nw { order: 3; flex: 1 1 100%; align-items: stretch !important; }
+  .nw-c { flex: 1; align-items: flex-start; }
+  .nw-c b { font-size: 19px !important; }
+  .top-actions { margin-left: auto; }
+}
