@@ -1,15 +1,28 @@
 {
-  "id": "maj-2026-11-10-temps",
-  "emoji": "⏱️",
-  "title": "Nouveau : le temps de jeu",
+  "id": "maj-2026-11-10-revenus",
+  "emoji": "💰",
+  "title": "Commerces et loyers bien plus rentables",
   "items": [
-    { "icon": "⏱️", "title": "Ton temps de jeu", "text": "Il s'affiche sur ton profil (onglet Amis) et sur ta fiche dans la Ville. Seul le temps où le jeu est ouvert compte." },
-    { "icon": "💵", "title": "Cash et patrimoine séparés", "text": "En haut : le cash que tu peux dépenser, et ton patrimoine total. Touche-les pour voir le détail." }
+    {
+      "icon": "🏪",
+      "title": "Commerces remboursés en 12 h",
+      "text": "Chaque commerce rapporte 8 % par heure de tout ce que tu y as investi : achat et améliorations se remboursent en 12 h environ."
+    },
+    {
+      "icon": "🏠",
+      "title": "Loyers ×40",
+      "text": "L'immobilier rapporte maintenant 2 % de sa valeur par heure : une maison est remboursée en 2 jours environ."
+    },
+    {
+      "icon": "⏱️",
+      "title": "Temps de jeu",
+      "text": "Ton temps de jeu s'affiche sur ton profil et ta fiche dans la Ville."
+    }
   ],
-  "button": "Voir mon profil 👤",
-  "tab": "social",
+  "button": "Voir mes commerces 🏪",
+  "tab": "city",
   "push": {
-    "title": "⏱️ Combien de temps as-tu joué ?",
-    "body": "Ton temps de jeu s'affiche maintenant sur ton profil, et le cash est séparé du patrimoine en haut de l'écran."
+    "title": "💰 Commerces et loyers bien plus rentables !",
+    "body": "Les commerces se remboursent en 12 h et les loyers rapportent 40 fois plus. Va encaisser !"
   }
 }
