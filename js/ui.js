@@ -346,7 +346,7 @@
       <div class="panel stats-panel"><details><summary>📊 Statistiques</summary><div class="kv">
         <span>Ordres passés</span><b>${s.stats.trades}</b><span>Meilleur trade</span><b class="up">${fmt.eur(s.stats.bestTrade)}</b>
         <span>Liquidations</span><b>${s.stats.liquidations}</b><span>Paris gagnés / perdus</span><b>${s.stats.betsWon} / ${s.stats.betsLost}</b>
-        <span>Frais payés</span><b>${fmt.eur(s.stats.fees)}</b><span>Loyers encaissés</span><b>${fmt.eur(s.stats.rent)}</b>
+        <span>Frais payés</span><b>${fmt.eur(s.stats.fees)}</b><span>Loyers encaissés (nets)</span><b>${fmt.eur(s.stats.rent)}</b><span>Impôts payés <small class="taxl" data-taxinfo>ⓘ</small></span><b>${fmt.eur(s.stats.taxes || 0)}</b>
         <span>Dépensé en boutique</span><b>${fmt.eur(s.stats.spent)}</b><span>Partie commencée le</span><b>${new Date(s.created).toLocaleDateString('fr-FR')}</b></div></details></div>`;
     G.sampleNW();
     TC.Chart.nw($('#nw-chart'), s.nw.length > 1 ? s.nw : [[Math.floor(s.created / 1000), G.START_CASH], [Math.floor(Date.now() / 1000), nw]]);
@@ -429,7 +429,7 @@
         <div class="card"><span>💎</span><label>Valeur de revente</label><b>${fmt.eur(G.itemsValue())}</b></div>
         <div class="card"><span>🏠</span><label>Loyers par heure</label><b>${fmt.eur(rph)}</b></div>
       </div>
-      ${rph > 0 ? `<div class="panel rentp"><div>🏠 Loyers à encaisser : <b id="rent-pend">${fmt.eur(pend)}</b> <small>(accumulation max ${TC.RENT_MAX_HOURS} h)</small></div><button class="btn btn-gold" id="b-rent" ${pend < 0.01 ? 'disabled' : ''}>Encaisser</button></div>` : ''}
+      ${rph > 0 ? `<div class="panel rentp"><div>🏠 Loyers à encaisser : <b id="rent-pend">${fmt.eur(pend)}</b> <small>(accumulation max ${TC.RENT_MAX_HOURS} h · <span class="taxl" data-taxinfo>🏛️ impôt ${TC.Tax ? TC.Tax.pct(TC.Tax.rate()) : '0 %'} ⓘ</span>)</small></div><button class="btn btn-gold" id="b-rent" ${pend < 0.01 ? 'disabled' : ''}>Encaisser</button></div>` : ''}
       ${s.owned.length ? '' : '<div class="panel empty big">Votre collection est vide.<br>Faites fructifier vos 10 € puis offrez-vous votre première voiture dans la <b>Concession</b> ! 🏎️</div>'}
       ${groups.car.length ? `<div class="panel"><h3>🏎️ Garage</h3><div class="shop-grid">${groups.car.map(card).join('')}</div></div>` : ''}
       ${groups.estate.length ? `<div class="panel"><h3>🏠 Propriétés</h3><div class="shop-grid">${groups.estate.map(card).join('')}</div></div>` : ''}

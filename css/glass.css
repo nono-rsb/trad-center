@@ -567,3 +567,4 @@ button.nw { border: 0; background: none; color: inherit; font: inherit; cursor: 
   .top-actions { margin-left: auto; }
 }
 .playtime { font-size: 13px; margin: 2px 0; } .playtime b { color: var(--accent2); }
+.taxl { cursor: pointer; color: var(--muted); text-decoration: underline dotted; }
