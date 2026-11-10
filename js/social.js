@@ -43,7 +43,7 @@
   function authForm() {
     const up = SO.authMode === 'signup';
     return `<div class="panel auth">
-      <div class="center"><img src="icons/icon-192.png" class="install-icon" alt="">${document.body.classList.contains('gated') ? '<p class="gate-hi">👋 Bienvenue sur <b>Trad Center</b> ! Crée ton compte (ou connecte-toi) pour commencer à jouer avec 10 €.</p>' : ''}<h2>${up ? 'Créer mon compte' : 'Connexion'}</h2>
+      <div class="center"><img src="icons/icon-192.png" class="install-icon" alt="">${document.body.classList.contains('gated') ? '<p class="gate-hi">👋 Bienvenue sur <b>Trad Center</b> ! Crée ton compte, connecte-toi ou joue en invité pour commencer avec 10 €.</p>' : ''}<h2>${up ? 'Créer mon compte' : 'Connexion'}</h2>
       <p>${up ? 'Sauvegardez votre partie en ligne, ajoutez vos amis, envoyez-leur de l\'argent ou des bitcoins et comparez vos fortunes.' : 'Retrouvez votre partie sur tous vos appareils.'}</p>
       ${up && localStorage.getItem('tradcenter.ref') ? '<p class="nbox ok">🎁 Vous avez été invité : créez votre compte puis activez les notifications 🔔 pour offrir 20 € à votre ami.</p>' : ''}</div>
       <div class="seg seg-2"><button data-soc="mode-signup" class="${up ? 'active' : ''}">Créer un compte</button><button data-soc="mode-login" class="${up ? '' : 'active'}">J'ai déjà un compte</button></div>
@@ -52,6 +52,7 @@
       <label class="fld">Mot de passe<div class="inp"><input id="a-pw" type="password" placeholder="6 caractères minimum" autocomplete="${up ? 'new-password' : 'current-password'}"></div></label>
       <div class="auth-err" id="a-err"></div>
       <button class="btn btn-gold btn-xl" data-soc="${up ? 'signup' : 'login'}">${up ? 'Créer mon compte' : 'Se connecter'}</button>
+      ${document.body.classList.contains('gated') ? '<button class="btn btn-ghost gate-guest" data-guest>👤 Jouer en invité</button><p class="hint gate-gh">En invité, ta partie reste sur cet appareil : pas d\'amis, pas de classement ni de ville en ligne. Tu pourras créer ton compte plus tard (onglet Amis).</p>' : ''}
       ${up ? `<p class="hint">Votre partie actuelle (${fmt.eur(G.netWorth())}) sera rattachée au compte. Un e-mail de confirmation vous sera envoyé.</p>` : `<button class="btn btn-ghost btn-sm" data-soc="forgot">Mot de passe oublié ?</button>`}
     </div>`;
   }
@@ -240,13 +241,16 @@
   let gated = false;
   SO.gated = () => gated;
   function gate() {
-    const need = !!(N.enabled && N.ready && !N.error && (!N.user || N.needPseudo));
+    let guest = false; try { guest = localStorage.getItem('tradcenter.guest') === '1'; } catch (e) { }
+    const need = !!(N.enabled && N.ready && !N.error && ((!N.user && !guest) || N.needPseudo));
     if (need === gated) return;
     gated = need;
     document.body.classList.toggle('gated', need);
     if (TC.App) TC.App.setTab(need ? 'social' : 'markets');
   }
   N.on(() => gate());
+  SO.playGuest = function () { try { localStorage.setItem('tradcenter.guest', '1'); } catch (e) { } gate(); };
+  document.addEventListener('click', e => { if (e.target.closest('[data-guest]')) SO.playGuest(); });
 
   N.on((type, d) => {
     if (type === 'change' || type === 'synced') { if (UI.tab === 'social' && !(type === 'synced' && document.activeElement && document.activeElement.closest && document.activeElement.closest('#tab-social'))) SO.render(); SO.headerBtn(); }
