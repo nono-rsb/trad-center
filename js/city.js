@@ -8,7 +8,7 @@
   const { $, esc, fmt } = TC;
   const G = TC.Game, N = TC.Net, S = () => G.state;
   const C = TC.City = {};
-  C.RATE = 0.02;        // recette par heure = 2 % du prix par niveau (rentabilisé en ~2 jours)
+  C.RATE = 0.08;        // recette par heure = 8 % de tout ce qui a été investi (achat + améliorations) : remboursé en ~12 h à chaque niveau
   C.UP = 0.75;          // amélioration niveau n → n+1 : 75 % du prix × n
   C.MAX_LVL = 5;
   C.CAP_H = 24;         // la caisse se remplit au maximum pendant 24 h
@@ -38,7 +38,7 @@
 
   function st() { const c = S().city || (S().city = { biz: {}, last: Date.now(), earned: 0 }); c.biz = c.biz || {}; return c; }
   const lvl = id => (st().biz[id] || {}).lvl || 0;
-  C.income = id => { const b = C.byId[id]; return b.price * C.RATE * lvl(id); };
+  C.income = id => lvl(id) ? C.invOf(id, lvl(id)) * C.RATE : 0; // proportionnel à l'investissement total
   C.perHour = () => Object.keys(st().biz).reduce((t, id) => t + (C.byId[id] ? C.income(id) : 0), 0);
   C.pending = () => C.perHour() * Math.min(C.CAP_H, Math.max(0, Date.now() - st().last) / 3600000);
   C.full = () => C.perHour() > 0 && Date.now() - st().last >= C.CAP_H * 3600000;
@@ -119,7 +119,7 @@
     const mayor = C.elected && C.elected.uid !== N.user.uid && C.elected.uid !== p.uid ? C.elected : null;
     const tax = mayor ? Math.round(price * C.TAX * 100) / 100 : 0, total = price + tax;
     if (S().cash < total) return TC.toast(`Il te faut ${fmt.eur(total)} de cash`, 'bad');
-    if (!(await TC.confirm('Racheter ce commerce ?', `${b.e} <b>${esc(b.name)}</b> niveau ${l} de <b>${esc(p.pseudo)}</b> pour <b>${fmt.eur(price)}</b> (2 × son prix)${tax ? ` + <b>${fmt.eur(tax)}</b> de taxe pour le Maire ${esc(mayor.pseudo)} 👑` : ''}.<br><br>${esc(p.pseudo)} touchera ${fmt.eur(price)}. Il rapportera <b>${fmt.eur(b.price * C.RATE * l)} / heure</b> et sera protégé 24 h.`, 'Racheter 🤝', 'btn-gold'))) return;
+    if (!(await TC.confirm('Racheter ce commerce ?', `${b.e} <b>${esc(b.name)}</b> niveau ${l} de <b>${esc(p.pseudo)}</b> pour <b>${fmt.eur(price)}</b> (2 × son prix)${tax ? ` + <b>${fmt.eur(tax)}</b> de taxe pour le Maire ${esc(mayor.pseudo)} 👑` : ''}.<br><br>${esc(p.pseudo)} touchera ${fmt.eur(price)}. Il rapportera <b>${fmt.eur(C.invOf(id, l) * C.RATE)} / heure</b> et sera protégé 24 h.`, 'Racheter 🤝', 'btn-gold'))) return;
     C.collect(true);
     S().cash -= total;
     st().biz[id] = { lvl: l, inv: price, at: Date.now(), from: p.uid };
@@ -316,8 +316,8 @@
     const c = st(), ph = C.perHour(), pend = C.pending();
     const cards = C.BIZ.map(b => {
       const n = lvl(b.id), cost = C.upCost(b.id), can = S().cash >= cost;
-      const inc = b.price * C.RATE * Math.max(1, n);
-      const next = n && n < C.MAX_LVL ? b.price * C.RATE : 0;
+      const inc = C.invOf(b.id, Math.max(1, n)) * C.RATE;
+      const next = n && n < C.MAX_LVL ? cost * C.RATE : 0;
       return `<div class="biz ${n ? 'own' : ''}"><span class="biz-e">${b.e}</span>
         <div class="biz-i"><b>${esc(b.name)}</b>${n ? `<span class="stars">${'★'.repeat(n)}${'☆'.repeat(C.MAX_LVL - n)}</span>` : ''}
           <small>${n ? `Rapporte <b class="up">${fmt.eur(inc)}</b> / h` : `Prix ${fmt.eur(b.price)} · rapporte ${fmt.eur(inc)} / h`}</small></div>
@@ -329,7 +329,7 @@
         <p class="muted">${C.count() ? `${C.count()} commerce${C.count() > 1 ? 's' : ''} · <b class="up">${fmt.eur(ph)} / heure</b> · déjà gagné ${fmt.eur(c.earned || 0)}` : 'Achète ton premier commerce : il te rapporte de l\'argent chaque heure, même quand tu ne joues pas.'}</p></div>
       ${C.count() ? `<div class="caisse-r"><span>Dans la caisse</span><b id="city-pend">${fmt.eur(pend)}</b>${C.full() ? '<small class="down">Caisse pleine ! Encaisse vite</small>' : `<small>se remplit pendant ${C.CAP_H} h max</small>`}<button class="btn btn-gold" id="city-collect" ${pend < 0.01 ? 'disabled' : ''}>💰 Encaisser</button></div>` : ''}</div>
       <div class="biz-grid">${cards}</div>
-      <p class="hint">Recette : 2 % du prix par heure et par niveau (rentabilisé en 2 jours environ). Revente à 70 % de ce que tu as investi. Les commerces comptent dans ton patrimoine.</p>`;
+      <p class="hint">Recette : 8 % par heure de tout ce que tu as investi dans le commerce : chaque achat et chaque amélioration est remboursé en 12 h environ. Revente à 70 % de ce que tu as investi. Les commerces comptent dans ton patrimoine.</p>`;
   }
 
   /* ---------- Vue 3D ---------- */

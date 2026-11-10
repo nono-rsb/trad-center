@@ -171,8 +171,8 @@ TC.SHOP_TYPES = {
   luxury: { label: 'Luxe',       icon: '💎', resale: 0.85, note: 'Revente à 85 % du prix d\'achat' },
 };
 
-// Loyer horaire = 0,05 % de la valeur du bien (accéléré pour le jeu)
-TC.RENT_RATE_PER_HOUR = 0.0005;
+// Loyer horaire = 2 % de la valeur du bien : remboursé en ~2 jours (accéléré pour le jeu)
+TC.RENT_RATE_PER_HOUR = 0.02;
 TC.RENT_MAX_HOURS = 48;
 
 TC.shopById = {};
