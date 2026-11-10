@@ -5,7 +5,7 @@
   G.FEE_SPOT = 0.001;    // 0,1 % par ordre au comptant
   G.FEE_LEV = 0.0005;    // 0,05 % du notionnel à l'ouverture et à la clôture
   G.MAINT = 0.9;         // liquidation quand la perte atteint 90 % de la marge
-  G.BET_PAYOUT = 1.9;    // gain x1,9 sur un pari réussi
+  G.BET_PAYOUT = 2;      // gain x2 sur un pari réussi (mise doublée)
   G.BET_DURATIONS = [[1, '1 min'], [5, '5 min'], [15, '15 min'], [60, '1 h']];
   G.START_CASH = 10;
   G.BONUS = TC.season && TC.season.noel && !TC.season.preview ? 20 : 10; // doublé en décembre

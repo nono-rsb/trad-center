@@ -229,7 +229,7 @@
         <div class="seg seg-4" id="o-betdur">${G.BET_DURATIONS.map(([m, l]) => `<button data-dur="${m}" class="${UI.betDur === m ? 'active' : ''}">${l}</button>`).join('')}</div>
         <label class="fld">Mise<div class="inp"><input id="o-amt" type="number" min="0" step="any" inputmode="decimal" placeholder="0,00"><span>€</span></div></label>
         <div class="quick" data-target="o-amt" data-base="cash"><button data-p="10">10 %</button><button data-p="25">25 %</button><button data-p="50">50 %</button><button data-p="100">Max</button></div>
-        <div class="avail">Disponible : <b>${fmt.eur(S().cash)}</b> · Gain si réussi : <b>x${fmt.num(G.BET_PAYOUT, 1)}</b></div>
+        <div class="avail">Disponible : <b>${fmt.eur(S().cash)}</b> · Gain si réussi : <b>x${G.BET_PAYOUT}</b> (10 € misés = ${fmt.eur(10 * G.BET_PAYOUT)} récupérés)</div>
         <div class="bet-btns"><button class="btn btn-buy btn-xl" data-bet="up" ${closed ? 'disabled' : ''}>📈 Plus haut</button><button class="btn btn-sell btn-xl" data-bet="down" ${closed ? 'disabled' : ''}>📉 Plus bas</button></div>
         ${closed ? '<p class="hint warn">Marché fermé : les paris rouvriront à la reprise de la cotation.</p>' : ''}
         <div id="o-bets"></div>
