@@ -59,8 +59,8 @@
   function profileCard() {
     const p = N.profile; const u = N.user;
     return `<div class="panel profile">
-      <button class="avatar big" data-soc="avatar" title="Changer d'avatar">${p.avatar}</button>
-      <div class="pinfo"><h2>${esc(p.pseudo)} <button class="btn btn-sm btn-ghost" data-soc="rename" title="Changer de pseudo">✏️</button></h2>
+      <button class="av-btn" data-style="" title="Personnaliser mon avatar">${TC.Style.avatar(Object.assign({}, p, TC.Style.mine()), 'l')}<i>🎨</i></button>
+      <div class="pinfo"><h2>${esc(p.pseudo)}${TC.Style.badge(TC.Style.mine())} <button class="btn btn-sm btn-ghost" data-soc="rename" title="Changer de pseudo">✏️</button></h2>
         <div class="muted">${esc(u.email || '')} ${u.emailVerified ? '<span class="st st-live">VÉRIFIÉ</span>' : '<span class="st st-sim">NON VÉRIFIÉ</span>'}</div>
         ${u.emailVerified ? '' : `<div class="verify">📧 Confirmez votre adresse via le lien reçu par e-mail. <button class="btn btn-sm" data-soc="resend">Renvoyer</button> <button class="btn btn-sm" data-soc="checkverify">C'est fait</button></div>`}
         <div class="muted small">${G.rank().r[2]} ${G.rank().r[1]} · ${fmt.eur(G.netWorth())} · ${N.lastSync ? '☁️ sauvegardé ' + new Date(N.lastSync).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '☁️ synchronisation…'}</div></div>
@@ -85,8 +85,8 @@
       const it = f.topItem && TC.shopById[f.topItem]; const src = it && TC.img(it.id);
       return `<div class="friend">
         <div class="f-vis">${src ? `<img src="${src}" alt="" referrerpolicy="no-referrer">` : it ? `<span>${it.emoji}</span>` : ''}</div>
-        <span class="avatar">${f.avatar || '👤'}</span>
-        <div class="f-info"><b>${esc(f.pseudo)}</b><small>${esc(f.rank || '')} · ${f.items || 0} objet(s)${it ? ' · ' + esc(it.brand + ' ' + it.model) : ''}</small></div>
+        ${TC.Style.avatar(f, 'm')}
+        <div class="f-info"><b>${esc(f.pseudo)}${TC.Style.badge(f)}</b><small>${esc(f.rank || '')} · ${f.items || 0} objet(s)${it ? ' · ' + esc(it.brand + ' ' + it.model) : ''}</small></div>
         <div class="f-nw">${fmt.eur(f.nw || 0, true)}</div>
         <div class="f-act"><button class="btn btn-sm btn-gold" data-send="${f.uid}">💸 Envoyer</button><button class="btn btn-sm btn-ghost" data-unfriend="${f.uid}" title="Retirer">✕</button></div>
       </div>`;
@@ -104,12 +104,12 @@
       return `<div class="panel"><div class="board-head"><h3>🏆 Classement</h3>${boardSeg()}</div><div id="wk-zone"></div></div>`;
     }
     const friendsScope = N.boardScope === 'friends';
-    const meRow = Object.assign({ uid: N.user.uid }, N.profile, { nw: G.netWorth(), rank: G.rank().r[1] });
+    const meRow = Object.assign({ uid: N.user.uid }, N.profile, TC.Style.mine(), { nw: G.netWorth(), rank: G.rank().r[1] });
     let rows = friendsScope ? N.friends.concat([meRow]) : (N.board || []).map(r => r.uid === N.user.uid ? meRow : r);
     rows = rows.slice().sort((a, b) => (b.nw || 0) - (a.nw || 0));
     const medal = i => ['🥇', '🥈', '🥉'][i] || (i + 1);
     return `<div class="panel"><div class="board-head"><h3>🏆 Classement</h3>${boardSeg()}</div>
-      ${!friendsScope && !N.board ? '<div class="empty">Chargement…</div>' : `<div class="board">${rows.map((r, i) => `<div class="brow ${r.uid === N.user.uid ? 'me' : ''}"><span class="pos">${medal(i)}</span><span class="avatar">${r.avatar || '👤'}</span><b>${esc(r.pseudo || '')}${N.xmasChamp && N.xmasChamp === r.uid ? ' <span class="champ" title="Champion de Noël">🏆🎄</span>' : ''}</b><small>${esc(r.rank || '')}</small><span class="bnw">${fmt.eur(r.nw || 0, true)}</span></div>`).join('')}</div>`}</div>`;
+      ${!friendsScope && !N.board ? '<div class="empty">Chargement…</div>' : `<div class="board">${rows.map((r, i) => `<div class="brow ${r.uid === N.user.uid ? 'me' : ''}"><span class="pos">${medal(i)}</span>${TC.Style.avatar(r, 's')}<b>${esc(r.pseudo || '')}${TC.Style.badge(r)}${N.xmasChamp && N.xmasChamp === r.uid ? ' <span class="champ" title="Champion de Noël">🏆🎄</span>' : ''}</b><small>${esc(r.rank || '')}</small><span class="bnw">${fmt.eur(r.nw || 0, true)}</span></div>`).join('')}</div>`}</div>`;
   }
 
   function boardSeg() {

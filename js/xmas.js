@@ -183,7 +183,7 @@
     if (N.user && N.loadXmasBoard) {
       try {
         const rows = await N.loadXmasBoard(); const el = $('#x-race'); if (!el) return;
-        el.innerHTML = rows.length ? rows.map((r, i) => `<div class="brow ${r.uid === N.user.uid ? 'me' : ''}"><span class="pos">${['🥇', '🥈', '🥉'][i] || i + 1}</span><span class="avatar">${r.avatar || '👤'}</span><b>${esc(r.pseudo || '')}</b><small></small><span class="bnw ${r.xmasGain >= 0 ? 'up' : 'down'}">${r.xmasGain >= 0 ? '+' : ''}${fmt.eur(r.xmasGain || 0, true)}</span></div>`).join('') : '<div class="empty">Personne encore : sois le premier !</div>';
+        el.innerHTML = rows.length ? rows.map((r, i) => `<div class="brow ${r.uid === N.user.uid ? 'me' : ''}"><span class="pos">${['🥇', '🥈', '🥉'][i] || i + 1}</span>${TC.Style.avatar(r, 's')}<b>${esc(r.pseudo || '')}${TC.Style.badge(r)}</b><small></small><span class="bnw ${r.xmasGain >= 0 ? 'up' : 'down'}">${r.xmasGain >= 0 ? '+' : ''}${fmt.eur(r.xmasGain || 0, true)}</span></div>`).join('') : '<div class="empty">Personne encore : sois le premier !</div>';
       } catch (e) { const el = $('#x-race'); if (el) el.innerHTML = '<div class="empty">Classement indisponible</div>'; }
     }
   };
