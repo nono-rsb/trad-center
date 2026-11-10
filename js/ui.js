@@ -322,7 +322,7 @@
       const p = D.eur(b.asset); const winning = p != null && ((p > b.start) === (b.dir === 'up')) && p !== b.start;
       return `<tr><td><b>${b.asset}</b></td><td>${b.dir === 'up' ? '📈 Hausse' : '📉 Baisse'}</td><td>${fmt.eur(b.stake)}</td><td>${fmt.eur(b.start)}</td><td>${fmt.eur(p)}</td><td class="${winning ? 'up' : 'down'}"><b>${winning ? 'Gagnant' : 'Perdant'}</b></td><td>${fmt.dur(b.end - Date.now())}</td></tr>`;
     }).join('');
-    const LOGL = { buy: '🟢 Achat', sell: '🔴 Vente', open: '⚡ Ouverture', close: '✅ Clôture', liq: '💀 Liquidation', bet: '🎲 Pari', betres: '🎲 Résultat pari', item: '🛍️ Achat', itemsell: '♻️ Revente', rent: '🏠 Loyers', bonus: '🎁 Bonus', send: '📤 Envoi', recv: '📥 Reçu' };
+    const LOGL = { buy: '🟢 Achat', sell: '🔴 Vente', open: '⚡ Ouverture', close: '✅ Clôture', liq: '💀 Liquidation', bet: '🎲 Pari', betres: '🎲 Résultat pari', item: '🛍️ Achat', itemsell: '♻️ Revente', rent: '🏠 Loyers', biz: '🏪 Commerces', bonus: '🎁 Bonus', send: '📤 Envoi', recv: '📥 Reçu' };
     const lrow = s.log.slice(0, 80).map(l => {
       const name = l.item ? (TC.shopById[l.item].brand + ' ' + TC.shopById[l.item].model) : (l.kind === 'send' || l.kind === 'recv') ? (l.asset ? '' : 'Euros') : (l.asset || '');
       let det = '';
@@ -397,6 +397,7 @@
   UI.liveTab = function () {
     if (UI.tab === 'portfolio') UI.portfolio();
     else if (UI.tab === 'shop') UI.shopUpdate(UI.shopType);
+    else if (UI.tab === 'city' && TC.City) TC.City.live();
     else if (UI.tab === 'collection') { const el = $('#rent-pend'); if (el) el.textContent = fmt.eur(G.pendingRent()); const b = $('#b-rent'); if (b) b.disabled = G.pendingRent() < 0.01; }
   };
 
@@ -448,5 +449,6 @@
     else if (UI.tab === 'shop') UI.shop();
     else if (UI.tab === 'collection') UI.collection();
     else if (UI.tab === 'social' && TC.Social) TC.Social.render();
+    else if (UI.tab === 'city' && TC.City) TC.City.render();
   };
 })();

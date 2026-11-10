@@ -1,16 +1,16 @@
 {
-  "id": "maj-2026-11-10-bot",
-  "emoji": "🤖",
-  "title": "Nouveau : le bot de trading",
+  "id": "maj-2026-11-10-ville",
+  "emoji": "🗺️",
+  "title": "Nouveau : Trad City, la ville des joueurs",
   "items": [
-    { "icon": "🤖", "title": "Bot de trading (100 €)", "text": "Portefeuille → Bot : il achète ce qui monte, revend dès qu'il gagne, coupe les pertes et peut parier." },
-    { "icon": "⚖️", "title": "3 modes", "text": "Prudent, Équilibré ou Audacieux, avec le budget que tu choisis." },
-    { "icon": "⚠️", "title": "Pas magique", "text": "Aucun bot ne gagne à tous les coups : il peut aussi perdre. Il tourne quand le jeu est ouvert." }
+    { "icon": "🗺️", "title": "La carte de la ville", "text": "Onglet Ville : chaque joueur a son terrain. Ton bâtiment grandit avec ton argent, de la tente au gratte-ciel." },
+    { "icon": "🏪", "title": "Achète des commerces", "text": "Citronnade, kebab, salle de sport, casino, banque… Ils rapportent de l'argent chaque heure, même quand tu ne joues pas." },
+    { "icon": "👑", "title": "Deviens le Maire", "text": "Le plus riche est au centre avec une couronne. Touche un terrain pour voir ses commerces et l'ajouter en ami." }
   ],
-  "button": "Voir le bot 🤖",
-  "tab": "portfolio",
+  "button": "Voir la ville 🗺️",
+  "tab": "city",
   "push": {
-    "title": "🤖 Nouveau : un bot qui trade pour toi",
-    "body": "Débloque le bot de trading (100 €) : il achète, revend et parie à ta place. Mode prudent, équilibré ou audacieux."
+    "title": "🗺️ Nouveau : Trad City !",
+    "body": "Vois les bâtiments de tous les joueurs sur la carte et achète des commerces qui te rapportent de l'argent chaque heure."
   }
 }
