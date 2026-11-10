@@ -206,24 +206,29 @@
       <div class="c3-help">☝️ Glisse pour tourner · 🤏 pince pour zoomer · touche un bâtiment</div>
       ${guest ? '<p class="city-guest c3-guest">👥 Crée un compte (onglet Amis) pour voir les autres joueurs.</p>' : ''}</div>`;
   }
+  if (TC.City3D) TC.City3D.onFail = () => { if (UI().tab === 'city') setTimeout(() => C.render(), 0); };
   function onPick3d(own) { if (own.uid) lotModal(own.uid); else if (own.land) landmark(own.land); }
   C.render = function () {
     const root = $('#tab-city'); if (!root) return;
     const use3d = !view2d && TC.City3D && TC.City3D.supported() && !TC.City3D.failed;
-    root.innerHTML = (use3d ? map3dHtml() : mapHtml().replace('<div class="city-sky">', '<div class="city-sky">' + (TC.City3D && TC.City3D.supported() ? '<button class="c3-back" data-c3="3d">🧊 Vue 3D</button>' : ''))) + bizHtml();
+    const v3 = TC.City3D, why = v3 && (!v3.supported() ? 'WebGL désactivé sur ce navigateur' : v3.failed ? v3.error || 'erreur inconnue' : null);
+    root.innerHTML = (use3d ? map3dHtml() : (why ? `<div class="nbox c3-err">⚠️ La 3D n'a pas pu s'afficher sur cet appareil : <b>${esc(why)}</b>. Voici la carte en 2D. <button class="btn btn-sm" data-c3="retry">🔄 Réessayer la 3D</button></div>` : '') + mapHtml().replace('<div class="city-sky">', '<div class="city-sky">' + (v3 && v3.supported() && !v3.failed ? '<button class="c3-back" data-c3="3d">🧊 Vue 3D</button>' : ''))) + bizHtml();
     if (use3d) {
       TC.City3D.load().then(ok => {
         const host = $('#city3d-host'); if (!host) return;
-        if (!ok) { view2d = true; return C.render(); }
-        TC.City3D.mount(host, data3d(), onPick3d);
+        if (!ok) return C.render();
+        try { TC.City3D.mount(host, data3d(), onPick3d); } catch (e) { return C.render(); }
         host.classList.add('ready');
-      });
+        // contrôle : si rien n'est dessiné après quelques secondes, on bascule en 2D en expliquant pourquoi
+        setTimeout(() => { if (UI().tab === 'city' && $('#city3d-host') && TC.City3D.ready && !TC.City3D.failed && !TC.City3D.drawn() && !document.hidden) { TC.City3D.failed = true; TC.City3D.error = 'aucune image affichée'; C.render(); } }, 6000);
+      }).catch(e => { TC.City3D.failed = true; TC.City3D.error = String(e && e.message || e); C.render(); });
     }
     loadPlayers();
   };
   document.addEventListener('click', e => {
     const b = e.target.closest('[data-c3]'); if (!b) return;
     const a = b.dataset.c3, V3 = TC.City3D;
+    if (a === 'retry') { V3.retry(); view2d = false; try { localStorage.setItem('tradcenter.city2d', '0'); } catch (x) { } return C.render(); }
     if (a === '2d' || a === '3d') { view2d = a === '2d'; try { localStorage.setItem('tradcenter.city2d', view2d ? '1' : '0'); } catch (x) { } return C.render(); }
     if (a === 'me') return V3.focus(N && N.user ? N.user.uid : 'me');
     if (a === 'mayor') { const m = roster()[0]; if (m) V3.focus(m.uid); return; }

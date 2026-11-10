@@ -14,15 +14,28 @@
 
   /* ---------- Chargement ---------- */
   function loadScript(src) { return new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => rej(new Error(src)); document.head.appendChild(s); }); }
-  V.supported = function () { try { const c = document.createElement('canvas'); return !!(window.WebGLRenderingContext && (c.getContext('webgl2') || c.getContext('webgl'))); } catch (e) { return false; } };
+  function fail(msg) { console.warn('3D', msg); V.error = msg; V.failed = true; running = false; if (V.onFail) V.onFail(msg); }
+  V.retry = () => { V.failed = false; V.error = null; sig = ''; };
+  V.drawn = () => !!(renderer && renderer.info.render.calls > 0);
+  // test fait une seule fois : chaque test crée un contexte WebGL, et iOS coupe les plus anciens au-delà d'une limite
+  let sup = null;
+  V.supported = function () {
+    if (sup != null) return sup;
+    try {
+      const c = document.createElement('canvas'); const gl = c.getContext('webgl2') || c.getContext('webgl');
+      sup = !!gl; const ext = gl && gl.getExtension('WEBGL_lose_context'); if (ext) ext.loseContext();
+    } catch (e) { sup = false; }
+    return sup;
+  };
   let loading = null;
   V.load = function () {
     if (V.ready) return Promise.resolve(true); if (V.failed) return Promise.resolve(false);
     return loading || (loading = (async () => {
       try {
         if (!window.THREE) await loadScript('js/vendor/three.min.js');
+        if (!window.THREE) throw new Error('moteur 3D non chargé');
         T = window.THREE; init(); V.ready = true; return true;
-      } catch (e) { console.warn('3D', e); V.failed = true; return false; }
+      } catch (e) { console.warn('3D', e); V.error = String(e && e.message || e); V.failed = true; loading = null; return false; }
     })());
   };
 
@@ -294,14 +307,16 @@
   /* ---------- Scène ---------- */
   function init() {
     canvas = document.createElement('canvas'); canvas.className = 'city3d-cv';
-    renderer = new T.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    renderer.outputEncoding = T.sRGBEncoding; renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFSoftShadowMap;
+    const mobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.platform));
+    renderer = new T.WebGLRenderer({ canvas, antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, mobile ? 1.5 : 2));
+    renderer.outputEncoding = T.sRGBEncoding; renderer.shadowMap.enabled = true; renderer.shadowMap.type = mobile ? T.PCFShadowMap : T.PCFSoftShadowMap;
+    canvas.addEventListener('webglcontextlost', e => { e.preventDefault(); fail('contexte 3D perdu (mémoire du téléphone)'); });
     renderer.toneMapping = T.NoToneMapping;
     scene = new T.Scene();
     camera = new T.PerspectiveCamera(45, 1, 1, 3000);
     hemi = new T.HemisphereLight(0xdcefff, 0x5a7a3a, .6); scene.add(hemi);
-    sun = new T.DirectionalLight(0xfff1d6, 1.25); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -.0005; scene.add(sun); scene.add(sun.target);
+    sun = new T.DirectionalLight(0xfff1d6, 1.25); sun.castShadow = true; sun.shadow.mapSize.set(mobile ? 1024 : 2048, mobile ? 1024 : 2048); sun.shadow.bias = -.0005; scene.add(sun); scene.add(sun.target);
     clock = new T.Clock();
     controls();
     window.addEventListener('resize', resize);
@@ -512,7 +527,7 @@
     if (snow) { const a = snow.geometry.attributes.position; for (let i = 1; i < a.array.length; i += 3) { a.array[i] -= dt * 6; if (a.array[i] < 0) a.array[i] = 90; } a.needsUpdate = true; }
     // les étiquettes lointaines s'effacent pour ne pas encombrer
     labels.forEach(l => { const d = l.position.distanceTo(camera.position); const o = Math.max(0, Math.min(1, (HALF * 3.2 - d) / (HALF * 1.2))); l.material.opacity = Math.max(.12, o); });
-    renderer.render(scene, camera);
+    try { renderer.render(scene, camera); } catch (e) { fail('rendu : ' + (e.message || e)); }
   }
 
   /* ---------- API pour city.js ---------- */
@@ -521,7 +536,8 @@
     if (canvas.parentNode !== el) el.appendChild(canvas);
     const s = JSON.stringify([data.players.map(p => [p.uid, p.tier, p.biz, p.me, p.mayor, p.friend, p.pseudo, p.plus, p.car && p.car.color]), data.night, forcedNight]);
     if (s !== sig) {
-      const first = !sig; sig = s; build(data);
+      const first = !sig; sig = s;
+      try { build(data); } catch (e) { sig = ''; fail('construction : ' + (e.message || e)); throw e; }
       if (first) { const me = data.players.find(p => p.me); cam.r = Math.min(HALF * 3, 170); cam.tx = 0; cam.tz = 0; if (me) setTimeout(() => V.focus(me.uid), 900); }
     }
     resize();

@@ -473,3 +473,4 @@ body.gated #tab-social .auth { max-width: 460px; margin: 0 auto; width: 100%; }
 .c3-back { margin-right: auto; margin-left: 10px; border: 0; border-radius: 999px; padding: 6px 12px; font-weight: 800; background: rgba(20,12,35,.7); color: #fff; }
 @media (max-width: 700px) { .city3d { height: 62vh; border-radius: 22px; margin-left: -4px; margin-right: -4px; } }
 .c3-hud { gap: 6px; } .c3-hud button { font-size: 12px; padding: 7px 10px; border-radius: 14px; min-width: 46px; }
+.c3-err { margin-bottom: 10px; font-size: 13px; } .c3-err .btn { margin-top: 6px; }
