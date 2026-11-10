@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Trad Center — De 10 € à la Bugatti</title>
   <meta name="description" content="Jeu de trading avec les vrais cours du Bitcoin, d'Ethereum, du CAC 40, des actions et des devises. Partez de 10 € et achetez Porsche, Lamborghini, Ferrari et villas.">
-  <meta name="theme-color" content="#0b0e14">
+  <meta name="theme-color" content="#1b0b2e">
   <link rel="icon" type="image/svg+xml" href="icons/logo.svg">
   <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -20,44 +20,38 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/glass.css">
 </head>
 <body>
+  <div class="gta" id="gta" title="Sortie de Grand Theft Auto VI : 19 novembre 2026"></div>
+
   <header class="topbar">
     <div class="brand" title="Trad Center">
       <img class="logo" src="icons/logo.svg" alt="" width="40" height="40">
-      <div><div class="brand-name">TRAD<span>CENTER</span></div><div class="brand-sub">De 10 € à la Bugatti</div></div>
+      <div class="brand-name">TRAD<span>CENTER</span></div>
     </div>
-    <div class="stats">
-      <div class="stat big"><label>Patrimoine</label><b id="s-nw">—</b><small id="s-nwch"></small></div>
-      <div class="stat"><label>Cash</label><b id="s-cash">—</b></div>
-      <div class="stat hide-sm"><label>Investi</label><b id="s-inv">—</b></div>
-      <div class="stat hide-sm"><label>P&amp;L latent</label><b id="s-pnl">—</b></div>
-      <div class="stat rank"><label>Rang</label><b id="s-rank">—</b></div>
+    <div class="nw">
+      <label>Mon argent</label>
+      <b id="s-nw">—</b>
+      <small><span id="s-nwch"></span> · cash <span id="s-cash">—</span><span id="s-sim" class="simpill" hidden title="Certaines sources sont injoignables : prix simulés">SIM</span></small>
     </div>
     <div class="top-actions">
-      <button class="btn btn-gold" id="b-bonus" title="Bonus quotidien">🎁 <span>Bonus</span></button>
-      <button class="icon-btn" id="b-sound" title="Son">🔊</button>
+      <button class="icon-btn gold" id="b-bonus" title="Bonus quotidien">🎁<span></span></button>
       <button class="icon-btn" id="b-notif" title="Notifications">🔔</button>
       <button class="icon-btn avatar-btn" id="b-account" title="Mon compte" hidden>👤</button>
-      <button class="icon-btn" id="b-install" title="Installer sur l'écran d'accueil" hidden>📲</button>
-      <button class="icon-btn" id="b-help" title="Aide">❔</button>
-      <button class="icon-btn" id="b-settings" title="Paramètres">⚙️</button>
+      <button class="icon-btn" id="b-settings" title="Réglages">⚙️</button>
+      <button id="b-sound" hidden></button><button id="b-help" hidden></button><button id="b-install" hidden></button>
     </div>
   </header>
 
   <div class="goalbar" id="goalbar"></div>
-  <div class="ticker"><div class="ticker-track" id="ticker"></div></div>
-  <div class="databar" id="databar"></div>
 
   <nav class="tabs" id="tabs">
-    <button data-tab="markets" class="active">📊 <span>Marchés</span></button>
-    <button data-tab="portfolio">💼 <span>Portefeuille</span><i class="badge" id="nb-pos"></i></button>
-    <button data-tab="car">🏎️ <span>Concession</span></button>
-    <button data-tab="estate">🏠 <span>Immobilier</span></button>
-    <button data-tab="luxury">💎 <span>Luxe</span></button>
-    <button data-tab="collection">🏆 <span>Collection</span><i class="badge" id="nb-rent"></i></button>
-    <button data-tab="social">👥 <span>Amis</span><i class="badge" id="nb-social"></i></button>
-    <button data-tab="ach">🎖️ <span>Succès</span><i class="badge" id="nb-ach"></i></button>
+    <button data-tab="markets" class="active"><i class="ti">📈</i><span>Marchés</span></button>
+    <button data-tab="portfolio"><i class="ti">💼</i><span>Portefeuille</span><i class="badge" id="nb-pos"></i></button>
+    <button data-tab="shop"><i class="ti">🏎️</i><span>Boutique</span></button>
+    <button data-tab="social"><i class="ti">👥</i><span>Amis</span><i class="badge" id="nb-social"></i></button>
+    <button data-tab="collection"><i class="ti">🏆</i><span>Collection</span><i class="badge" id="nb-rent"></i></button>
   </nav>
 
   <main>
@@ -76,7 +70,6 @@
           <div class="chart-head" id="c-head"></div>
           <div class="chart-tools">
             <div class="seg" id="c-tf"></div>
-            <div class="seg" id="c-type"><button data-type="candle" class="active" title="Bougies">🕯️</button><button data-type="area" title="Courbe">〰️</button></div>
           </div>
           <div class="chart-wrap"><div id="chart"></div><div class="chart-note" id="c-note"></div><div class="chart-loading" id="c-loading">Chargement…</div></div>
           <div class="chart-foot" id="c-foot"></div>
@@ -90,12 +83,9 @@
     <section class="tab-pane" id="tab-portfolio"></section>
 
     <!-- ================= BOUTIQUES ================= -->
-    <section class="tab-pane" id="tab-car"></section>
-    <section class="tab-pane" id="tab-estate"></section>
-    <section class="tab-pane" id="tab-luxury"></section>
+    <section class="tab-pane" id="tab-shop"></section>
     <section class="tab-pane" id="tab-collection"></section>
     <section class="tab-pane" id="tab-social"></section>
-    <section class="tab-pane" id="tab-ach"></section>
   </main>
 
   <footer class="foot">

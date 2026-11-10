@@ -37,18 +37,18 @@
     if (lastNW != null && Math.abs(nw - lastNW) > 1e-9) flash(nwEl, nw > lastNW);
     lastNW = nw;
     const ch = (nw - G.START_CASH) / G.START_CASH * 100;
-    const ch2 = $('#s-nwch'); ch2.textContent = fmt.pct(ch) + ' depuis le départ'; ch2.className = cls(ch);
+    const ch2 = $('#s-nwch'); ch2.textContent = fmt.pct(ch); ch2.className = cls(ch);
     $('#s-cash').textContent = fmt.eur(S().cash, true);
-    $('#s-inv').textContent = fmt.eur(inv, true);
-    const pe = $('#s-pnl'); pe.textContent = (pnl > 0 ? '+' : '') + fmt.eur(pnl, true); pe.className = cls(pnl);
-    const rk = G.rank(nw); $('#s-rank').textContent = rk.r[2] + ' ' + rk.r[1];
+    const si = $('#s-inv'); if (si) si.textContent = fmt.eur(inv, true);
+    const pe = $('#s-pnl'); if (pe) { pe.textContent = (pnl > 0 ? '+' : '') + fmt.eur(pnl, true); pe.className = cls(pnl); }
+    const rk = G.rank(nw); const sr = $('#s-rank'); if (sr) sr.textContent = rk.r[2] + ' ' + rk.r[1];
+    const sim = $('#s-sim'); if (sim) sim.hidden = !D.anySim();
     const ready = G.bonusReadyIn();
-    const bb = $('#b-bonus'); bb.disabled = ready > 0; bb.querySelector('span').textContent = ready > 0 ? fmt.dur(ready) : 'Bonus';
+    const bb = $('#b-bonus'); bb.disabled = ready > 0; bb.querySelector('span').textContent = ready > 0 ? '' : ' +10 €'; bb.title = ready > 0 ? 'Prochain bonus dans ' + fmt.dur(ready) : 'Récupérer 10 € gratuits';
     bb.classList.toggle('pulse', ready === 0);
-    $('#b-sound').textContent = S().sound ? '🔊' : '🔇';
     const np = S().positions.length + S().bets.length; const nb = $('#nb-pos'); nb.textContent = np || ''; nb.style.display = np ? '' : 'none';
     const r = G.pendingRent(); const nr = $('#nb-rent'); nr.textContent = r >= 1 ? '€' : ''; nr.style.display = r >= 1 ? '' : 'none';
-    const na = Object.keys(S().ach).length; const nab = $('#nb-ach'); nab.textContent = na + '/' + TC.ACHIEVEMENTS.length;
+    const nab = $('#nb-ach'); if (nab) nab.textContent = Object.keys(S().ach).length + '/' + TC.ACHIEVEMENTS.length;
     UI.goal(nw);
   };
   function flash(el, up) { el.classList.remove('fl-up', 'fl-down'); void el.offsetWidth; el.classList.add(up ? 'fl-up' : 'fl-down'); }
@@ -67,7 +67,7 @@
   UI.ticker = function () {
     const ids = ['BTC', 'ETH', 'SOL', 'CAC40', 'SP500', 'NASDAQ', 'GOLD', 'TSLA', 'NVDA', 'AAPL', 'MC', 'RACE', 'DOGE', 'XRP', 'WTI', 'USD', 'DAX', 'PEPE'];
     const html = ids.map(id => `<span class="tk" data-id="${id}"><b>${id}</b> <span class="tk-p">—</span> <span class="tk-c">—</span></span>`).join('');
-    $('#ticker').innerHTML = html + html;
+    const tk = $('#ticker'); if (tk) tk.innerHTML = html + html;
   };
   UI.tickerUpdate = function () {
     $$('#ticker .tk').forEach(el => {
@@ -81,6 +81,7 @@
     const h = D.health;
     const lab = { live: '🟢', delayed: '🟡', coingecko: '🟡', loading: '⏳', down: '🔴' };
     const sim = D.anySim();
+    if (!$('#databar')) return;
     $('#databar').innerHTML = `<span>${lab[h.binance] || '⏳'} Crypto ${h.binance === 'live' ? 'temps réel (Binance)' : h.binance === 'coingecko' ? 'CoinGecko (1 min)' : h.binance === 'down' ? 'injoignable' : 'connexion…'}</span>
       <span>${lab[h.yahoo] || '⏳'} Bourse ${h.yahoo === 'live' ? 'Yahoo Finance (MAJ 45 s)' : h.yahoo === 'down' ? 'injoignable' : 'connexion…'}</span>
       <span>${lab[h.fx] || '⏳'} Devises ${D.fxStatus === 'live-yahoo' ? 'Yahoo' : h.fx === 'live' ? 'BCE' : h.fx === 'down' ? 'injoignable' : 'connexion…'}</span>
@@ -95,7 +96,7 @@
     const q = UI.q.trim().toLowerCase();
     return TC.ASSETS.filter(a => {
       if (UI.cat === 'fav' && !S().fav.includes(a.id)) return false;
-      if (UI.cat !== 'all' && UI.cat !== 'fav' && a.cat !== UI.cat) return false;
+      if (UI.cat === 'other' ? !(a.cat === 'commodity' || a.cat === 'fx') : (UI.cat !== 'all' && UI.cat !== 'fav' && a.cat !== UI.cat)) return false;
       if (q && !(a.id.toLowerCase().includes(q) || a.name.toLowerCase().includes(q) || (a.y || '').toLowerCase().includes(q))) return false;
       return true;
     });
@@ -126,7 +127,7 @@
 
   /* ================= GRAPHIQUE ================= */
   UI.tfButtons = function () {
-    $('#c-tf').innerHTML = Object.keys(TC.TF).map(k => `<button data-tf="${k}" class="${UI.tf === k ? 'active' : ''}">${TC.TF[k].label}</button>`).join('');
+    $('#c-tf').innerHTML = ['1J', '1S', '1M', '1A'].map(k => `<button data-tf="${k}" class="${UI.tf === k ? 'active' : ''}">${TC.TF[k].label}</button>`).join('');
   };
   UI.chartHead = function () {
     const a = TC.assetById[UI.sel]; const p = D.prices[UI.sel] || {}; const e = D.eur(UI.sel); const c = D.change(UI.sel);
@@ -141,12 +142,10 @@
     const hold = S().holdings[UI.sel];
     const ps = S().positions.filter(x => x.asset === UI.sel);
     const hi = p.high ? D.toEUR(p.high, p.ccy) : null, lo = p.low ? D.toEUR(p.low, p.ccy) : null;
-    $('#c-foot').innerHTML = `
-      ${hi ? `<span>Haut ${a.cat === 'crypto' ? '24 h' : 'jour'} <b>${fmt.eur(hi)}</b></span>` : ''}
-      ${lo ? `<span>Bas ${a.cat === 'crypto' ? '24 h' : 'jour'} <b>${fmt.eur(lo)}</b></span>` : ''}
-      <span>Clôture préc. <b>${fmt.eur(ch)}</b></span>
-      ${hold ? `<span class="hl">Vous détenez <b>${fmt.qty(hold.qty)} ${a.id}</b> (${fmt.eur(G.holdingValue(a.id))})</span>` : ''}
-      ${ps.length ? `<span class="hl">${ps.length} position(s) à levier</span>` : ''}`;
+    $('#c-foot').innerHTML = hold || ps.length ? `
+      ${hold ? `<span class="hl">Vous avez <b>${fmt.qty(hold.qty)} ${a.id}</b> = ${fmt.eur(G.holdingValue(a.id))}</span>` : ''}
+      ${ps.length ? `<span class="hl">${ps.length} position(s) à levier en cours</span>` : ''}` : `<span>Achetez dès 1 € : si le prix monte, vous gagnez.</span>`;
+    void hi; void lo; void ch;
     document.title = `${e != null ? fmt.eur(e) + ' · ' : ''}${a.id} — Trad Center`;
   };
   UI.chartPrice = function () {
@@ -187,6 +186,7 @@
     if (UI._orderAsset !== UI.sel) { delete keep['o-sl']; delete keep['o-tp']; }
     UI._orderAsset = UI.sel;
     const a = TC.assetById[UI.sel];
+    if (UI.mode === 'lev' && !S().expert) UI.mode = 'spot';
     const m = UI.mode;
     let body = '';
     if (m === 'spot') {
@@ -204,7 +204,7 @@
           <div class="avail">Détenu : <b>${h ? fmt.qty(h.qty) + ' ' + esc(a.id) : '0'}</b>${h ? ` · ${fmt.eur(G.holdingValue(a.id))}` : ''}</div>
           <div class="preview" id="o-prev"></div>
           <button class="btn btn-sell btn-xl" id="o-go" ${h ? '' : 'disabled'}>Vendre ${esc(a.id)}</button>`}
-        <p class="hint">Frais : 0,1 % par ordre. Au comptant, vous ne pouvez pas perdre plus que votre mise.</p>`;
+        <p class="hint">Vous ne pouvez pas perdre plus que ce que vous mettez. Frais 0,1 %.</p>`;
     } else if (m === 'lev') {
       body = `
         <div class="seg seg-2 side" id="o-levside"><button data-side="long" class="${UI.levSide === 'long' ? 'active buy' : ''}">📈 Long (hausse)</button><button data-side="short" class="${UI.levSide === 'short' ? 'active sell' : ''}">📉 Short (baisse)</button></div>
@@ -236,10 +236,10 @@
         <p class="hint">Le prix réel à l'échéance est comparé au prix d'entrée. Égalité = mise remboursée.</p>`;
     }
     $('#order').innerHTML = `
-      <div class="seg seg-3 modes" id="o-mode">
-        <button data-mode="spot" class="${m === 'spot' ? 'active' : ''}">💵 Comptant</button>
-        <button data-mode="lev" class="${m === 'lev' ? 'active' : ''}">⚡ Levier</button>
-        <button data-mode="bet" class="${m === 'bet' ? 'active' : ''}">🎲 Paris</button>
+      <div class="seg ${S().expert ? 'seg-3' : 'seg-2'} modes" id="o-mode">
+        <button data-mode="spot" class="${m === 'spot' ? 'active' : ''}">💵 Acheter / Vendre</button>
+        <button data-mode="bet" class="${m === 'bet' ? 'active' : ''}">🎲 Parier</button>
+        ${S().expert ? `<button data-mode="lev" class="${m === 'lev' ? 'active' : ''}">⚡ Levier</button>` : ''}
       </div>
       <div class="order-asset">${icon(a)} <b>${esc(a.id)}</b> <span id="o-price">${fmt.eur(D.eur(a.id))}</span></div>
       ${body}
@@ -351,12 +351,15 @@
   };
 
   /* ================= BOUTIQUE ================= */
+  UI.shopType = 'car';
   UI.shop = function (type) {
+    type = type || UI.shopType; UI.shopType = type;
     const T = TC.SHOP_TYPES[type]; const cash = S().cash;
     let items = TC.SHOP.filter(i => i.type === type);
     items = items.slice().sort((x, y) => UI.shopSort === 'asc' ? x.price - y.price : y.price - x.price);
     const ownedCount = id => S().owned.filter(o => o.item === id).length;
-    $('#tab-' + type).innerHTML = `
+    $('#tab-shop').innerHTML = `
+      <div class="seg seg-3 shop-tabs" id="shop-tabs">${Object.entries(TC.SHOP_TYPES).map(([k, v]) => `<button data-shop="${k}" class="${k === type ? 'active' : ''}">${v.icon} ${v.label}</button>`).join('')}</div>
       <div class="shop-head"><div><h2>${T.icon} ${T.label}</h2><p>${T.note}${type === 'estate' ? ` · loyer : ${fmt.num(TC.RENT_RATE_PER_HOUR * 100, 2)} % de la valeur par heure (jusqu'à ${TC.RENT_MAX_HOURS} h d'accumulation)` : ''}</p></div>
         <div class="shop-cash">Cash : <b>${fmt.eur(cash)}</b> <div class="seg" data-sort><button data-sort="asc" class="${UI.shopSort === 'asc' ? 'active' : ''}">Prix ↑</button><button data-sort="desc" class="${UI.shopSort === 'desc' ? 'active' : ''}">Prix ↓</button></div></div></div>
       <div class="shop-grid">${items.map(it => {
@@ -376,7 +379,7 @@
 
   // mise à jour légère (sans redessiner les photos)
   UI.shopUpdate = function (type) {
-    const cash = S().cash; const root = $('#tab-' + type);
+    const cash = S().cash; const root = $('#tab-shop');
     const cb = root.querySelector('.shop-cash b'); if (cb) cb.textContent = fmt.eur(cash);
     root.querySelectorAll('.item[data-item]').forEach(card => {
       const it = TC.shopById[card.dataset.item]; const can = cash >= it.price; const pct = Math.min(100, cash / it.price * 100);
@@ -388,7 +391,7 @@
   };
   UI.liveTab = function () {
     if (UI.tab === 'portfolio') UI.portfolio();
-    else if (UI.tab === 'car' || UI.tab === 'estate' || UI.tab === 'luxury') UI.shopUpdate(UI.tab);
+    else if (UI.tab === 'shop') UI.shopUpdate(UI.shopType);
     else if (UI.tab === 'collection') { const el = $('#rent-pend'); if (el) el.textContent = fmt.eur(G.pendingRent()); const b = $('#b-rent'); if (b) b.disabled = G.pendingRent() < 0.01; }
   };
 
@@ -418,22 +421,23 @@
       ${s.owned.length ? '' : '<div class="panel empty big">Votre collection est vide.<br>Faites fructifier vos 10 € puis offrez-vous votre première voiture dans la <b>Concession</b> ! 🏎️</div>'}
       ${groups.car.length ? `<div class="panel"><h3>🏎️ Garage</h3><div class="shop-grid">${groups.car.map(card).join('')}</div></div>` : ''}
       ${groups.estate.length ? `<div class="panel"><h3>🏠 Propriétés</h3><div class="shop-grid">${groups.estate.map(card).join('')}</div></div>` : ''}
-      ${groups.luxury.length ? `<div class="panel"><h3>💎 Luxe</h3><div class="shop-grid">${groups.luxury.map(card).join('')}</div></div>` : ''}`;
+      ${groups.luxury.length ? `<div class="panel"><h3>💎 Luxe</h3><div class="shop-grid">${groups.luxury.map(card).join('')}</div></div>` : ''}
+      <div id="coll-ach"></div>`;
+    UI.ach($('#coll-ach'));
   };
 
   /* ================= SUCCÈS ================= */
-  UI.ach = function () {
-    const s = S();
-    $('#tab-ach').innerHTML = `<div class="shop-head"><div><h2>🎖️ Succès</h2><p>${Object.keys(s.ach).length} / ${TC.ACHIEVEMENTS.length} débloqués</p></div></div>
+  UI.ach = function (root) {
+    const s = S(); root = root || $('#coll-ach'); if (!root) return;
+    root.innerHTML = `<div class="shop-head"><div><h2>🎖️ Succès</h2><p>${Object.keys(s.ach).length} / ${TC.ACHIEVEMENTS.length} débloqués</p></div></div>
       <div class="ach-grid">${TC.ACHIEVEMENTS.map(a => `<div class="ach ${s.ach[a.id] ? 'on' : ''}"><span>${a.icon}</span><div><b>${esc(a.name)}</b><small>${esc(a.desc)}</small>${s.ach[a.id] ? `<em>${new Date(s.ach[a.id]).toLocaleDateString('fr-FR')}</em>` : ''}</div></div>`).join('')}</div>
       <div class="panel"><h3>🏅 Rangs</h3><div class="ranks">${TC.RANKS.map(r => `<div class="rk ${G.netWorth() >= r[0] ? 'on' : ''}"><span>${r[2]}</span><b>${r[1]}</b><small>${fmt.eur(r[0], true)}</small></div>`).join('')}</div></div>`;
   };
 
   UI.refreshTab = function () {
     if (UI.tab === 'portfolio') UI.portfolio();
-    else if (UI.tab === 'car' || UI.tab === 'estate' || UI.tab === 'luxury') UI.shop(UI.tab);
+    else if (UI.tab === 'shop') UI.shop();
     else if (UI.tab === 'collection') UI.collection();
-    else if (UI.tab === 'ach') UI.ach();
     else if (UI.tab === 'social' && TC.Social) TC.Social.render();
   };
 })();

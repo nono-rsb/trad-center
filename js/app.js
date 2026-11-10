@@ -39,6 +39,8 @@
     try { localStorage.setItem('tradcenter.sel', id); } catch (e) { }
   }
   function setTab(t) {
+    if (['car', 'estate', 'luxury'].includes(t)) { UI.shopType = t; t = 'shop'; }
+    if (t === 'ach') t = 'collection';
     UI.tab = t;
     $$('#tabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === t));
     $$('.tab-pane').forEach(p => p.classList.toggle('active', p.id === 'tab-' + t));
@@ -103,6 +105,8 @@
       const r = G.sell(id, h.qty); notify(r); if (r.ok) { TC.sound('sell'); afterAction(); }
       return;
     }
+    if (b && b.dataset.shop) { UI.shop(b.dataset.shop); return; }
+    if (t.closest('#goalbar')) { setTab('shop'); return; }
     if (b && b.dataset.sort) { UI.shopSort = b.dataset.sort; UI.refreshTab(); return; }
     if (b && b.dataset.goal) { S().goal = b.dataset.goal; G.save(); UI.header(); UI.refreshTab(); TC.toast('🎯 Nouvel objectif défini', 'info'); return; }
     if (b && b.dataset.buyitem) {
@@ -144,18 +148,25 @@
   }
 
   function help() {
-    TC.modal(`<h2>📈 Bienvenue sur Trad Center</h2>
-      <div class="modal-body help">
-        <p>Vous démarrez avec <b>10 €</b>. Votre mission : devenir assez riche pour vous offrir une <b>Porsche</b>, une <b>Lamborghini</b>, une <b>Ferrari</b>… puis des villas, des yachts et des jets.</p>
-        <h4>📊 Des cours 100 % réels</h4>
-        <p>Les prix sont ceux des vrais marchés, en direct : Bitcoin, Ethereum et ~20 cryptos (Binance, temps réel), CAC 40, S&amp;P 500, Nasdaq, DAX…, actions (Tesla, Apple, LVMH, Ferrari…), or, pétrole et devises (Yahoo Finance, BCE). Tout est converti en euros au taux de change réel. Les marchés boursiers ferment le soir et le week-end, les cryptos tournent 24 h/24.</p>
-        <h4>💵 Comptant</h4><p>Achetez et revendez. Vous gagnez si le prix monte. Risque limité à votre mise.</p>
-        <h4>⚡ Levier (x1 à x100)</h4><p><b>Long</b> = vous pariez sur la hausse, <b>Short</b> = sur la baisse. Le levier multiplie vos gains et vos pertes. Si la perte atteint 90 % de la marge : liquidation.</p>
-        <h4>🎲 Paris</h4><p>Le prix sera-t-il plus haut ou plus bas dans 1, 5, 15 ou 60 minutes ? Gagné = mise x1,9.</p>
-        <h4>🛍️ Boutique</h4><p>Avec votre cash, achetez voitures, immobilier et objets de luxe. L'immobilier vous verse un <b>loyer chaque heure</b>, même quand le jeu est fermé (48 h max). Tout peut être revendu.</p>
-        <h4>🎁 Bonus</h4><p>Chaque jour, récupérez 10 € gratuits.</p>
-        <p class="hint">Votre partie est sauvegardée automatiquement dans ce navigateur. Aucun argent réel n'est en jeu.</p>
-      </div><div class="modal-actions"><button class="btn btn-gold" data-close>C'est parti ! 🚀</button></div>`, { cls: 'wide', onClose: () => { if (!S().seenIntro) { S().seenIntro = true; G.save(); } } });
+    TC.modal(`<div class="center"><img src="icons/icon-192.png" class="install-icon" alt=""><h2>Bienvenue sur Trad Center</h2></div>
+      <div class="modal-body help steps">
+        <div class="step"><span>1</span><div><b>Tu commences avec 10 €</b><small>Les prix sont les vrais : Bitcoin, Tesla, CAC 40…</small></div></div>
+        <div class="step"><span>2</span><div><b>Achète quand ça va monter</b><small>Choisis un actif dans Marchés, touche Acheter. Revends quand tu as gagné.</small></div></div>
+        <div class="step"><span>3</span><div><b>Offre-toi des voitures et des maisons</b><small>Dans la Boutique : de la trottinette à la Bugatti. Les maisons rapportent un loyer.</small></div></div>
+        <div class="step"><span>🎁</span><div><b>+10 € chaque jour, +20 € par ami invité</b><small>Bouton 🎁 en haut, et ton lien d'invitation dans Amis.</small></div></div>
+      </div><div class="modal-actions"><button class="btn btn-gold btn-xl" data-close>C'est parti 🚀</button></div>`, { cls: 'wide', onClose: () => { if (!S().seenIntro) { S().seenIntro = true; G.save(); } } });
+  }
+
+  /* ---------------- Compte à rebours : sortie de GTA VI (19 novembre 2026, heure locale) ---------------- */
+  const GTA_DATE = new Date(2026, 10, 19, 0, 0, 0);
+  function gta() {
+    const el = $('#gta'); if (!el) return;
+    const ms = GTA_DATE - Date.now();
+    if (ms <= 0) { el.innerHTML = `<span class="gta-palm">🌴</span><div class="gta-txt"><small>Grand Theft Auto VI</small><b class="gta-out">EST SORTI 🎉</b></div><span class="gta-palm r">🌴</span>`; return; }
+    const d = Math.floor(ms / 86400000), h = Math.floor(ms / 3600000) % 24, m = Math.floor(ms / 60000) % 60, sec = Math.floor(ms / 1000) % 60;
+    const box = (v, l) => `<span class="gta-box"><b>${String(v).padStart(2, '0')}</b><i>${l}</i></span>`;
+    el.innerHTML = `<span class="gta-palm">🌴</span><div class="gta-txt"><small>Sortie de GTA VI</small><span class="gta-date">19.11.2026</span></div>
+      <div class="gta-cd">${box(d, 'jours')}${box(h, 'h')}${box(m, 'min')}${box(sec, 's')}</div><span class="gta-palm r">🌴</span>`;
   }
 
   /* ---------------- Annonces (fichier announce.json du site) ---------------- */
@@ -198,6 +209,8 @@
       <div class="kv"><span>Crypto (Binance)</span><b>${h.binance}</b><span>Bourse (Yahoo Finance)</span><b>${h.yahoo}</b><span>Devises</span><b>${D.fxStatus}</b><span>1 € =</span><b>${fmt.num(D.fx.USD, 4)} $</b></div>
       <p class="hint">Si votre réseau bloque une source, le jeu utilise le dernier cours connu puis une simulation (badge SIM) jusqu'au retour de la connexion.</p>
       <div class="modal-actions left"><button class="btn" id="b-help2">❔ Aide</button><button class="btn" id="b-notif2">🔔 Notifications</button></div>
+      <h4>Jeu</h4>
+      <label class="tgl"><input type="checkbox" id="s-expert" ${S().expert ? 'checked' : ''}><span>⚡ Mode expert : trading à levier (x2 à x100, plus risqué)</span></label>
       <h4>Application</h4>
       <button class="btn" id="b-install2">📲 Installer sur l'écran d'accueil</button>
       <h4>Son et vibrations</h4>
@@ -208,6 +221,7 @@
       <button class="btn btn-sell" id="b-reset">🗑️ Recommencer une partie à 10 €</button>
       </div>`);
     md.el.querySelector('#b-install2').onclick = () => install();
+    md.el.querySelector('#s-expert').onchange = e => { S().expert = e.target.checked; G.save(); UI.order(); TC.toast(e.target.checked ? '⚡ Mode expert activé : onglet Levier disponible' : 'Mode expert désactivé', 'info'); };
     md.el.querySelector('#b-help2').onclick = () => help();
     md.el.querySelector('#b-notif2').onclick = () => TC.Notif.open();
     md.el.querySelector('#b-sound2').onclick = e => { S().sound = !S().sound; G.save(); UI.header(); e.target.textContent = S().sound ? '🔊 Activés — couper' : '🔇 Coupés — activer'; };
@@ -274,10 +288,11 @@
 
   /* ---------------- Démarrage ---------------- */
   function boot() {
-    if (!standalone()) $('#b-install').hidden = false;
+    // le bouton d'installation est dans les réglages
     TC.Net.init();
     if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => { });
-    TC.onImages(() => { if (['car', 'estate', 'luxury', 'collection'].includes(UI.tab)) UI.refreshTab(); UI.header(); });
+    TC.onImages(() => { if (['shop', 'collection'].includes(UI.tab)) UI.refreshTab(); UI.header(); });
+    gta(); setInterval(gta, 1000);
     setTimeout(() => TC.loadImages(), 300);
     try { const s = localStorage.getItem('tradcenter.sel'); if (s && TC.assetById[s]) UI.sel = s; } catch (e) { }
     // liens ouverts depuis une notification : ?a=BTC ou ?tab=social

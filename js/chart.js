@@ -2,7 +2,7 @@
 (function () {
   const C = TC.Chart = {};
   const TZ = -new Date().getTimezoneOffset() * 60; // affichage à l'heure locale
-  let chart = null, series = null, type = 'candle', el = null, bars = [], tfSec = 300, lines = [], fallback = null;
+  let chart = null, series = null, type = 'area', el = null, bars = [], tfSec = 300, lines = [], fallback = null;
   const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 
   function precisionFor(v) {
@@ -36,7 +36,7 @@
     if (series) { chart.removeSeries(series); lines = []; }
     const up = css('--up') || '#16c784', down = css('--down') || '#ea3943';
     if (type === 'candle') series = chart.addCandlestickSeries({ upColor: up, downColor: down, borderVisible: false, wickUpColor: up, wickDownColor: down });
-    else series = chart.addAreaSeries({ lineColor: css('--accent') || '#f0b90b', topColor: 'rgba(240,185,11,0.35)', bottomColor: 'rgba(240,185,11,0.02)', lineWidth: 2 });
+    else series = chart.addAreaSeries({ lineColor: css('--accent') || '#f0b90b', topColor: 'rgba(255,95,162,0.35)', bottomColor: 'rgba(255,95,162,0.0)', lineWidth: 2 });
   }
 
   const shift = b => ({ time: b.time + TZ, open: b.open, high: b.high, low: b.low, close: b.close, value: b.close });
@@ -112,7 +112,7 @@
           localization: { locale: 'fr-FR', priceFormatter: p => TC.fmt.eur(p, true) },
           handleScroll: false, handleScale: false,
         });
-        nwSeries = nwChart.addAreaSeries({ lineColor: css('--accent'), topColor: 'rgba(240,185,11,0.35)', bottomColor: 'rgba(240,185,11,0.02)', lineWidth: 2 });
+        nwSeries = nwChart.addAreaSeries({ lineColor: css('--accent'), topColor: 'rgba(255,95,162,0.35)', bottomColor: 'rgba(255,95,162,0.0)', lineWidth: 2 });
       }
       const seen = new Set(); const pts = [];
       data.forEach(([t, v]) => { const tt = t + TZ; if (!seen.has(tt)) { seen.add(tt); pts.push({ time: tt, value: v }); } });

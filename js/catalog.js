@@ -85,13 +85,12 @@ TC.ASSETS = [
 ];
 
 TC.CATS = {
-  all:       { label: 'Tout',        icon: '🌍' },
-  fav:       { label: 'Favoris',     icon: '⭐' },
-  crypto:    { label: 'Crypto',      icon: '🪙' },
-  stock:     { label: 'Actions',     icon: '🏢' },
-  index:     { label: 'Indices',     icon: '📊' },
-  commodity: { label: 'Matières',    icon: '🛢' },
-  fx:        { label: 'Devises',     icon: '💱' },
+  all:    { label: 'Tout',    icon: '🌍' },
+  fav:    { label: 'Favoris', icon: '⭐' },
+  crypto: { label: 'Crypto',  icon: '🪙' },
+  stock:  { label: 'Actions', icon: '🏢' },
+  index:  { label: 'Indices', icon: '📊' },
+  other:  { label: 'Or, pétrole, devises', icon: '🛢' },
 };
 
 TC.assetById = {};
