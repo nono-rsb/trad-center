@@ -221,3 +221,24 @@ html.noel .topbar::after { /* guirlande lumineuse */
 html.noel .btn-buy, html.noel .side button.active.buy { background: linear-gradient(135deg, #43e08c, #23b46b); color: #032414; }
 html.noel .icon-btn.gold::after { content: '❄'; margin-left: 2px; font-size: 11px; }
 #snow { position: fixed; inset: 0; z-index: -1; pointer-events: none; }
+
+/* ---------- Événement de Noël ---------- */
+.gta.clickable { cursor: pointer; }
+.gta.pulse { animation: glow 2s infinite; }
+.xmas-hub h4 { margin: 18px 0 8px; }
+.advent { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+.adv { display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 7px 2px; border-radius: 14px; border: 1px solid rgba(255,255,255,.14); background: rgba(255,255,255,.06); color: #fff; }
+.adv b { font-size: 15px; } .adv i { font-style: normal; font-size: 15px; } .adv small { font-size: 9.5px; }
+.adv.today { background: var(--sunset); border-color: rgba(255,255,255,.5); animation: glow 1.6s infinite; cursor: pointer; }
+.adv.done { background: rgba(67,224,140,.18); border-color: rgba(67,224,140,.4); }
+.adv.missed { opacity: .35; } .adv.locked { opacity: .55; }
+.xgift { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
+.xg-box { font-size: 84px; animation: shake 1.4s infinite; filter: drop-shadow(0 8px 20px rgba(255,77,94,.5)); }
+.xg-box.open { animation: pop .9s forwards; }
+@keyframes shake { 0%, 70%, 100% { transform: rotate(0); } 75% { transform: rotate(-12deg); } 80% { transform: rotate(10deg); } 85% { transform: rotate(-8deg); } 90% { transform: rotate(6deg); } }
+@keyframes pop { 40% { transform: scale(1.35) rotate(-8deg); } 100% { transform: scale(0); opacity: 0; } }
+.xsanta { display: flex; gap: 8px; } .xsanta .sel { margin: 0; flex: 1; }
+.xmas-hub .inp { margin: 8px 0; }
+.limited { font-size: 11.5px; color: var(--accent2); font-weight: 700; }
+.champ { font-size: 12px; }
+@media (max-width: 420px) { .advent { grid-template-columns: repeat(4, 1fr); } }

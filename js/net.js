@@ -194,6 +194,7 @@
     try {
       await db.collection('saves').doc(N.user.uid).set({ state: JSON.stringify(s), updatedAt: s.updatedAt || Date.now(), nw });
       const pub = { nw, rank: G.rank(nw).r[1], items: s.owned.length, topItem: top ? top.item : null, updatedAt: Date.now() };
+      if (TC.Xmas && TC.Xmas.raceGain() != null) { pub.xmasGain = TC.Xmas.raceGain(); pub.xmasYear = new Date().getFullYear(); }
       await db.collection('users').doc(N.user.uid).update(pub);
       Object.assign(N.profile || {}, pub);
       N.lastSync = Date.now(); emit('synced');
@@ -333,6 +334,20 @@
   };
   N.on(t => { if (t === 'linked') { N.checkReferrals(); applyReferral(); } });
   setInterval(() => N.checkReferrals(), 120000);
+
+  /* ---------------- Noël ---------------- */
+  // Père Noël secret : 25 € offerts par la banque du jeu (le donneur ne paie rien)
+  N.santaGift = async function (friend, amount, msg) {
+    await db.collection('transfers').add({ from: N.user.uid, to: friend.uid, fromPseudo: N.profile.pseudo, fromAvatar: '🎅', toPseudo: friend.pseudo, kind: 'cash', asset: null, qty: amount, eur: amount, msg: msg || '🎅 Cadeau du Père Noël secret', createdAt: Date.now(), claimed: false });
+    N.notifyPlayer(friend.uid, 'santa', { eur: amount });
+  };
+  N.loadXmasBoard = async function () {
+    const y = new Date().getFullYear();
+    const snap = await db.collection('users').orderBy('xmasGain', 'desc').limit(30).get();
+    N.xmasBoard = snap.docs.map(d => Object.assign({ uid: d.id }, d.data())).filter(u => !u.bot && u.xmasYear === y).slice(0, 10);
+    N.xmasChamp = N.xmasBoard.length ? N.xmasBoard[0].uid : null;
+    return N.xmasBoard;
+  };
 
   /* ---------------- Classement ---------------- */
   N.loadBoard = async function (scope) {

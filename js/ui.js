@@ -355,7 +355,7 @@
   UI.shop = function (type) {
     type = type || UI.shopType; UI.shopType = type;
     const T = TC.SHOP_TYPES[type]; const cash = S().cash;
-    let items = TC.SHOP.filter(i => i.type === type);
+    let items = TC.SHOP.filter(i => i.type === type && (!i.limited || TC.season.noel));
     items = items.slice().sort((x, y) => UI.shopSort === 'asc' ? x.price - y.price : y.price - x.price);
     const ownedCount = id => S().owned.filter(o => o.item === id).length;
     $('#tab-shop').innerHTML = `
@@ -372,7 +372,8 @@
             <div class="item-price">${fmt.eur(it.price)}</div>
             <div class="prog"><i style="width:${Math.max(0.5, pct)}%"></i></div>
             <div class="prog-l" data-progl>${can ? '✅ Vous pouvez l\'acheter' : `Il manque ${fmt.eur(it.price - cash, true)} · ${fmt.num(pct, pct < 1 ? 3 : 1)} %`}</div>
-            <div class="item-actions"><button class="btn ${can ? 'btn-gold' : ''}" data-buyitem="${it.id}" ${can ? '' : 'disabled'}>Acheter</button><button class="btn btn-ghost btn-sm" data-goal="${it.id}" title="Définir comme objectif">🎯</button></div>
+            ${it.limited ? `<div class="limited">🎄 Édition limitée : achetable le 25 décembre seulement</div>` : ''}
+            <div class="item-actions"><button class="btn ${can ? 'btn-gold' : ''}" data-buyitem="${it.id}" ${can && (!it.limited || TC.Xmas && TC.Xmas.isDay(25)) ? '' : 'disabled'}>Acheter</button><button class="btn btn-ghost btn-sm" data-goal="${it.id}" title="Définir comme objectif">🎯</button></div>
           </div></div>`;
       }).join('')}</div>`;
   };
@@ -386,7 +387,7 @@
       card.classList.toggle('can', can);
       card.querySelector('.prog i').style.width = Math.max(0.5, pct) + '%';
       card.querySelector('[data-progl]').textContent = can ? '✅ Vous pouvez l\'acheter' : `Il manque ${fmt.eur(it.price - cash, true)} · ${fmt.num(pct, pct < 1 ? 3 : 1)} %`;
-      const btn = card.querySelector('[data-buyitem]'); btn.disabled = !can; btn.classList.toggle('btn-gold', can);
+      const btn = card.querySelector('[data-buyitem]'); btn.disabled = !can || (it.limited && !(TC.Xmas && TC.Xmas.isDay(25))); btn.classList.toggle('btn-gold', can);
     });
   };
   UI.liveTab = function () {

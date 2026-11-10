@@ -207,7 +207,8 @@
     if (!TC.season.preview) try { localStorage.setItem(key, '1'); } catch (e) { }
     TC.modal(`<div class="center"><div class="big-emoji">🎄</div><h2>C'est Noël sur Trad Center !</h2>
       <p>Jusqu'au 31 décembre, ton <b>bonus quotidien est doublé : 20 € par jour</b> 🎁</p>
-      <p>Offre une Lamborghini sous le sapin… ou envoie du Bitcoin à tes amis pour les fêtes 🎅</p>
+      <p>🗓️ <b>Calendrier de l'Avent</b> : une case à ouvrir chaque jour jusqu'au 24.<br>🏆 <b>Course de Noël</b> : le plus gros gain du mois devient Champion.<br>🎅 Le <b>25</b> : cadeau sous le sapin, Père Noël secret, pari x3 et un traîneau en édition limitée.</p>
+      <p><b>Touche le bandeau en haut</b> pour tout voir.</p>
       <div class="modal-actions"><button class="btn btn-gold btn-xl" data-close>Joyeuses fêtes ! ✨</button></div></div>`);
   }
 

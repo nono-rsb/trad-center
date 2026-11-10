@@ -160,6 +160,7 @@ TC.SHOP = [
   { id: 'superyacht', type: 'luxury', brand: 'Chantier naval', model: 'Superyacht 60 m', price: 75000000, emoji: '🛳️', grad: ['#e1f5fe','#0277bd'], specs: { Longueur: '60 m', Équipage: '18', Héliport: 'Oui' } },
   { id: 'g700', type: 'luxury', brand: 'Gulfstream', model: 'Jet G700', price: 78000000, emoji: '✈️', grad: ['#eceff1','#546e7a'], specs: { Places: '19', Autonomie: '13 800 km' } },
   { id: 'club', type: 'luxury', brand: 'Football', model: 'Club de 1re division', price: 500000000, emoji: '⚽', grad: ['#43a047','#0b3d0e'], specs: { Stade: '45 000 places' } },
+  { id: 'traineau', type: 'luxury', brand: 'Édition limitée Noël', model: 'Traîneau du Père Noël', price: 25000, emoji: '🛷', grad: ['#c62828','#1b5e20'], specs: { Rennes: '9', Disponible: 'le 25 décembre seulement' }, limited: 'xmas' },
   { id: 'fusee', type: 'luxury', brand: 'Espace', model: 'Fusée privée', price: 2000000000, emoji: '🚀', grad: ['#311b92','#000'], specs: { Destination: 'Orbite basse' } },
 ];
 
@@ -219,4 +220,6 @@ TC.ACHIEVEMENTS = [
   { id: 'jet', icon: '✈️', name: 'Jet-setter', desc: 'Acheter un jet privé' },
   { id: 'collector', icon: '🏆', name: 'Collectionneur', desc: 'Posséder 10 objets' },
   { id: 'phoenix', icon: '🐦‍🔥', name: 'Phénix', desc: 'Recommencer après une faillite' },
+  { id: 'xmas', icon: '🎅', name: 'Joyeux Noël', desc: 'Jouer le jour de Noël' },
+  { id: 'advent', icon: '🗓️', name: 'Calendrier complet', desc: 'Ouvrir les 24 cases du calendrier de l\'Avent' },
 ];
