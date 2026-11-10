@@ -568,3 +568,5 @@ button.nw { border: 0; background: none; color: inherit; font: inherit; cursor: 
 }
 .playtime { font-size: 13px; margin: 2px 0; } .playtime b { color: var(--accent2); }
 .taxl { cursor: pointer; color: var(--muted); text-decoration: underline dotted; }
+.logout-btn { width: 100%; margin-top: 8px; }
+.modal-actions.left { flex-wrap: wrap; }
