@@ -187,3 +187,37 @@ body::after { /* légère grille rétro à l'horizon */
   .nw small { overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
   .ch-right { text-align: left; }
 }
+
+/* =====================================================================
+   🎄 Thème de Noël (actif du 1er au 31 décembre)
+   ===================================================================== */
+html.noel {
+  --accent: #ff4d5e; --accent2: #ffd36b; --teal: #43e08c; --violet: #2f7d5b;
+  --sunset: linear-gradient(100deg, #ff4d5e 0%, #ff7a59 40%, #ffd36b 100%);
+}
+html.noel body::before {
+  background:
+    radial-gradient(50% 45% at 10% 6%, rgba(255,77,94,.45), transparent 65%),
+    radial-gradient(45% 40% at 92% 4%, rgba(255,211,107,.35), transparent 65%),
+    radial-gradient(60% 55% at 85% 90%, rgba(67,224,140,.28), transparent 65%),
+    radial-gradient(50% 50% at 6% 92%, rgba(47,125,91,.45), transparent 65%),
+    linear-gradient(180deg, #0f2a26 0%, #0b1d1a 55%, #07120f 100%);
+}
+html.noel body::after { /* collines enneigées au lieu de la grille rétro */
+  transform: none; opacity: .5; height: 22vh;
+  background: radial-gradient(120% 100% at 20% 100%, rgba(255,255,255,.18) 0 40%, transparent 41%),
+              radial-gradient(120% 100% at 85% 100%, rgba(255,255,255,.12) 0 45%, transparent 46%);
+  mask-image: none; -webkit-mask-image: none;
+}
+html.noel .gta::before { background: linear-gradient(100deg, rgba(255,77,94,.45), rgba(255,211,107,.25) 50%, rgba(67,224,140,.3)); }
+html.noel .topbar::after { /* guirlande lumineuse */
+  content: ''; position: absolute; left: 24px; right: 24px; top: -4px; height: 8px; pointer-events: none;
+  background: radial-gradient(circle, #ff4d5e 0 3px, transparent 3.5px) 0 0 / 36px 8px repeat-x,
+              radial-gradient(circle, #ffd36b 0 3px, transparent 3.5px) 12px 0 / 36px 8px repeat-x,
+              radial-gradient(circle, #43e08c 0 3px, transparent 3.5px) 24px 0 / 36px 8px repeat-x;
+  filter: drop-shadow(0 0 4px rgba(255,211,107,.9)); animation: twinkle 1.6s steps(2) infinite;
+}
+@keyframes twinkle { 50% { filter: drop-shadow(0 0 1px rgba(255,211,107,.4)); opacity: .75; } }
+html.noel .btn-buy, html.noel .side button.active.buy { background: linear-gradient(135deg, #43e08c, #23b46b); color: #032414; }
+html.noel .icon-btn.gold::after { content: '❄'; margin-left: 2px; font-size: 11px; }
+#snow { position: fixed; inset: 0; z-index: -1; pointer-events: none; }

@@ -153,20 +153,62 @@
         <div class="step"><span>1</span><div><b>Tu commences avec 10 €</b><small>Les prix sont les vrais : Bitcoin, Tesla, CAC 40…</small></div></div>
         <div class="step"><span>2</span><div><b>Achète quand ça va monter</b><small>Choisis un actif dans Marchés, touche Acheter. Revends quand tu as gagné.</small></div></div>
         <div class="step"><span>3</span><div><b>Offre-toi des voitures et des maisons</b><small>Dans la Boutique : de la trottinette à la Bugatti. Les maisons rapportent un loyer.</small></div></div>
-        <div class="step"><span>🎁</span><div><b>+10 € chaque jour, +20 € par ami invité</b><small>Bouton 🎁 en haut, et ton lien d'invitation dans Amis.</small></div></div>
+        <div class="step"><span>🎁</span><div><b>+${G.BONUS} € chaque jour, +20 € par ami invité</b><small>Bouton 🎁 en haut, et ton lien d'invitation dans Amis.</small></div></div>
       </div><div class="modal-actions"><button class="btn btn-gold btn-xl" data-close>C'est parti 🚀</button></div>`, { cls: 'wide', onClose: () => { if (!S().seenIntro) { S().seenIntro = true; G.save(); } } });
   }
 
   /* ---------------- Compte à rebours : sortie de GTA VI (19 novembre 2026, heure locale) ---------------- */
   const GTA_DATE = new Date(2026, 10, 19, 0, 0, 0);
+  const box = (v, l) => `<span class="gta-box"><b>${String(v).padStart(2, '0')}</b><i>${l}</i></span>`;
+  const countdown = ms => { const d = Math.floor(ms / 86400000), h = Math.floor(ms / 3600000) % 24, m = Math.floor(ms / 60000) % 60, s = Math.floor(ms / 1000) % 60; return `<div class="gta-cd">${box(d, 'jours')}${box(h, 'h')}${box(m, 'min')}${box(s, 's')}</div>`; };
+  // En décembre : compte à rebours jusqu'à Noël, puis jusqu'au Nouvel An
+  function noelBanner(el) {
+    const now = new Date(), y = now.getMonth() === 11 ? now.getFullYear() : new Date().getFullYear();
+    const xmas = new Date(y, 11, 25), ny = new Date(y + 1, 0, 1);
+    if (now < xmas) el.innerHTML = `<span class="gta-palm">🎄</span><div class="gta-txt"><small>Noël dans</small><span class="gta-date">25.12.${y}</span></div>${countdown(xmas - now)}<span class="gta-palm r">🎁</span>`;
+    else if (now.getDate() === 25) el.innerHTML = `<span class="gta-palm">🎅</span><div class="gta-txt"><small>Trad Center vous souhaite un</small><b class="gta-out">JOYEUX NOËL 🎄</b></div><span class="gta-palm r">🎁</span>`;
+    else el.innerHTML = `<span class="gta-palm">🎆</span><div class="gta-txt"><small>Nouvel An dans</small><span class="gta-date">01.01.${y + 1}</span></div>${countdown(ny - now)}<span class="gta-palm r">🥂</span>`;
+  }
   function gta() {
     const el = $('#gta'); if (!el) return;
+    if (TC.season.noel) { el.title = 'Joyeuses fêtes !'; return noelBanner(el); }
     const ms = GTA_DATE - Date.now();
     if (ms <= 0) { el.innerHTML = `<span class="gta-palm">🌴</span><div class="gta-txt"><small>Grand Theft Auto VI</small><b class="gta-out">EST SORTI 🎉</b></div><span class="gta-palm r">🌴</span>`; return; }
-    const d = Math.floor(ms / 86400000), h = Math.floor(ms / 3600000) % 24, m = Math.floor(ms / 60000) % 60, sec = Math.floor(ms / 1000) % 60;
-    const box = (v, l) => `<span class="gta-box"><b>${String(v).padStart(2, '0')}</b><i>${l}</i></span>`;
     el.innerHTML = `<span class="gta-palm">🌴</span><div class="gta-txt"><small>Sortie de GTA VI</small><span class="gta-date">19.11.2026</span></div>
-      <div class="gta-cd">${box(d, 'jours')}${box(h, 'h')}${box(m, 'min')}${box(sec, 's')}</div><span class="gta-palm r">🌴</span>`;
+      ${countdown(ms)}<span class="gta-palm r">🌴</span>`;
+  }
+
+  /* ---------------- Neige (thème de Noël) ---------------- */
+  function snow() {
+    if (!TC.season.noel || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const c = document.createElement('canvas'); c.id = 'snow'; document.body.appendChild(c);
+    const ctx = c.getContext('2d'); let W, H, flakes = [];
+    const resize = () => { const r = devicePixelRatio || 1; W = innerWidth; H = innerHeight; c.width = W * r; c.height = H * r; c.style.width = W + 'px'; c.style.height = H + 'px'; ctx.setTransform(r, 0, 0, r, 0, 0); };
+    resize(); addEventListener('resize', resize);
+    const n = innerWidth < 600 ? 55 : 110;
+    for (let i = 0; i < n; i++) flakes.push({ x: Math.random() * W, y: Math.random() * H, r: Math.random() * 2.4 + 0.8, s: Math.random() * 0.6 + 0.35, w: Math.random() * Math.PI * 2 });
+    (function loop() {
+      if (!document.hidden) {
+        ctx.clearRect(0, 0, W, H); ctx.fillStyle = 'rgba(255,255,255,.85)';
+        for (const f of flakes) {
+          f.y += f.s; f.w += 0.01; f.x += Math.sin(f.w) * 0.35;
+          if (f.y > H + 5) { f.y = -5; f.x = Math.random() * W; }
+          ctx.globalAlpha = 0.35 + f.r / 4; ctx.beginPath(); ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2); ctx.fill();
+        }
+      }
+      requestAnimationFrame(loop);
+    })();
+  }
+  function noelWelcome() {
+    if (!TC.season.noel) return;
+    const key = 'tradcenter.noel.' + new Date().getFullYear();
+    if (!TC.season.preview && localStorage.getItem(key)) return;
+    if ($('#modal').classList.contains('open')) { setTimeout(noelWelcome, 4000); return; }
+    if (!TC.season.preview) try { localStorage.setItem(key, '1'); } catch (e) { }
+    TC.modal(`<div class="center"><div class="big-emoji">🎄</div><h2>C'est Noël sur Trad Center !</h2>
+      <p>Jusqu'au 31 décembre, ton <b>bonus quotidien est doublé : 20 € par jour</b> 🎁</p>
+      <p>Offre une Lamborghini sous le sapin… ou envoie du Bitcoin à tes amis pour les fêtes 🎅</p>
+      <div class="modal-actions"><button class="btn btn-gold btn-xl" data-close>Joyeuses fêtes ! ✨</button></div></div>`);
   }
 
   /* ---------------- Annonces (fichier announce.json du site) ---------------- */
@@ -292,7 +334,8 @@
     TC.Net.init();
     if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => { });
     TC.onImages(() => { if (['shop', 'collection'].includes(UI.tab)) UI.refreshTab(); UI.header(); });
-    gta(); setInterval(gta, 1000);
+    gta(); setInterval(gta, 1000); snow();
+    if (TC.season.noel) { setTimeout(noelWelcome, 1800); const tc = document.querySelector('meta[name=theme-color]'); if (tc) tc.content = '#0b1d1a'; }
     setTimeout(() => TC.loadImages(), 300);
     try { const s = localStorage.getItem('tradcenter.sel'); if (s && TC.assetById[s]) UI.sel = s; } catch (e) { }
     // liens ouverts depuis une notification : ?a=BTC ou ?tab=social
