@@ -32,8 +32,49 @@
       el.querySelector('#bn-out').onclick = () => N.signOut();
     } else if (lock) lock.remove();
   };
-  N.on(t => { if (t === 'linked') A.loadBans(); });
-  setInterval(() => A.loadBans(), 2 * 60000);
+  N.on(t => { if (t === 'linked') { A.loadBans(); A.checkGifts(); } });
+  setInterval(() => { A.loadBans(); A.checkGifts(); }, 2 * 60000);
+
+  /* ---------- Cadeaux du créateur (ex. rendre l'argent d'un compte perdu) ----------
+   * Le créateur ajoute { id, to, eur, msg, at } dans admin/gifts ; le joueur concerné l'encaisse
+   * automatiquement à sa prochaine ouverture du jeu (une seule fois par cadeau). */
+  const giftRef = () => N.db().collection('admin').doc('gifts');
+  let giftBusy = false;
+  A.checkGifts = async function () {
+    if (giftBusy || !N.db() || !N.user) return; giftBusy = true;
+    try {
+      const s = await giftRef().get(); const list = (s.exists && s.data().list) || [];
+      const S = G.state, seen = S.giftSeen || (S.giftSeen = {}); const got = [];
+      list.forEach(g => {
+        if (!g || g.to !== N.user.uid || !g.id || seen[g.id]) return;
+        seen[g.id] = Date.now();
+        const eur = Math.max(0, Math.min(+g.eur || 0, 1e9)); if (!eur) return;
+        S.cash += eur; if (TC.Weekly) TC.Weekly.flow(eur);
+        S.log.unshift({ t: Date.now(), kind: 'bonus', eur, asset: 'Cadeau du créateur 🎁' });
+        got.push({ eur, msg: g.msg });
+      });
+      if (got.length) {
+        G.save(true); if (N.flush) N.flush(); TC.sound('kaching'); TC.confetti(200);
+        const tot = got.reduce((t, g) => t + g.eur, 0);
+        TC.modal(`<div class="center"><div class="big-emoji">🎁</div><h2>Cadeau du créateur du jeu !</h2>
+          <p>Tu reçois <b class="up">+${fmt.eur(tot)}</b> 🎉</p>${got.filter(g => g.msg).map(g => `<p class="muted">« ${esc(g.msg)} »</p>`).join('')}
+          <div class="modal-actions"><button class="btn btn-gold btn-xl" data-close>Merci ! 💰</button></div></div>`);
+        if (TC.App) TC.App.after();
+      }
+    } catch (e) { }
+    giftBusy = false;
+  };
+  A.gift = async function (uid, pseudo, eur, msg) {
+    if (!A.isAdmin()) return;
+    eur = Math.round(+eur * 100) / 100;
+    if (!(eur > 0)) return TC.toast('Montant invalide', 'bad');
+    const g = { id: Math.random().toString(36).slice(2, 12), to: uid, eur, msg: String(msg || '').slice(0, 120), at: Date.now(), pseudo: pseudo || '' };
+    const s = await giftRef().get(); const list = ((s.exists && s.data().list) || []).filter(x => Date.now() - x.at < 60 * 86400000).slice(-199);
+    list.push(g);
+    await giftRef().set({ list });
+    N.notifyPlayer(uid, 'gift', { eur });
+    return g;
+  };
 
   /* ---------- Panneau créateur ---------- */
   let users = [], filter = '';
@@ -80,7 +121,9 @@
     try { const s = await N.db().collection('saves').doc(uid).get(); st = s.exists ? JSON.parse(s.data().state) : null; } catch (e) { err = e; }
     const ban = A.bans[uid];
     let html = `<div class="adm-actions">${ban ? `<span class="adm-tag ban">BLOQUÉ le ${fmt.time(ban.at)}${ban.reason ? ' : ' + esc(ban.reason) : ''}</span><button class="btn btn-buy" id="adm-unban">Débloquer</button>`
-      : `<input id="adm-reason" placeholder="Raison (facultatif)"><button class="btn btn-sell" id="adm-ban" ${uid === TC.ADMIN_UID ? 'disabled' : ''}>⛔ Bloquer</button>`}<button class="btn btn-ghost" id="adm-back">← Liste</button></div>`;
+      : `<input id="adm-reason" placeholder="Raison (facultatif)"><button class="btn btn-sell" id="adm-ban" ${uid === TC.ADMIN_UID ? 'disabled' : ''}>⛔ Bloquer</button>`}<button class="btn btn-ghost" id="adm-back">← Liste</button></div>
+      <div class="adm-gift"><b>🎁 Donner de l'argent</b> <small>(ne te coûte rien ; il le reçoit à sa prochaine ouverture du jeu)</small>
+        <div class="adm-actions"><input id="adm-geur" type="number" min="1" step="1" placeholder="Montant en €" inputmode="decimal"><input id="adm-gmsg" placeholder="Message (facultatif)" maxlength="120"><button class="btn btn-gold" id="adm-gift">Envoyer</button></div></div>`;
     if (err) html += `<div class="nbox warn">Impossible de lire sa partie (${esc(N.errMsg(err))}). As-tu publié les nouvelles règles Firebase ?</div>`;
     else if (!st) html += `<div class="nbox">Pas de partie enregistrée en ligne.</div>`;
     else {
@@ -120,5 +163,13 @@
       A.player(uid);
     };
     box.querySelector('#adm-back').onclick = () => A.open();
+    box.querySelector('#adm-gift').onclick = async e => {
+      const eur = +box.querySelector('#adm-geur').value, msg = box.querySelector('#adm-gmsg').value;
+      if (!(eur > 0)) return TC.toast('Entre un montant', 'bad');
+      if (!(await TC.confirm('Offrir de l\'argent ?', `<b>${fmt.eur(eur)}</b> pour <b>${esc(u.pseudo || uid)}</b>${msg ? `<br>« ${esc(msg)} »` : ''}`, 'Offrir 🎁', 'btn-gold'))) return A.player(uid);
+      try { await A.gift(uid, u.pseudo, eur, msg); TC.toast(`🎁 ${fmt.eur(eur)} envoyés à ${esc(u.pseudo || '')} : il les recevra à sa prochaine ouverture du jeu`, 'ok', 7000); }
+      catch (x) { TC.toast('Erreur : ' + N.errMsg(x), 'bad', 8000); }
+      A.player(uid);
+    };
   };
 })();
