@@ -227,9 +227,10 @@
       if ($('#modal').classList.contains('open')) { setTimeout(announce, 5000); return; }
       localStorage.setItem('tradcenter.announce', a.id);
       TC.modal(`<div class="center"><div class="big-emoji">${a.emoji || '📣'}</div><h2>${TC.esc(a.title)}</h2>
-        <p>${TC.esc(a.text)}</p>
+        ${a.text ? `<p>${TC.esc(a.text)}</p>` : ''}
+        ${Array.isArray(a.items) ? `<div class="news">${a.items.map(i => `<div class="news-i"><span>${TC.esc(i.icon || '✨')}</span><div><b>${TC.esc(i.title)}</b>${i.text ? `<small>${TC.esc(i.text)}</small>` : ''}</div></div>`).join('')}</div>` : ''}
         <div class="modal-actions"><button class="btn btn-ghost" data-close>Plus tard</button><button class="btn btn-gold" id="b-ann">${TC.esc(a.button || 'OK')}</button></div></div>`);
-      $('#b-ann').onclick = () => { $('#modal').click(); if (a.tab) setTab(a.tab); };
+      $('#b-ann').onclick = () => { $('#modal').click(); if (a.tab === 'shop') UI.shopType = 'chest'; if (a.tab) setTab(a.tab); };
     } catch (e) { }
   }
 

@@ -1,12 +1,19 @@
 {
-  "id": "parrainage-2026-11",
-  "emoji": "🎁",
-  "title": "Invite tes potes : +20 € par ami !",
-  "text": "Nouveau sur Trad Center : partage ton lien d'invitation depuis l'onglet 👥 Amis. Dès que ton ami crée son compte et active les notifications, tu gagnes 20 € et vous devenez amis. Tradez, envoyez-vous du Bitcoin et grimpez au classement !",
-  "button": "Inviter mes amis",
-  "tab": "social",
+  "id": "maj-2026-11-10",
+  "emoji": "🚀",
+  "title": "Nouveautés sur Trad Center !",
+  "items": [
+    { "icon": "🧰", "title": "Coffre à roulette", "text": "Boutique → Coffre : 100 €, la roulette défile… jusqu'au jackpot de 10 000 € !" },
+    { "icon": "🏆", "title": "Championnat de la semaine", "text": "Le plus gros gain de la semaine remporte 500 € chaque lundi (onglet Amis)." },
+    { "icon": "🎮", "title": "Codes de triche", "text": "Touche le logo et tape un code. Essaie GTA6 pour +20 € !" },
+    { "icon": "🎲", "title": "Paris x2", "text": "Un pari gagné rapporte maintenant le double de la mise." },
+    { "icon": "✏️", "title": "Change ton pseudo", "text": "Bouton ✏️ dans l'onglet Amis (pseudo unique)." },
+    { "icon": "R★", "title": "Action Take-Two (Rockstar Games)", "text": "Trade l'éditeur de GTA VI avant sa sortie le 19 novembre." }
+  ],
+  "button": "Ouvrir un coffre 🧰",
+  "tab": "shop",
   "push": {
-    "title": "🎁 Invite tes potes : +20 € par ami !",
-    "body": "Partage ton lien dans l'onglet Amis : 20 € dès que ton ami crée son compte et active les notifications."
+    "title": "🚀 Nouveautés : coffre à roulette, championnat à 500 €…",
+    "body": "Coffre jusqu'à 10 000 €, 500 € au champion de la semaine, codes de triche (essaie GTA6), paris x2. Viens voir !"
   }
 }

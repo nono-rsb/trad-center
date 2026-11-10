@@ -311,3 +311,6 @@ html.gold body::before { filter: sepia(.6) saturate(1.4) hue-rotate(-12deg); }
 @keyframes pop-in { from { transform: scale(.2) rotate(-20deg); opacity: 0; } }
 .rar { font-weight: 900; letter-spacing: .14em; }
 @media (max-width: 700px) { .chest-hero { flex-direction: column; text-align: center; gap: 6px; } .chest-box { font-size: 84px; } .ct { flex-basis: 96px; height: 116px; } .ct span { font-size: 32px; } .shop-tabs.seg-4 button { font-size: 12px; padding: 9px 2px; } }
+.news { display: grid; gap: 8px; text-align: left; margin: 10px 0; }
+.news-i { display: flex; gap: 12px; align-items: center; padding: 9px 12px; border-radius: 16px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12); }
+.news-i > span { font-size: 22px; min-width: 30px; text-align: center; font-weight: 900; } .news-i b { display: block; font-size: 14px; } .news-i small { display: block; font-size: 12.5px; }
