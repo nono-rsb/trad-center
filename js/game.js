@@ -228,6 +228,7 @@
   /* ---------------- BOUTIQUE ---------------- */
   G.buyItem = function (itemId) {
     const it = TC.shopById[itemId]; if (!it) return err('Article introuvable');
+    if (it.limited === 'xmas' && !(TC.Xmas && TC.Xmas.isDay(25) && !TC.season.preview)) return err('Édition limitée : disponible uniquement le 25 décembre');
     if (S().cash + 1e-9 < it.price) return err(`Il vous manque ${TC.fmt.eur(it.price - S().cash)} en cash`);
     G.collectRent();
     S().cash -= it.price; S().stats.spent += it.price;
@@ -302,6 +303,8 @@
       jet: own(it => /jet/i.test(it.model)),
       collector: s.owned.length >= 10,
       phoenix: s.stats.resets > 0,
+      xmas: !!(s.xmas && s.xmas.played25),
+      advent: !!(s.xmas && s.xmas.advent && Object.keys(s.xmas.advent).length >= 24),
     };
     TC.ACHIEVEMENTS.forEach(a => { if (has[a.id] && !s.ach[a.id]) { s.ach[a.id] = Date.now(); got.push(a); } });
     if (got.length) G.save();

@@ -45,9 +45,11 @@
 
   /* ---------- Saison : thème de Noël du 1er au 31 décembre (aperçu : ?theme=noel) ---------- */
   TC.season = (() => {
-    let q = null; try { q = new URLSearchParams(location.search).get('theme'); } catch (e) { }
-    if (q === 'noel') return { noel: true, preview: true };
-    return { noel: new Date().getMonth() === 11, preview: false };
+    let q = null, j = 0; try { const u = new URLSearchParams(location.search); q = u.get('theme'); j = +u.get('jour') || 0; } catch (e) { }
+    const now = new Date();
+    // aperçu : ?theme=noel&jour=N (rien n'est crédité)
+    if (q === 'noel') return { noel: true, preview: true, day: j >= 1 && j <= 31 ? j : (now.getMonth() === 11 ? now.getDate() : 1) };
+    return { noel: now.getMonth() === 11, preview: false, get day() { const d = new Date(); return d.getMonth() === 11 ? d.getDate() : 0; } };
   })();
   if (TC.season.noel) document.documentElement.classList.add('noel');
 

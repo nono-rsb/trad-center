@@ -105,7 +105,7 @@
     rows = rows.slice().sort((a, b) => (b.nw || 0) - (a.nw || 0));
     const medal = i => ['🥇', '🥈', '🥉'][i] || (i + 1);
     return `<div class="panel"><div class="board-head"><h3>🏆 Classement</h3><div class="seg"><button data-board="friends" class="${friendsScope ? 'active' : ''}">Amis</button><button data-board="world" class="${friendsScope ? '' : 'active'}">Monde</button></div></div>
-      ${!friendsScope && !N.board ? '<div class="empty">Chargement…</div>' : `<div class="board">${rows.map((r, i) => `<div class="brow ${r.uid === N.user.uid ? 'me' : ''}"><span class="pos">${medal(i)}</span><span class="avatar">${r.avatar || '👤'}</span><b>${esc(r.pseudo || '')}</b><small>${esc(r.rank || '')}</small><span class="bnw">${fmt.eur(r.nw || 0, true)}</span></div>`).join('')}</div>`}</div>`;
+      ${!friendsScope && !N.board ? '<div class="empty">Chargement…</div>' : `<div class="board">${rows.map((r, i) => `<div class="brow ${r.uid === N.user.uid ? 'me' : ''}"><span class="pos">${medal(i)}</span><span class="avatar">${r.avatar || '👤'}</span><b>${esc(r.pseudo || '')}${N.xmasChamp && N.xmasChamp === r.uid ? ' <span class="champ" title="Champion de Noël">🏆🎄</span>' : ''}</b><small>${esc(r.rank || '')}</small><span class="bnw">${fmt.eur(r.nw || 0, true)}</span></div>`).join('')}</div>`}</div>`;
   }
 
   function historyBlock() {

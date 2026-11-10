@@ -192,6 +192,7 @@ async function main() {
         let msg;
         if (m.kind === 'transfer') msg = { title: `💸 ${from} vous a envoyé ${fmtAmt(m)}`, body: m.msg ? `« ${String(m.msg).slice(0, 120)} »` : 'Ouvrez Trad Center pour en profiter !', tag: 'transfer', url: '?tab=social' };
         else if (m.kind === 'friend') msg = { title: `👋 ${from} veut être votre ami`, body: 'Acceptez sa demande dans l\'onglet Amis.', tag: 'friend', url: '?tab=social' };
+        else if (m.kind === 'santa') msg = { title: `🎅 ${from} t'a offert un cadeau de Noël !`, body: `${eur(m.eur || 25)} t'attendent dans Trad Center. Joyeux Noël !`, tag: 'santa', url: '?tab=social' };
         else if (m.kind === 'referral') msg = { title: `🎁 +20 € ! ${from} a rejoint Trad Center grâce à toi`, body: 'Ouvre l\'appli pour encaisser ta prime de parrainage.', tag: 'referral', url: '?tab=social' };
       else if (m.kind === 'accept') msg = { title: `🤝 ${from} a accepté votre demande d'ami`, body: 'Vous pouvez maintenant vous envoyer de l\'argent et des cryptos.', tag: 'friend', url: '?tab=social' };
         else continue;
