@@ -385,3 +385,15 @@ html.gold body::before { filter: sepia(.6) saturate(1.4) hue-rotate(-12deg); }
 .bot-kv { margin: 10px 0; }
 .bot-pos { display: flex; flex-wrap: wrap; gap: 6px 14px; font-family: var(--mono); font-size: 13px; margin: 6px 0; }
 .bot-acts { font-size: 12.5px; display: grid; gap: 4px; margin: 8px 0; padding: 8px 10px; border-radius: 12px; background: rgba(0,0,0,.18); } .bot-acts small { color: var(--muted); font-family: var(--mono); margin-right: 4px; }
+
+/* ---------- Mode créateur ---------- */
+.adm-bar { display: flex; gap: 8px; margin-bottom: 8px; } .adm-bar input, .adm-actions input { flex: 1; background: var(--bg2); border: 1px solid var(--line); border-radius: 12px; padding: 9px 12px; color: var(--text); }
+.adm-list { display: grid; gap: 6px; max-height: 60vh; overflow-y: auto; }
+.adm-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; text-align: left; padding: 8px 10px; border-radius: 14px; border: 1px solid var(--line); background: rgba(255,255,255,.05); color: #fff; }
+.adm-row.ban { border-color: rgba(255,84,112,.6); background: rgba(255,84,112,.08); } .adm-nw { margin-left: auto; font-family: var(--mono); font-weight: 700; } .adm-row small { width: 100%; padding-left: 44px; }
+.adm-tag { font-style: normal; font-size: 10.5px; font-weight: 800; padding: 2px 7px; border-radius: 8px; background: rgba(255,180,94,.2); color: var(--warn); } .adm-tag.ban { background: rgba(255,84,112,.25); color: var(--down); }
+.adm-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
+.adm-line { display: flex; gap: 12px; flex-wrap: wrap; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,.05); font-size: 13px; font-family: var(--mono); }
+.adm-log { max-height: 280px; overflow-y: auto; font-size: 12px; font-family: var(--mono); display: grid; gap: 3px; } .adm-log small { color: var(--muted); } .adm-log i { font-style: normal; }
+#banned { position: fixed; inset: 0; z-index: 500; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(10,2,20,.96); text-align: center; }
+#banned h1 { margin: 6px 0; } .bn-in { max-width: 420px; }
