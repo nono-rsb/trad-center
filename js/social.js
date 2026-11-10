@@ -126,6 +126,7 @@
   }
 
   /* ---------------- Fenêtre d'envoi ---------------- */
+  SO.sendModal = f => sendModal(f);
   function sendModal(friend) {
     const holds = Object.keys(S().holdings).filter(id => S().holdings[id].qty > 0);
     let kind = 'cash';

@@ -397,3 +397,53 @@ html.gold body::before { filter: sepia(.6) saturate(1.4) hue-rotate(-12deg); }
 .adm-log { max-height: 280px; overflow-y: auto; font-size: 12px; font-family: var(--mono); display: grid; gap: 3px; } .adm-log small { color: var(--muted); } .adm-log i { font-style: normal; }
 #banned { position: fixed; inset: 0; z-index: 500; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(10,2,20,.96); text-align: center; }
 #banned h1 { margin: 6px 0; } .bn-in { max-width: 420px; }
+
+/* ---------- 🗺️ Trad City ---------- */
+.city-map { position: relative; overflow: hidden; border-radius: 26px; margin-bottom: 14px; padding: 12px; background: linear-gradient(180deg, #7ec8ff 0, #bfe6ff 70px, #3b3f4a 70px); box-shadow: 0 10px 30px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.4); }
+.city-map.night { background: linear-gradient(180deg, #0b1030 0, #23285a 70px, #22252e 70px); }
+.city-sky { display: flex; justify-content: space-between; align-items: center; height: 46px; padding: 0 6px 12px; color: #0d2340; font-weight: 800; }
+.city-sky b { font-size: 20px; } .city-sky span { font-size: 13px; opacity: .8; }
+.city-map.night .city-sky { color: #e8ecff; }
+.city-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 14px; padding: 7px; border-radius: 16px;
+  background-color: #3b3f4a; box-shadow: inset 0 0 0 2px rgba(255,214,90,.35); }
+.city-map.night .city-grid { background-color: #22252e; }
+.lot { position: relative; display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 22px 4px 7px; min-height: 134px; border: 0; border-radius: 14px; color: #fff; cursor: pointer;
+  background: linear-gradient(160deg, #6fcf6a, #3f9a45); box-shadow: inset 0 -5px 0 rgba(0,0,0,.18), 0 3px 8px rgba(0,0,0,.3); transition: transform .15s; }
+.lot:active { transform: scale(.96); }
+.lot.land { background: linear-gradient(160deg, #e9d9b8, #b59a6c); color: #2d2214; padding-top: 16px; justify-content: center; }
+.lot.land[data-land="parc"] { background: linear-gradient(160deg, #4fbf5a, #23772d); color: #fff; }
+.lot.me { outline: 3px solid #ffd560; outline-offset: -3px; }
+.lot.fr { outline: 3px solid #5aa9ff; outline-offset: -3px; }
+.lot.mayor { background: linear-gradient(160deg, #ffe08a, #d79a12); color: #2a1a00; }
+.lot-crown { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); font-style: normal; font-size: 22px; filter: drop-shadow(0 2px 3px rgba(0,0,0,.4)); }
+.lot-av { position: absolute; top: 5px; right: 5px; }
+.lot-av .av-s { width: 26px; height: 26px; font-size: 15px; }
+.lot-b { font-size: 34px; line-height: 1.1; filter: drop-shadow(0 4px 3px rgba(0,0,0,.35)); }
+.lot.t2 .lot-b, .lot.t3 .lot-b { font-size: 40px; } .lot.t4 .lot-b, .lot.t5 .lot-b { font-size: 46px; } .lot.t6 .lot-b, .lot.t7 .lot-b, .lot.t8 .lot-b { font-size: 54px; }
+.lot.land .lot-b { font-size: 40px; }
+.lot-biz { min-height: 17px; font-size: 14px; letter-spacing: 1px; } .lot-biz small { font-size: 10px; font-weight: 800; }
+.lot-n { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 800; text-shadow: 0 1px 2px rgba(0,0,0,.35); }
+.lot.land .lot-n, .lot.mayor .lot-n { text-shadow: none; }
+.lot-nw { font-size: 11px; font-weight: 700; opacity: .9; }
+.city-map.night .lot:not(.land) .lot-b { filter: drop-shadow(0 0 8px rgba(255,220,120,.85)); }
+.city-map.night .lot { box-shadow: inset 0 -5px 0 rgba(0,0,0,.25), 0 3px 8px rgba(0,0,0,.5); filter: brightness(.82); }
+.city-car { position: absolute; font-style: normal; font-size: 18px; pointer-events: none; animation: citydrive 16s linear infinite; }
+.city-car.c1 { top: 66px; } .city-car.c2 { top: 66px; animation-delay: -6s; animation-duration: 22s; } .city-car.c3 { bottom: 4px; animation-delay: -11s; animation-duration: 9s; }
+@keyframes citydrive { from { left: -40px; transform: scaleX(-1); } to { left: calc(100% + 40px); transform: scaleX(-1); } }
+.city-guest { margin: 10px 4px 0; padding: 10px 12px; border-radius: 14px; background: rgba(0,0,0,.45); color: #fff; font-size: 13px; text-align: center; }
+.caisse { display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; }
+.caisse h3 { margin: 0 0 4px; } .caisse p { margin: 0; }
+.caisse-r { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.caisse-r b { font-size: 24px; color: var(--accent2); } .caisse-r small { font-size: 11px; color: var(--muted); } .caisse-r .btn { margin-top: 6px; }
+.caisse.full { box-shadow: 0 0 0 2px var(--accent), 0 0 24px rgba(240,185,11,.35); }
+.biz-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 10px; }
+.biz { position: relative; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 18px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12); }
+.biz.own { background: rgba(22,199,132,.12); border-color: rgba(22,199,132,.35); }
+.biz-e { font-size: 32px; } .biz-i { flex: 1; min-width: 0; display: flex; flex-direction: column; } .biz-i small { color: var(--muted); }
+.biz .stars { color: #ffd560; font-size: 12px; letter-spacing: 1px; }
+.biz-a { display: flex; gap: 6px; align-items: center; } .biz-a .btn { white-space: nowrap; }
+.biz-next { position: absolute; bottom: 2px; left: 54px; font-size: 10px; font-style: normal; color: var(--up); opacity: .8; }
+.lot-card { text-align: center; } .lot-big { font-size: 64px; line-height: 1; margin-bottom: 4px; }
+.lot-card .kv { text-align: left; margin: 10px 0; } .lot-card h4 { margin: 12px 0 6px; }
+.lot-bizl { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; } .lot-bizl span { padding: 5px 9px; border-radius: 999px; background: rgba(255,255,255,.1); font-size: 13px; } .lot-bizl b { color: #ffd560; }
+@media (max-width: 700px) { .city-map { padding: 8px; border-radius: 22px; } .city-grid { grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 5px; } .lot { min-height: 122px; } .biz-grid { grid-template-columns: 1fr; } .tabs button .ti { font-size: 18px; } .tabs button span { font-size: 9px !important; } }

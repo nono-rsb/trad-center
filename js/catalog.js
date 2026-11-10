@@ -221,6 +221,8 @@ TC.ACHIEVEMENTS = [
   { id: 'jet', icon: '✈️', name: 'Jet-setter', desc: 'Acheter un jet privé' },
   { id: 'collector', icon: '🏆', name: 'Collectionneur', desc: 'Posséder 10 objets' },
   { id: 'phoenix', icon: '🐦‍🔥', name: 'Phénix', desc: 'Recommencer après une faillite' },
+  { id: 'first_biz', icon: '🏪', name: 'Entrepreneur', desc: 'Acheter votre premier commerce dans Trad City' },
+  { id: 'biz_all', icon: '🏦', name: 'Empire commercial', desc: 'Posséder les 13 commerces de Trad City' },
   { id: 'lucky', icon: '🍀', name: 'Main en or', desc: 'Gagner un lot Légendaire ou Mythique dans un coffre' },
   { id: 'xmas', icon: '🎅', name: 'Joyeux Noël', desc: 'Jouer le jour de Noël' },
   { id: 'advent', icon: '🗓️', name: 'Calendrier complet', desc: 'Ouvrir les 24 cases du calendrier de l\'Avent' },
