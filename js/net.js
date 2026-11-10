@@ -231,6 +231,7 @@
       const pub = { nw, rank: G.rank(nw).r[1], items: s.owned.length, topItem: top ? top.item : null, updatedAt: Date.now() };
       if (TC.Weekly) pub[TC.Weekly.current().field] = TC.Weekly.gain();
       if (TC.Style) { const m = TC.Style.mine(); pub.look = m.look || {}; pub.plusUntil = m.plusUntil || 0; }
+      if (TC.Play) { pub.playMs = Math.round(TC.Play.ms()); pub.playSince = TC.Play.since(); }
       if (TC.City) pub.city = TC.City.pub();
       if (TC.Xmas && TC.Xmas.raceGain() != null) { pub.xmasGain = TC.Xmas.raceGain(); pub.xmasYear = new Date().getFullYear(); }
       await db.collection('users').doc(N.user.uid).update(pub);

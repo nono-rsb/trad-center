@@ -566,3 +566,4 @@ button.nw { border: 0; background: none; color: inherit; font: inherit; cursor: 
   .nw-c b { font-size: 19px !important; }
   .top-actions { margin-left: auto; }
 }
+.playtime { font-size: 13px; margin: 2px 0; } .playtime b { color: var(--accent2); }
