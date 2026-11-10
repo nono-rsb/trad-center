@@ -544,3 +544,4 @@ html:not(.noel) body::after { display: none; }
 .bot-adv .tgl { margin: 6px 0; font-size: 13px; }
 @media (max-width: 600px) { .bot-sum { grid-template-columns: repeat(3, 1fr); } .bot-curve { grid-column: 1 / -1; } .bot-curve svg { width: 100%; } }
 .bot-st { white-space: nowrap; }
+.adm-gift { margin: 10px 0; padding: 10px 12px; border-radius: 14px; background: rgba(255,213,96,.1); border: 1px solid rgba(255,213,96,.35); } .adm-gift small { color: var(--muted); } .adm-gift input { min-width: 0; flex: 1; }
