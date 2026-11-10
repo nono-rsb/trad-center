@@ -1,19 +1,16 @@
 {
-  "id": "maj-2026-11-10",
-  "emoji": "🚀",
-  "title": "Nouveautés sur Trad Center !",
+  "id": "maj-2026-11-10-style",
+  "emoji": "🎨",
+  "title": "Habille ton avatar !",
   "items": [
-    { "icon": "🧰", "title": "Coffre à roulette", "text": "Boutique → Coffre : 100 €, la roulette défile… jusqu'au jackpot de 10 000 € !" },
-    { "icon": "🏆", "title": "Championnat de la semaine", "text": "Le plus gros gain de la semaine remporte 500 € chaque lundi (onglet Amis)." },
-    { "icon": "🎮", "title": "Codes de triche", "text": "Touche le logo et tape un code. Essaie GTA6 pour +20 € !" },
-    { "icon": "🎲", "title": "Paris x2", "text": "Un pari gagné rapporte maintenant le double de la mise." },
-    { "icon": "✏️", "title": "Change ton pseudo", "text": "Bouton ✏️ dans l'onglet Amis (pseudo unique)." },
-    { "icon": "R★", "title": "Action Take-Two (Rockstar Games)", "text": "Trade l'éditeur de GTA VI avant sa sortie le 19 novembre." }
+    { "icon": "🧢", "title": "Articles de marque", "text": "Casquette New Era, Ray-Ban, chaîne en or, Air Jordan, Rolex… dans Collection → Mon style." },
+    { "icon": "🖼️", "title": "Cadres d'avatar", "text": "Néon Vice, Or massif, Arc-en-ciel, Diamant : tes amis les voient dans les classements." },
+    { "icon": "✓", "title": "Trad Center+ : badge vérifié", "text": "999 € (du jeu) par mois : badge ✓ bleu, cadre exclusif et bonus quotidien +50 %." }
   ],
-  "button": "Ouvrir un coffre 🧰",
-  "tab": "shop",
+  "button": "Personnaliser mon avatar 🎨",
+  "tab": "collection",
   "push": {
-    "title": "🚀 Nouveautés : coffre à roulette, championnat à 500 €…",
-    "body": "Coffre jusqu'à 10 000 €, 500 € au champion de la semaine, codes de triche (essaie GTA6), paris x2. Viens voir !"
+    "title": "🎨 Nouveau : habille ton avatar + badge vérifié ✓",
+    "body": "Casquettes, Ray-Ban, chaînes, Jordan, cadres… et l'abonnement Trad Center+ avec badge ✓. Viens voir !"
   }
 }

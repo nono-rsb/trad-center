@@ -414,7 +414,11 @@
     };
     const star = s.owned.slice().sort((a, b) => b.price - a.price)[0];
     const starIt = star && TC.shopById[star.item];
+    const me = TC.Style.mine(), plus = TC.Style.isPlus(me);
     $('#tab-collection').innerHTML = `
+      <div class="panel style-card"><button class="av-btn" data-style="">${TC.Style.avatar(me, 'xl')}<i>🎨</i></button>
+        <div><h3>🎨 Mon style ${TC.Style.badge(me)}</h3><p class="muted">Casquettes, lunettes, chaînes, sneakers et cadres de grandes marques pour habiller ton avatar.</p>
+        <div class="style-actions"><button class="btn btn-gold" data-style="hat">Personnaliser</button>${plus ? '' : `<button class="btn btn-plus" onclick="TC.Style.plusInfo()"><span class="vbadge">✓</span> Devenir vérifié</button>`}</div></div></div>
       ${starIt ? `<div class="hero">${TC.itemVis(starIt, 'hero-vis')}<div class="hero-txt"><small>⭐ Pièce maîtresse</small><h2>${esc(starIt.brand)} ${esc(starIt.model)}</h2><b>${fmt.eur(star.price)}</b></div></div>` : ''}
       <div class="cards">
         <div class="card"><span>🏆</span><label>Objets possédés</label><b>${s.owned.length}</b></div>

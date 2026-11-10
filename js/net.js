@@ -222,6 +222,7 @@
       await db.collection('saves').doc(N.user.uid).set({ state: JSON.stringify(s), updatedAt: s.updatedAt || Date.now(), nw });
       const pub = { nw, rank: G.rank(nw).r[1], items: s.owned.length, topItem: top ? top.item : null, updatedAt: Date.now() };
       if (TC.Weekly) pub[TC.Weekly.current().field] = TC.Weekly.gain();
+      if (TC.Style) { const m = TC.Style.mine(); pub.look = m.look || {}; pub.plusUntil = m.plusUntil || 0; }
       if (TC.Xmas && TC.Xmas.raceGain() != null) { pub.xmasGain = TC.Xmas.raceGain(); pub.xmasYear = new Date().getFullYear(); }
       await db.collection('users').doc(N.user.uid).update(pub);
       Object.assign(N.profile || {}, pub);
