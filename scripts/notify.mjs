@@ -229,7 +229,8 @@ async function main() {
       const prev = weekOf(Date.now() - 7 * 86400000), cur = weekOf(Date.now());
       st.weekly = st.weekly || {};
       if (!st.weekly[prev.id] && 7 * 86400000 - cur.left > 5 * 60000) { // au moins 5 min après lundi 0 h
-        const top = users.filter(u => typeof u[prev.field] === 'number' && u[prev.field] > 0).sort((a, b) => b[prev.field] - a[prev.field])[0];
+        let bans = {}; try { const b = await getDoc(doc(db, 'admin', 'bans')); bans = (b.exists() && b.data().users) || {}; } catch (e) { }
+        const top = users.filter(u => !bans[u.uid] && typeof u[prev.field] === 'number' && u[prev.field] > 0).sort((a, b) => b[prev.field] - a[prev.field])[0];
         st.weekly[prev.id] = top ? top.uid : 'aucun';
         if (top) {
           log('champion de la semaine', prev.id, top.pseudo);

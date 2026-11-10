@@ -5,6 +5,9 @@
  * Laissez null pour jouer hors ligne uniquement.
  */
 window.TC = window.TC || {};
+// Compte du créateur (mode créateur) : Loupdewallstreet
+TC.ADMIN_UID = "elSOuyaP2GZqW4ARw3Wy5zUbtjl1";
+
 TC.FIREBASE = {
   apiKey: "AIzaSyBJW_UDJMEYtZ5c8zxeQwamwAvPHaKe3Vk",
   authDomain: "trad-center.firebaseapp.com",

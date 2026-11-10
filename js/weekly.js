@@ -41,7 +41,7 @@
     const db = N.db(); if (!db) return [];
     const c = cache[field]; if (c && Date.now() - c.at < maxAge) return c.rows;
     const snap = await db.collection('users').orderBy(field, 'desc').limit(25).get();
-    const rows = snap.docs.map(d => Object.assign(N.prof(d.id, d.data()), { gain: d.data()[field] })).filter(u => !u.bot && typeof u.gain === 'number').slice(0, 10);
+    const rows = snap.docs.map(d => Object.assign(N.prof(d.id, d.data()), { gain: d.data()[field] })).filter(u => !u.bot && typeof u.gain === 'number' && !(TC.Admin && TC.Admin.isBanned(u.uid))).slice(0, 10);
     cache[field] = { at: Date.now(), rows };
     return rows;
   };

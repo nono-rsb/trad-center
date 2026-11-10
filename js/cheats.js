@@ -19,6 +19,7 @@
     '7a6f7d5ffe1b2e22e43e31eadce518fd1430998ec87c1723a2d38227a6516067': 'welcome',
     '98c6c9b17fb86a15b2d975ec762e3dd6fab959659da7a4d419b6dd4fb092b686': 'lambo',
     'ff2952741a8fee83e34d4c6b4680e2dfd90811679faf74e068a29e0f3e341ae9': 'btc',
+    '3fbc06b6d0537e376fa3f97c458a73f8534ac133de9aa18efcef6540f0269211': 'admin',
   };
   const norm = s => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
   async function sha(s) {
@@ -96,6 +97,7 @@
   C.enter = async function (raw) {
     const code = norm(raw); if (code.length < 3) return false;
     const fx = HASHES[await sha(code)];
+    if (fx === 'admin') { if (TC.Admin && TC.Admin.isAdmin()) { setTimeout(() => TC.Admin.open(), 50); return true; } return false; }
     if (fx) { EFFECTS[fx](); return true; }
     if (await promo(code)) return true;
     return false;
@@ -120,6 +122,7 @@
     try {
       for (let n = 4; n <= buf.length; n++) {
         const fx = HASHES[await sha(buf.slice(-n))];
+        if (fx === 'admin') { if (TC.Admin && TC.Admin.isAdmin()) { buf = ''; TC.Admin.open(); } break; }
         if (fx) { buf = ''; EFFECTS[fx](); break; }
       }
     } finally { busy = false; }

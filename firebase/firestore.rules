@@ -7,6 +7,8 @@ service cloud.firestore {
     function me() { return request.auth.uid; }
     function pair(a, b) { return a < b ? a + '_' + b : b + '_' + a; }
     function areFriends(a, b) { return exists(/databases/$(db)/documents/friendships/$(pair(a, b))); }
+    // Créateur du jeu (compte Loupdewallstreet) : peut consulter les parties et bloquer des joueurs
+    function isAdmin() { return signedIn() && request.auth.uid == 'elSOuyaP2GZqW4ARw3Wy5zUbtjl1'; }
 
     // Pseudo -> uid (pseudos uniques)
     match /usernames/{name} {
@@ -32,6 +34,13 @@ service cloud.firestore {
     // Sauvegarde privée de la partie
     match /saves/{uid} {
       allow read, write: if signedIn() && uid == me();
+      allow read: if isAdmin();
+    }
+
+    // Liste des joueurs bloqués (lue par tous, modifiée par le créateur seulement)
+    match /admin/{doc} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
     }
 
     // Demandes d'ami : id = <de>_<à>
