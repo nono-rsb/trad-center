@@ -212,7 +212,7 @@
       S().bets.splice(i, 1);
       let result, pay = 0;
       if (Math.abs(p - b.start) / b.start < 1e-9) { result = 'push'; pay = b.stake; }
-      else if ((p > b.start) === (b.dir === 'up')) { result = 'win'; pay = b.stake * G.BET_PAYOUT; S().stats.betsWon++; }
+      else if ((p > b.start) === (b.dir === 'up')) { result = 'win'; pay = b.stake * (S().jackpot ? 3 : G.BET_PAYOUT); S().jackpot = false; S().stats.betsWon++; }
       else { result = 'lose'; S().stats.betsLost++; }
       S().cash += pay;
       const pnl = pay - b.stake;

@@ -269,3 +269,19 @@ html.noel .icon-btn.gold::after { content: '❄'; margin-left: 2px; font-size: 1
 #notif-nudge .nn-x { border: 0; background: none; color: rgba(255,255,255,.7); padding: 0 8px; font-size: 14px; }
 @keyframes ring { 0%, 60%, 100% { transform: rotate(0); } 65% { transform: rotate(-18deg); } 72% { transform: rotate(16deg); } 79% { transform: rotate(-10deg); } 86% { transform: rotate(6deg); } }
 @media (max-width: 900px) { #notif-nudge { bottom: calc(96px + env(safe-area-inset-bottom)); } }
+
+/* ---------- Codes de triche ---------- */
+.brand .logo { cursor: pointer; }
+.cheat-rain { position: fixed; inset: 0; pointer-events: none; z-index: 300; overflow: hidden; }
+.cheat-rain span { position: absolute; top: -60px; animation: cheatfall linear forwards; filter: drop-shadow(0 4px 6px rgba(0,0,0,.35)); }
+@keyframes cheatfall { to { transform: translateY(115vh) rotate(540deg); } }
+.cheat-lambo { position: fixed; top: 42%; left: -260px; z-index: 300; pointer-events: none; display: flex; align-items: center; gap: 10px; animation: drive 3s cubic-bezier(.5,0,.3,1) forwards; }
+.cheat-lambo span { font-size: 90px; transform: scaleX(-1); display: inline-block; } .cheat-lambo b { font-size: 34px; font-weight: 900; font-style: italic; background: var(--sunset); -webkit-background-clip: text; background-clip: text; color: transparent; }
+@keyframes drive { to { left: 110vw; } }
+html.disco body { animation: disco 1.2s linear infinite; }
+@keyframes disco { to { filter: hue-rotate(360deg); } }
+html.vice { --accent: #ff2bd6; --accent2: #2de2ff; --sunset: linear-gradient(100deg, #ff2bd6, #8b5cff 50%, #2de2ff); }
+html.vice body::before { filter: saturate(1.6) hue-rotate(-12deg); }
+html.gold { --accent: #f5c542; --accent2: #ffe9a8; --sunset: linear-gradient(100deg, #b8862b, #f5c542 45%, #fff1b8); }
+html.gold body::before { filter: sepia(.6) saturate(1.4) hue-rotate(-12deg); }
+.inp input.shake, input.shake { animation: shakex .45s; } @keyframes shakex { 25% { transform: translateX(-6px); } 50% { transform: translateX(6px); } 75% { transform: translateX(-3px); } }
