@@ -340,11 +340,13 @@
     G.save(); emit('trade', { kind: 'refund' });
   };
   G.logSent = function (t, toPseudo) {
+    if (TC.Weekly) TC.Weekly.flow(-(t.eur || 0));
     log({ kind: 'send', asset: t.asset, qty: t.kind === 'cash' ? null : t.qty, eur: t.eur, who: toPseudo });
     S().stats.sent = (S().stats.sent || 0) + t.eur;
     G.save(true); emit('trade', { kind: 'send' });
   };
   G.receive = function (t) {
+    if (TC.Weekly) TC.Weekly.flow(t.eur || 0);
     if (t.kind === 'cash') S().cash += t.qty;
     else if (TC.assetById[t.asset]) { const h = S().holdings[t.asset] || { qty: 0, cost: 0 }; h.qty += t.qty; h.cost += t.eur; S().holdings[t.asset] = h; }
     else S().cash += t.eur;

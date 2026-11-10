@@ -4,7 +4,7 @@
 (function () {
   const N = TC.Net = {
     enabled: !!TC.FIREBASE, ready: false, user: null, profile: null, needPseudo: false,
-    friends: [], incoming: [], outgoing: [], board: null, boardScope: 'friends', error: null,
+    friends: [], incoming: [], outgoing: [], board: null, boardScope: 'week', error: null,
   };
   const G = TC.Game;
   const subs = [];
@@ -194,6 +194,7 @@
     try {
       await db.collection('saves').doc(N.user.uid).set({ state: JSON.stringify(s), updatedAt: s.updatedAt || Date.now(), nw });
       const pub = { nw, rank: G.rank(nw).r[1], items: s.owned.length, topItem: top ? top.item : null, updatedAt: Date.now() };
+      if (TC.Weekly) pub[TC.Weekly.current().field] = TC.Weekly.gain();
       if (TC.Xmas && TC.Xmas.raceGain() != null) { pub.xmasGain = TC.Xmas.raceGain(); pub.xmasYear = new Date().getFullYear(); }
       await db.collection('users').doc(N.user.uid).update(pub);
       Object.assign(N.profile || {}, pub);
