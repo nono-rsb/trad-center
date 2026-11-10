@@ -8,7 +8,7 @@
   const { $, esc, fmt } = TC;
   const G = TC.Game, N = TC.Net, S = () => G.state;
   const C = TC.City = {};
-  C.RATE = 0.002;       // recette par heure = 0,2 % du prix par niveau
+  C.RATE = 0.02;        // recette par heure = 2 % du prix par niveau (rentabilisé en ~2 jours)
   C.UP = 0.75;          // amélioration niveau n → n+1 : 75 % du prix × n
   C.MAX_LVL = 5;
   C.CAP_H = 24;         // la caisse se remplit au maximum pendant 24 h
@@ -181,14 +181,54 @@
         <p class="muted">${C.count() ? `${C.count()} commerce${C.count() > 1 ? 's' : ''} · <b class="up">${fmt.eur(ph)} / heure</b> · déjà gagné ${fmt.eur(c.earned || 0)}` : 'Achète ton premier commerce : il te rapporte de l\'argent chaque heure, même quand tu ne joues pas.'}</p></div>
       ${C.count() ? `<div class="caisse-r"><span>Dans la caisse</span><b id="city-pend">${fmt.eur(pend)}</b>${C.full() ? '<small class="down">Caisse pleine ! Encaisse vite</small>' : `<small>se remplit pendant ${C.CAP_H} h max</small>`}<button class="btn btn-gold" id="city-collect" ${pend < 0.01 ? 'disabled' : ''}>💰 Encaisser</button></div>` : ''}</div>
       <div class="biz-grid">${cards}</div>
-      <p class="hint">Recette : 0,2 % du prix par heure et par niveau. Revente à 70 % de ce que tu as investi. Les commerces comptent dans ton patrimoine.</p>`;
+      <p class="hint">Recette : 2 % du prix par heure et par niveau (rentabilisé en 2 jours environ). Revente à 70 % de ce que tu as investi. Les commerces comptent dans ton patrimoine.</p>`;
   }
 
+  /* ---------- Vue 3D ---------- */
+  let view2d = false; try { view2d = localStorage.getItem('tradcenter.city2d') === '1'; } catch (e) { }
+  const nightNow = () => { const h = +new Date().toLocaleString('en-GB', { timeZone: 'Europe/Paris', hour: '2-digit', hour12: false }); return h < 7 || h >= 20; };
+  function data3d() {
+    const r = roster();
+    const players = r.map((p, i) => {
+      const top = p.topItem && TC.shopById[p.topItem];
+      const isCar = top && top.type === 'car';
+      return { uid: p.uid, pseudo: p.pseudo || '?', tier: C.tier(p.nw).i, biz: (p.city && p.city.biz) || {}, me: !!p.me, mayor: i === 0 && (p.nw || 0) > 0,
+        friend: !p.me && N && (N.friends || []).some(f => f.uid === p.uid), plus: TC.Style ? TC.Style.isPlus(p) : false,
+        car: isCar ? { color: parseInt(String(top.grad && top.grad[0] || '#d00000').replace('#', ''), 16) } : null };
+    });
+    return { players, landmarks: LANDMARKS, biz: C.byId, night: nightNow() };
+  }
+  function map3dHtml() {
+    const r = roster(); const guest = !N || !N.enabled || !N.user || !N.profile;
+    return `<div class="city3d" id="city3d-host"><div class="c3-load">🏗️ Construction de Trad City…</div>
+      <div class="c3-top"><b>🗺️ Trad City</b><span>${r.length} habitant${r.length > 1 ? 's' : ''}</span></div>
+      <div class="c3-hud"><button data-c3="me">📍 Moi</button><button data-c3="mayor">👑 Maire</button><button data-c3="night">${TC.City3D && TC.City3D.ready && TC.City3D.isNight() ? '☀️' : '🌙'}</button><button data-c3="2d">2D</button></div>
+      <div class="c3-help">☝️ Glisse pour tourner · 🤏 pince pour zoomer · touche un bâtiment</div>
+      ${guest ? '<p class="city-guest c3-guest">👥 Crée un compte (onglet Amis) pour voir les autres joueurs.</p>' : ''}</div>`;
+  }
+  function onPick3d(own) { if (own.uid) lotModal(own.uid); else if (own.land) landmark(own.land); }
   C.render = function () {
     const root = $('#tab-city'); if (!root) return;
-    root.innerHTML = mapHtml() + bizHtml();
+    const use3d = !view2d && TC.City3D && TC.City3D.supported() && !TC.City3D.failed;
+    root.innerHTML = (use3d ? map3dHtml() : mapHtml().replace('<div class="city-sky">', '<div class="city-sky">' + (TC.City3D && TC.City3D.supported() ? '<button class="c3-back" data-c3="3d">🧊 Vue 3D</button>' : ''))) + bizHtml();
+    if (use3d) {
+      TC.City3D.load().then(ok => {
+        const host = $('#city3d-host'); if (!host) return;
+        if (!ok) { view2d = true; return C.render(); }
+        TC.City3D.mount(host, data3d(), onPick3d);
+        host.classList.add('ready');
+      });
+    }
     loadPlayers();
   };
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-c3]'); if (!b) return;
+    const a = b.dataset.c3, V3 = TC.City3D;
+    if (a === '2d' || a === '3d') { view2d = a === '2d'; try { localStorage.setItem('tradcenter.city2d', view2d ? '1' : '0'); } catch (x) { } return C.render(); }
+    if (a === 'me') return V3.focus(N && N.user ? N.user.uid : 'me');
+    if (a === 'mayor') { const m = roster()[0]; if (m) V3.focus(m.uid); return; }
+    if (a === 'night') { V3.setNight(!V3.isNight()); C.render(); }
+  });
   C.live = function () {
     const el = $('#city-pend'); if (el) el.textContent = fmt.eur(C.pending());
     const b = $('#city-collect'); if (b) b.disabled = C.pending() < 0.01;

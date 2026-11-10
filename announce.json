@@ -1,16 +1,17 @@
 {
-  "id": "maj-2026-11-10-ville",
-  "emoji": "🗺️",
-  "title": "Nouveau : Trad City, la ville des joueurs",
+  "id": "maj-2026-11-10-ville3d",
+  "emoji": "🏙️",
+  "title": "Trad City passe en 3D !",
   "items": [
-    { "icon": "🗺️", "title": "La carte de la ville", "text": "Onglet Ville : chaque joueur a son terrain. Ton bâtiment grandit avec ton argent, de la tente au gratte-ciel." },
-    { "icon": "🏪", "title": "Achète des commerces", "text": "Citronnade, kebab, salle de sport, casino, banque… Ils rapportent de l'argent chaque heure, même quand tu ne joues pas." },
-    { "icon": "👑", "title": "Deviens le Maire", "text": "Le plus riche est au centre avec une couronne. Touche un terrain pour voir ses commerces et l'ajouter en ami." }
+    { "icon": "🏙️", "title": "La ville en 3D", "text": "Vrais bâtiments 3D : de la tente au gratte-ciel, jusqu'à la tour dorée du milliardaire. Tourne et zoome avec les doigts." },
+    { "icon": "🏎️", "title": "Voitures 3D", "text": "Des voitures roulent dans les rues, et ta plus belle voiture est garée devant chez toi." },
+    { "icon": "💰", "title": "Commerces 10× plus rentables", "text": "Ils rapportent maintenant 2 % de leur prix par heure : remboursés en 2 jours environ." },
+    { "icon": "🌙", "title": "Jour et nuit", "text": "La ville s'allume la nuit (heure de Paris). Touche un bâtiment pour voir son propriétaire." }
   ],
-  "button": "Voir la ville 🗺️",
+  "button": "Voir la ville 🏙️",
   "tab": "city",
   "push": {
-    "title": "🗺️ Nouveau : Trad City !",
-    "body": "Vois les bâtiments de tous les joueurs sur la carte et achète des commerces qui te rapportent de l'argent chaque heure."
+    "title": "🏙️ Trad City passe en 3D !",
+    "body": "Vrais bâtiments et voitures 3D, et des commerces 10 fois plus rentables. Viens voir ta ville !"
   }
 }
