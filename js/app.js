@@ -285,7 +285,8 @@
       ${N && N.user && N.user.email ? `<h4>👤 Mon compte</h4>
       <div class="kv"><span>Pseudo</span><b>${esc((N.profile && N.profile.pseudo) || '')}</b><span>E-mail</span><b>${esc(N.user.email)}</b><span>Mot de passe</span><b>••••••••</b></div>
       <p class="hint">🔒 Ton mot de passe n'est jamais enregistré en clair, même pas par le jeu : personne ne peut le lire. Si tu l'as oublié, change-le ou reçois un e-mail pour le réinitialiser.</p>
-      <div class="modal-actions left"><button class="btn" id="b-pw">🔑 Changer mon mot de passe</button><button class="btn btn-ghost" id="b-pwmail">📧 Mot de passe oublié</button></div>` : ''}
+      <div class="modal-actions left"><button class="btn" id="b-pw">🔑 Changer mon mot de passe</button><button class="btn btn-ghost" id="b-pwmail">📧 Mot de passe oublié</button></div>
+      <button class="btn btn-sell logout-btn" id="b-logout">🚪 Se déconnecter</button>` : N && N.enabled ? `<h4>👤 Mon compte</h4><p class="hint">Tu joues en invité : ta partie n'est que sur cet appareil.</p><button class="btn btn-gold logout-btn" id="b-login">🔐 Se connecter ou créer un compte</button>` : ''}
       <h4>Jeu</h4>
       <button class="btn" id="b-cheat">🎮 Entrer un code de triche</button>
       <label class="tgl"><input type="checkbox" id="s-expert" ${S().expert ? 'checked' : ''}><span>⚡ Mode expert : trading à levier (x2 à x100, plus risqué)</span></label>
@@ -299,6 +300,12 @@
       <button class="btn btn-sell" id="b-reset">🗑️ Recommencer une partie à 10 €</button>
       </div>`);
     const pwb = md.el.querySelector('#b-pw'); if (pwb) pwb.onclick = () => changePw();
+    const li = md.el.querySelector('#b-login'); if (li) li.onclick = () => { try { localStorage.removeItem('tradcenter.guest'); } catch (e) { } location.reload(); };
+    const lo = md.el.querySelector('#b-logout'); if (lo) lo.onclick = async () => {
+      if (!(await TC.confirm('Se déconnecter ?', 'Ta partie reste sauvegardée sur ton compte : tu la retrouveras en te reconnectant. Cet appareil revient à l\'écran de connexion.', 'Se déconnecter', 'btn-sell'))) return;
+      try { localStorage.removeItem('tradcenter.guest'); } catch (e) { }
+      try { await N.signOut(); } catch (e) { TC.toast(N.errMsg(e), 'bad'); }
+    };
     const pwm = md.el.querySelector('#b-pwmail'); if (pwm) pwm.onclick = async () => { try { await N.resetPassword(N.user.email); TC.toast('📧 E-mail envoyé à ' + esc(N.user.email) + ' : suis le lien pour choisir un nouveau mot de passe.', 'ok', 7000); } catch (e) { TC.toast(N.errMsg(e), 'bad'); } };
     md.el.querySelector('#b-install2').onclick = () => install();
     md.el.querySelector('#b-cheat').onclick = () => TC.Cheats.open();
