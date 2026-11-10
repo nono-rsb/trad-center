@@ -44,7 +44,7 @@
     const rk = G.rank(nw); const sr = $('#s-rank'); if (sr) sr.textContent = rk.r[2] + ' ' + rk.r[1];
     const sim = $('#s-sim'); if (sim) sim.hidden = !D.anySim();
     const ready = G.bonusReadyIn();
-    const bb = $('#b-bonus'); bb.disabled = ready > 0; bb.querySelector('span').textContent = ready > 0 ? '' : ' +10 €'; bb.title = ready > 0 ? 'Prochain bonus dans ' + fmt.dur(ready) : 'Récupérer 10 € gratuits';
+    const bb = $('#b-bonus'); bb.disabled = ready > 0; bb.querySelector('span').textContent = ready > 0 ? '' : ' +' + G.BONUS + ' €'; bb.title = ready > 0 ? 'Prochain bonus dans ' + fmt.dur(ready) : 'Récupérer ' + G.BONUS + ' € gratuits';
     bb.classList.toggle('pulse', ready === 0);
     const np = S().positions.length + S().bets.length; const nb = $('#nb-pos'); nb.textContent = np || ''; nb.style.display = np ? '' : 'none';
     const r = G.pendingRent(); const nr = $('#nb-rent'); nr.textContent = r >= 1 ? '€' : ''; nr.style.display = r >= 1 ? '' : 'none';

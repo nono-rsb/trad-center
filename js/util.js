@@ -43,6 +43,14 @@
     time(t) { return new Date(t).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }); },
   };
 
+  /* ---------- Saison : thème de Noël du 1er au 31 décembre (aperçu : ?theme=noel) ---------- */
+  TC.season = (() => {
+    let q = null; try { q = new URLSearchParams(location.search).get('theme'); } catch (e) { }
+    if (q === 'noel') return { noel: true, preview: true };
+    return { noel: new Date().getMonth() === 11, preview: false };
+  })();
+  if (TC.season.noel) document.documentElement.classList.add('noel');
+
   TC.esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   TC.$ = (s, r = document) => r.querySelector(s);
   TC.$$ = (s, r = document) => Array.from(r.querySelectorAll(s));

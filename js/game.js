@@ -8,7 +8,7 @@
   G.BET_PAYOUT = 1.9;    // gain x1,9 sur un pari réussi
   G.BET_DURATIONS = [[1, '1 min'], [5, '5 min'], [15, '15 min'], [60, '1 h']];
   G.START_CASH = 10;
-  G.BONUS = 10;
+  G.BONUS = TC.season && TC.season.noel && !TC.season.preview ? 20 : 10; // doublé en décembre
   G.BONUS_EVERY = 24 * 3600 * 1000;
 
   const listeners = [];
