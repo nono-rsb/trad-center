@@ -99,13 +99,22 @@
   }
 
   function boardBlock() {
+    if (N.boardScope === 'week' && TC.Weekly) {
+      setTimeout(() => { const el = document.getElementById('wk-zone'); if (el) TC.Weekly.render(el); }, 0);
+      return `<div class="panel"><div class="board-head"><h3>🏆 Classement</h3>${boardSeg()}</div><div id="wk-zone"></div></div>`;
+    }
     const friendsScope = N.boardScope === 'friends';
     const meRow = Object.assign({ uid: N.user.uid }, N.profile, { nw: G.netWorth(), rank: G.rank().r[1] });
     let rows = friendsScope ? N.friends.concat([meRow]) : (N.board || []).map(r => r.uid === N.user.uid ? meRow : r);
     rows = rows.slice().sort((a, b) => (b.nw || 0) - (a.nw || 0));
     const medal = i => ['🥇', '🥈', '🥉'][i] || (i + 1);
-    return `<div class="panel"><div class="board-head"><h3>🏆 Classement</h3><div class="seg"><button data-board="friends" class="${friendsScope ? 'active' : ''}">Amis</button><button data-board="world" class="${friendsScope ? '' : 'active'}">Monde</button></div></div>
+    return `<div class="panel"><div class="board-head"><h3>🏆 Classement</h3>${boardSeg()}</div>
       ${!friendsScope && !N.board ? '<div class="empty">Chargement…</div>' : `<div class="board">${rows.map((r, i) => `<div class="brow ${r.uid === N.user.uid ? 'me' : ''}"><span class="pos">${medal(i)}</span><span class="avatar">${r.avatar || '👤'}</span><b>${esc(r.pseudo || '')}${N.xmasChamp && N.xmasChamp === r.uid ? ' <span class="champ" title="Champion de Noël">🏆🎄</span>' : ''}</b><small>${esc(r.rank || '')}</small><span class="bnw">${fmt.eur(r.nw || 0, true)}</span></div>`).join('')}</div>`}</div>`;
+  }
+
+  function boardSeg() {
+    const sc = N.boardScope;
+    return `<div class="seg"><button data-board="week" class="${sc === 'week' ? 'active' : ''}">Semaine 💰</button><button data-board="friends" class="${sc === 'friends' ? 'active' : ''}">Amis</button><button data-board="world" class="${sc === 'world' ? 'active' : ''}">Monde</button></div>`;
   }
 
   function historyBlock() {

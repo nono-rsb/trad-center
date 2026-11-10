@@ -96,6 +96,16 @@ function marketEvents(px, fired) {
   return ev;
 }
 
+/* ---------------- Semaine (heure de Paris, comme dans js/weekly.js) ---------------- */
+function weekOf(ts) {
+  const p = {}; new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', weekday: 'short', hourCycle: 'h23' })
+    .formatToParts(new Date(ts)).forEach(x => { p[x.type] = x.value; });
+  const wd = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].indexOf(p.weekday);
+  const id = new Date(Date.UTC(+p.year, +p.month - 1, +p.day - wd)).toISOString().slice(0, 10).replace(/-/g, '');
+  const left = ((7 - wd) * 86400 - (+p.hour * 3600 + +p.minute * 60 + +p.second)) * 1000;
+  return { id, field: 'wk_' + id, left };
+}
+
 /* ---------------- Clés dérivées du mot de passe ---------------- */
 function derive(pass) {
   const h = label => crypto.createHmac('sha256', pass).update(label).digest();
@@ -213,6 +223,24 @@ async function main() {
         }
       }
     } catch (e) { }
+
+    // Championnat de la semaine : annonce du champion le lundi (une fois par semaine)
+    try {
+      const prev = weekOf(Date.now() - 7 * 86400000), cur = weekOf(Date.now());
+      st.weekly = st.weekly || {};
+      if (!st.weekly[prev.id] && 7 * 86400000 - cur.left > 5 * 60000) { // au moins 5 min après lundi 0 h
+        const top = users.filter(u => typeof u[prev.field] === 'number' && u[prev.field] > 0).sort((a, b) => b[prev.field] - a[prev.field])[0];
+        st.weekly[prev.id] = top ? top.uid : 'aucun';
+        if (top) {
+          log('champion de la semaine', prev.id, top.pseudo);
+          for (const s of subs.filter(s => !s.dead)) {
+            const me = s.uid === top.uid;
+            await push(s, me ? { title: '🏆 Tu es le champion de la semaine !', body: `+${eur(top[prev.field])} de gain. Ouvre l'appli pour encaisser tes 500 € !`, tag: 'weekly', url: '?tab=social' }
+              : { title: `🏆 ${top.pseudo} est le champion de la semaine`, body: `+${eur(top[prev.field])} de gain et 500 € de prime. Nouvelle semaine, nouvelle chance !`, tag: 'weekly', url: '?tab=social' });
+          }
+        }
+      }
+    } catch (e) { log('hebdo', e.message); }
 
     // 2 et 3. Marchés et alertes (seulement si quelqu'un est abonné)
     const live = subs.filter(s => !s.dead);
