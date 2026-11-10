@@ -535,3 +535,12 @@ html:not(.noel) body::after { display: none; }
   .nw b { font-size: 22px; }
 }
 .gta-txt small { white-space: nowrap; }
+.inp.pw { position: relative; } .inp.pw input { padding-right: 44px; } .eye { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); border: 0; background: none; font-size: 18px; padding: 6px; cursor: pointer; }
+/* bot : résumé clair */
+.bot-sum { display: grid; grid-template-columns: repeat(3, 1fr) auto; gap: 8px; align-items: center; margin: 10px 0; padding: 10px; border-radius: 14px; background: rgba(255,255,255,.06); }
+.bot-sum small { display: block; font-size: 11px; color: var(--muted); } .bot-sum b { font-family: var(--mono); font-size: 15px; }
+.bot-pos small { color: var(--muted); font-size: 11px; align-self: center; }
+.bot-adv { margin-top: 8px; } .bot-adv summary { cursor: pointer; font-weight: 700; padding: 6px 0; list-style: none; } .bot-adv summary::-webkit-details-marker { display: none; }
+.bot-adv .tgl { margin: 6px 0; font-size: 13px; }
+@media (max-width: 600px) { .bot-sum { grid-template-columns: repeat(3, 1fr); } .bot-curve { grid-column: 1 / -1; } .bot-curve svg { width: 100%; } }
+.bot-st { white-space: nowrap; }

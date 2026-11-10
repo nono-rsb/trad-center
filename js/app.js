@@ -1,6 +1,7 @@
 /* Trad Center — orchestration : événements, boucles, notifications */
 (function () {
-  const { $, $$, fmt } = TC;
+  const { $, $$, fmt, esc } = TC;
+  const N = TC.Net;
   const G = TC.Game, D = TC.Data, UI = TC.UI;
   const S = () => G.state;
 
@@ -255,6 +256,25 @@
       </div><div class="modal-actions"><button class="btn btn-gold" data-close>OK</button></div>`);
   }
 
+  function changePw() {
+    const md = TC.modal(`<h2>🔑 Changer mon mot de passe</h2><div class="modal-body">
+      <label class="fld">Mot de passe actuel<div class="inp pw"><input id="pw-old" type="password" autocomplete="current-password"><button type="button" class="eye" data-eye="pw-old" aria-label="Afficher">👁️</button></div></label>
+      <label class="fld">Nouveau mot de passe<div class="inp pw"><input id="pw-new" type="password" autocomplete="new-password" placeholder="6 caractères minimum"><button type="button" class="eye" data-eye="pw-new" aria-label="Afficher">👁️</button></div></label>
+      <div class="auth-err" id="pw-err"></div>
+      <div class="modal-actions"><button class="btn btn-ghost" data-close>Annuler</button><button class="btn btn-gold" id="pw-ok">Enregistrer</button></div>
+      <p class="hint">Touche 👁️ pour voir ce que tu tapes. Mot de passe actuel oublié ? Utilise « Mot de passe oublié » dans les paramètres.</p></div>`);
+    md.el.querySelector('#pw-ok').onclick = async e => {
+      const b = e.target; b.disabled = true; const err = md.el.querySelector('#pw-err'); err.textContent = '';
+      try { await N.changePassword(md.el.querySelector('#pw-old').value, md.el.querySelector('#pw-new').value); md.close(); TC.toast('✅ Mot de passe changé', 'ok'); }
+      catch (x) { err.textContent = /wrong-password|invalid-credential|invalid-login/.test(String(x.code || x.message)) ? 'Mot de passe actuel incorrect.' : N.errMsg(x); b.disabled = false; }
+    };
+  }
+  // bouton 👁️ : afficher / masquer le mot de passe pendant qu'on le tape
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-eye]'); if (!b) return;
+    e.preventDefault(); const i = document.getElementById(b.dataset.eye); if (!i) return;
+    i.type = i.type === 'password' ? 'text' : 'password'; b.textContent = i.type === 'password' ? '👁️' : '🙈';
+  });
   function settings() {
     const h = D.health;
     const md = TC.modal(`<h2>⚙️ Paramètres</h2><div class="modal-body">
@@ -262,6 +282,10 @@
       <div class="kv"><span>Crypto (Binance)</span><b>${h.binance}</b><span>Bourse (Yahoo Finance)</span><b>${h.yahoo}</b><span>Devises</span><b>${D.fxStatus}</b><span>1 € =</span><b>${fmt.num(D.fx.USD, 4)} $</b></div>
       <p class="hint">Si votre réseau bloque une source, le jeu utilise le dernier cours connu puis une simulation (badge SIM) jusqu'au retour de la connexion.</p>
       <div class="modal-actions left"><button class="btn" id="b-help2">❔ Aide</button><button class="btn" id="b-notif2">🔔 Notifications</button></div>
+      ${N && N.user && N.user.email ? `<h4>👤 Mon compte</h4>
+      <div class="kv"><span>Pseudo</span><b>${esc((N.profile && N.profile.pseudo) || '')}</b><span>E-mail</span><b>${esc(N.user.email)}</b><span>Mot de passe</span><b>••••••••</b></div>
+      <p class="hint">🔒 Ton mot de passe n'est jamais enregistré en clair, même pas par le jeu : personne ne peut le lire. Si tu l'as oublié, change-le ou reçois un e-mail pour le réinitialiser.</p>
+      <div class="modal-actions left"><button class="btn" id="b-pw">🔑 Changer mon mot de passe</button><button class="btn btn-ghost" id="b-pwmail">📧 Mot de passe oublié</button></div>` : ''}
       <h4>Jeu</h4>
       <button class="btn" id="b-cheat">🎮 Entrer un code de triche</button>
       <label class="tgl"><input type="checkbox" id="s-expert" ${S().expert ? 'checked' : ''}><span>⚡ Mode expert : trading à levier (x2 à x100, plus risqué)</span></label>
@@ -274,6 +298,8 @@
       <h4>Zone dangereuse</h4>
       <button class="btn btn-sell" id="b-reset">🗑️ Recommencer une partie à 10 €</button>
       </div>`);
+    const pwb = md.el.querySelector('#b-pw'); if (pwb) pwb.onclick = () => changePw();
+    const pwm = md.el.querySelector('#b-pwmail'); if (pwm) pwm.onclick = async () => { try { await N.resetPassword(N.user.email); TC.toast('📧 E-mail envoyé à ' + esc(N.user.email) + ' : suis le lien pour choisir un nouveau mot de passe.', 'ok', 7000); } catch (e) { TC.toast(N.errMsg(e), 'bad'); } };
     md.el.querySelector('#b-install2').onclick = () => install();
     md.el.querySelector('#b-cheat').onclick = () => TC.Cheats.open();
     md.el.querySelector('#s-expert').onchange = e => { S().expert = e.target.checked; G.save(); UI.order(); TC.toast(e.target.checked ? '⚡ Mode expert activé : onglet Levier disponible' : 'Mode expert désactivé', 'info'); };

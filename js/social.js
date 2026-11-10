@@ -49,7 +49,7 @@
       <div class="seg seg-2"><button data-soc="mode-signup" class="${up ? 'active' : ''}">Créer un compte</button><button data-soc="mode-login" class="${up ? '' : 'active'}">J'ai déjà un compte</button></div>
       ${up ? `<label class="fld">Pseudo<div class="inp"><input id="a-pseudo" maxlength="16" placeholder="ex : LoupDeBourse" autocomplete="nickname"></div></label>` : ''}
       <label class="fld">Adresse e-mail<div class="inp"><input id="a-email" type="email" placeholder="vous@exemple.fr" autocomplete="email"></div></label>
-      <label class="fld">Mot de passe<div class="inp"><input id="a-pw" type="password" placeholder="6 caractères minimum" autocomplete="${up ? 'new-password' : 'current-password'}"></div></label>
+      <label class="fld">Mot de passe<div class="inp pw"><input id="a-pw" type="password" placeholder="6 caractères minimum" autocomplete="${up ? 'new-password' : 'current-password'}"><button type="button" class="eye" data-eye="a-pw" aria-label="Afficher le mot de passe">👁️</button></div></label>
       <div class="auth-err" id="a-err"></div>
       <button class="btn btn-gold btn-xl" data-soc="${up ? 'signup' : 'login'}">${up ? 'Créer mon compte' : 'Se connecter'}</button>
       ${document.body.classList.contains('gated') ? '<button class="btn btn-ghost gate-guest" data-guest>👤 Jouer en invité</button><p class="hint gate-gh">En invité, ta partie reste sur cet appareil : pas d\'amis, pas de classement ni de ville en ligne. Tu pourras créer ton compte plus tard (onglet Amis).</p>' : ''}

@@ -144,6 +144,14 @@
   };
   N.signIn = (email, pw) => auth.signInWithEmailAndPassword(email.trim(), pw);
   N.resetPassword = email => auth.sendPasswordResetEmail(email.trim());
+  // Changer de mot de passe : Firebase demande de confirmer l'ancien juste avant
+  N.changePassword = async function (current, next) {
+    if (!N.user || !N.user.email) throw userErr('Connecte-toi d\'abord.');
+    if (!next || next.length < 6) throw userErr('Le nouveau mot de passe doit faire au moins 6 caractères.');
+    const cred = firebase.auth.EmailAuthProvider.credential(N.user.email, current || '');
+    await N.user.reauthenticateWithCredential(cred);
+    await N.user.updatePassword(next);
+  };
   N.resendVerification = () => N.user.sendEmailVerification();
   N.refreshUser = async () => { await N.user.reload(); N.user = auth.currentUser; emit('change'); };
   N.signOut = async function () {

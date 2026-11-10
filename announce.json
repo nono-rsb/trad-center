@@ -1,16 +1,16 @@
 {
-  "id": "maj-2026-11-10-maire",
-  "emoji": "👑",
-  "title": "Le Maire a maintenant des pouvoirs",
+  "id": "maj-2026-11-10-bot2",
+  "emoji": "🤖",
+  "title": "Le bot de trading devient plus malin",
   "items": [
-    { "icon": "🗳️", "title": "Promesses de campagne", "text": "À la Mairie, choisis ce que tu lanceras si tu es élu : commerces +50 %, bonus doublé, zéro frais…" },
-    { "icon": "💸", "title": "Taxe et protection", "text": "Le Maire touche 1 % de chaque rachat en ville, et ses commerces ne peuvent pas être rachetés." },
-    { "icon": "📢", "title": "Discours et palais", "text": "Le Maire envoie des discours à tous les joueurs, et son bâtiment devient un palais sur la carte." }
+    { "icon": "🧠", "title": "Plus prudent sur les flambées", "text": "Il évite d'acheter juste après une montée trop brutale, et ses stop-loss s'adaptent à chaque actif." },
+    { "icon": "🎯", "title": "Tes règles", "text": "Choisis ses marchés (Crypto, Bourse ou Tout), une perte max par jour, un objectif du jour et le réinvestissement des gains." },
+    { "icon": "📊", "title": "Ses résultats", "text": "Gain du jour, gain total, % de trades gagnants et sa courbe. 🔑 Nouveau aussi : changer ton mot de passe dans les Paramètres." }
   ],
-  "button": "Aller à la Mairie 🏤",
-  "tab": "city",
+  "button": "Voir le bot 🤖",
+  "tab": "portfolio",
   "push": {
-    "title": "👑 Le Maire a maintenant des pouvoirs !",
-    "body": "Taxe, discours, palais et promesses de campagne. Fais ta promesse à la Mairie et gagne l'élection !"
+    "title": "🤖 Le bot de trading devient plus malin",
+    "body": "Stops intelligents, choix des marchés, perte max et objectif du jour, statistiques. À tester dans Portefeuille !"
   }
 }
