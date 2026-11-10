@@ -49,7 +49,7 @@
     window.scrollTo({ top: 0 });
   }
   TC.goto = id => { setTab('markets'); select(id); };
-  TC.App = { setTab, after: () => afterAction() };
+  TC.App = { setTab, after: () => afterAction(), snow: f => snow(f) };
 
   /* ---------------- Événements ---------------- */
   document.addEventListener('click', async e => {
@@ -185,8 +185,9 @@
   }
 
   /* ---------------- Neige (thème de Noël) ---------------- */
-  function snow() {
-    if (!TC.season.noel || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  function snow(force) {
+    if (document.getElementById('snow')) return;
+    if ((!TC.season.noel && !force) || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const c = document.createElement('canvas'); c.id = 'snow'; document.body.appendChild(c);
     const ctx = c.getContext('2d'); let W, H, flakes = [];
     const resize = () => { const r = devicePixelRatio || 1; W = innerWidth; H = innerHeight; c.width = W * r; c.height = H * r; c.style.width = W + 'px'; c.style.height = H + 'px'; ctx.setTransform(r, 0, 0, r, 0, 0); };
@@ -259,6 +260,7 @@
       <p class="hint">Si votre réseau bloque une source, le jeu utilise le dernier cours connu puis une simulation (badge SIM) jusqu'au retour de la connexion.</p>
       <div class="modal-actions left"><button class="btn" id="b-help2">❔ Aide</button><button class="btn" id="b-notif2">🔔 Notifications</button></div>
       <h4>Jeu</h4>
+      <button class="btn" id="b-cheat">🎮 Entrer un code de triche</button>
       <label class="tgl"><input type="checkbox" id="s-expert" ${S().expert ? 'checked' : ''}><span>⚡ Mode expert : trading à levier (x2 à x100, plus risqué)</span></label>
       <h4>Application</h4>
       <button class="btn" id="b-install2">📲 Installer sur l'écran d'accueil</button>
@@ -270,6 +272,7 @@
       <button class="btn btn-sell" id="b-reset">🗑️ Recommencer une partie à 10 €</button>
       </div>`);
     md.el.querySelector('#b-install2').onclick = () => install();
+    md.el.querySelector('#b-cheat').onclick = () => TC.Cheats.open();
     md.el.querySelector('#s-expert').onchange = e => { S().expert = e.target.checked; G.save(); UI.order(); TC.toast(e.target.checked ? '⚡ Mode expert activé : onglet Levier disponible' : 'Mode expert désactivé', 'info'); };
     md.el.querySelector('#b-help2').onclick = () => help();
     md.el.querySelector('#b-notif2').onclick = () => TC.Notif.open();
