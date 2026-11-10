@@ -7,6 +7,8 @@
   const { $, fmt } = TC;
   const G = TC.Game, N = TC.Net, S = () => G.state;
   const EV = 'teddy-2026-11', YES = 50, NO = 20;
+  const END = Date.parse('2026-11-11T06:00:00+01:00'); // fin de l'événement : mercredi 11 novembre 2026, 6 h (heure de Paris)
+  const over = () => Date.now() >= END;
   const T = TC.Teddy = {};
 
   async function tally() {
@@ -18,7 +20,7 @@
   }
 
   async function vote(v, page) {
-    if (S().events && S().events[EV]) return;
+    if ((S().events && S().events[EV]) || over()) return;
     (S().events || (S().events = {}))[EV] = v;
     const amt = v === 'oui' ? YES : -Math.min(NO, S().cash);
     S().cash += amt; if (TC.Weekly) TC.Weekly.flow(amt);
@@ -36,6 +38,7 @@
   function close(page) { page.classList.remove('in'); setTimeout(() => page.remove(), 400); }
 
   T.show = function (force) {
+    if (over()) return; // événement terminé
     if (!force && S().events && S().events[EV]) return;
     if ($('#teddy')) return;
     const page = document.createElement('div'); page.id = 'teddy';
@@ -54,5 +57,7 @@
   };
 
   // apparaît une fois, quand aucune autre fenêtre n'est ouverte
-  setTimeout(function wait() { if ($('#modal').classList.contains('open')) return setTimeout(wait, 3000); T.show(); }, 4000);
+  setTimeout(function wait() { if (over()) return; if ($('#modal').classList.contains('open')) return setTimeout(wait, 3000); T.show(); }, 4000);
+  // si la page est ouverte au moment où l'événement se termine, elle se ferme toute seule
+  const timer = setInterval(() => { if (!over()) return; clearInterval(timer); const p = $('#teddy'); if (p) close(p); }, 30000);
 })();
