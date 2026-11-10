@@ -474,3 +474,15 @@ body.gated #tab-social .auth { max-width: 460px; margin: 0 auto; width: 100%; }
 @media (max-width: 700px) { .city3d { height: 62vh; border-radius: 22px; margin-left: -4px; margin-right: -4px; } }
 .c3-hud { gap: 6px; } .c3-hud button { font-size: 12px; padding: 7px 10px; border-radius: 14px; min-width: 46px; }
 .c3-err { margin-bottom: 10px; font-size: 13px; } .c3-err .btn { margin-top: 6px; }
+/* Ville : rachat, visite, élection */
+.lot-visit { width: 100%; margin: 6px 0 4px; }
+.lot-vote { width: 100%; margin-top: 10px; }
+.lot-takes { display: flex; flex-direction: column; gap: 6px; text-align: left; }
+.take { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 14px; background: rgba(255,255,255,.08); font-size: 13px; }
+.take b { color: #ffd560; } .take small { color: var(--muted); font-size: 11px; text-align: right; }
+.mairie .nbox { text-align: left; margin: 10px 0; }
+.elect { display: flex; flex-direction: column; gap: 6px; }
+.er { position: relative; display: grid; grid-template-columns: 30px 1fr auto; align-items: center; gap: 6px; padding: 7px 10px; border-radius: 12px; background: rgba(255,255,255,.07); overflow: hidden; text-align: left; font-size: 13px; }
+.er i { position: absolute; left: 0; top: 0; bottom: 0; background: linear-gradient(90deg, rgba(255,213,96,.28), rgba(255,213,96,.08)); z-index: 0; } .er > *:not(i) { position: relative; z-index: 1; }
+.er em { font-style: normal; font-weight: 800; color: #ffd560; }
+.elect-c { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; max-height: 180px; overflow: auto; }

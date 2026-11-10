@@ -1,17 +1,16 @@
 {
-  "id": "maj-2026-11-10-ville3d",
-  "emoji": "🏙️",
-  "title": "Trad City passe en 3D !",
+  "id": "maj-2026-11-10-ville-v3",
+  "emoji": "👑",
+  "title": "Nouveau dans Trad City",
   "items": [
-    { "icon": "🏙️", "title": "La ville en 3D", "text": "Vrais bâtiments 3D : de la tente au gratte-ciel, jusqu'à la tour dorée du milliardaire. Tourne et zoome avec les doigts." },
-    { "icon": "🏎️", "title": "Voitures 3D", "text": "Des voitures roulent dans les rues, et ta plus belle voiture est garée devant chez toi." },
-    { "icon": "💰", "title": "Commerces 10× plus rentables", "text": "Ils rapportent maintenant 2 % de leur prix par heure : remboursés en 2 jours environ." },
-    { "icon": "🌙", "title": "Jour et nuit", "text": "La ville s'allume la nuit (heure de Paris). Touche un bâtiment pour voir son propriétaire." }
+    { "icon": "🏠", "title": "Visite les maisons en 3D", "text": "Touche un bâtiment puis « Visiter » : meubles, bureau de trader, lingots d'or, objets de luxe et voitures au garage." },
+    { "icon": "🤝", "title": "Rachète les commerces des autres", "text": "Paie 2 × son prix et il est à toi. Le vendeur touche l'argent. Un commerce tout juste acheté est protégé 24 h." },
+    { "icon": "🗳️", "title": "Élection du Maire", "text": "Chaque semaine, vote à la Mairie. Lundi, l'élu porte la couronne sur la carte et gagne 300 €." }
   ],
   "button": "Voir la ville 🏙️",
   "tab": "city",
   "push": {
-    "title": "🏙️ Trad City passe en 3D !",
-    "body": "Vrais bâtiments et voitures 3D, et des commerces 10 fois plus rentables. Viens voir ta ville !"
+    "title": "👑 Élection du Maire + rachats de commerces !",
+    "body": "Vote pour le Maire de Trad City, rachète les commerces des autres et visite leurs maisons en 3D."
   }
 }

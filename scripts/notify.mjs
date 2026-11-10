@@ -204,6 +204,7 @@ async function main() {
         else if (m.kind === 'friend') msg = { title: `👋 ${from} veut être votre ami`, body: 'Acceptez sa demande dans l\'onglet Amis.', tag: 'friend', url: '?tab=social' };
         else if (m.kind === 'santa') msg = { title: `🎅 ${from} t'a offert un cadeau de Noël !`, body: `${eur(m.eur || 25)} t'attendent dans Trad Center. Joyeux Noël !`, tag: 'santa', url: '?tab=social' };
         else if (m.kind === 'referral') msg = { title: `🎁 +20 € ! ${from} a rejoint Trad Center grâce à toi`, body: 'Ouvre l\'appli pour encaisser ta prime de parrainage.', tag: 'referral', url: '?tab=social' };
+        else if (m.kind === 'takeover') msg = { title: `🤝 ${from} a racheté ton ${String(m.biz || 'commerce').slice(0, 40)}`, body: `+${eur(m.eur || 0)} pour toi ! Ouvre Trad City pour encaisser… ou racheter un autre commerce.`, tag: 'takeover', url: '?tab=city' };
       else if (m.kind === 'accept') msg = { title: `🤝 ${from} a accepté votre demande d'ami`, body: 'Vous pouvez maintenant vous envoyer de l\'argent et des cryptos.', tag: 'friend', url: '?tab=social' };
         else continue;
         for (const s of subs.filter(s => s.uid === m.to && !s.dead && (!s.prefs || s.prefs.transfers !== false))) await push(s, msg);
@@ -242,6 +243,27 @@ async function main() {
         }
       }
     } catch (e) { log('hebdo', e.message); }
+
+    // Élection du maire : résultat le lundi (une fois par semaine)
+    try {
+      const prev = weekOf(Date.now() - 7 * 86400000), cur = weekOf(Date.now()), f = 'vote_' + prev.id;
+      st.election = st.election || {};
+      if (!st.election[prev.id] && 7 * 86400000 - cur.left > 5 * 60000) {
+        let bans = {}; try { const b = await getDoc(doc(db, 'admin', 'bans')); bans = (b.exists() && b.data().users) || {}; } catch (e) { }
+        const count = {};
+        users.forEach(u => { const v = u[f]; if (typeof v === 'string' && v && v !== u.uid && !u.bot && !bans[u.uid] && !bans[v]) count[v] = (count[v] || 0) + 1; });
+        const nw = {}; users.forEach(u => { nw[u.uid] = u.nw || 0; });
+        const win = Object.keys(count).filter(u => pseudo[u]).sort((a, b) => count[b] - count[a] || nw[b] - nw[a])[0];
+        st.election[prev.id] = win || 'aucun';
+        if (win) {
+          log('maire élu', prev.id, pseudo[win], count[win]);
+          for (const s of subs.filter(s => !s.dead)) {
+            await push(s, s.uid === win ? { title: '👑 Tu es élu Maire de Trad City !', body: `${count[win]} voix. Ouvre l'appli pour encaisser tes 300 € et voir ta couronne.`, tag: 'mayor', url: '?tab=city' }
+              : { title: `👑 ${pseudo[win]} est élu Maire de Trad City`, body: `Avec ${count[win]} voix. Nouvelle élection cette semaine : va voter à la Mairie !`, tag: 'mayor', url: '?tab=city' });
+          }
+        }
+      }
+    } catch (e) { log('élection', e.message); }
 
     // 2 et 3. Marchés et alertes (seulement si quelqu'un est abonné)
     const live = subs.filter(s => !s.dead);

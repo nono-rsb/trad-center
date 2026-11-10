@@ -449,6 +449,7 @@
       g.setAttribute('position', new T.Float32BufferAttribute(a, 3));
       stars = new T.Points(g, new T.PointsMaterial({ color: 0xffffff, size: 2, sizeAttenuation: false, fog: false })); world.add(stars);
     }
+    if (inside) world.visible = false;
     if (noel) {
       const g = new T.BufferGeometry(), a = []; for (let i = 0; i < 1500; i++) a.push((rc() - .5) * W, rc() * 90, (rc() - .5) * W);
       g.setAttribute('position', new T.Float32BufferAttribute(a, 3));
@@ -456,11 +457,158 @@
     }
   }
 
+  /* ---------- Intérieur d'une maison (vue « maison de poupée », murs côté caméra masqués) ---------- */
+  let inside = null, insideInfo = null, savedCam = null, room = { W: 20, D: 14 };
+  const walls = [], animIn = [];
+  function chartTex(up) {
+    return canvasTex(256, 144, (g, w, h) => {
+      g.fillStyle = '#0b1220'; g.fillRect(0, 0, w, h);
+      g.strokeStyle = 'rgba(255,255,255,.08)'; for (let y = 20; y < h; y += 24) { g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); }
+      let v = h * .7; g.strokeStyle = up ? '#16c784' : '#ea3943'; g.lineWidth = 4; g.beginPath(); g.moveTo(0, v);
+      for (let x = 0; x <= w; x += 8) { v += (Math.random() - (up ? .62 : .38)) * 14; v = Math.max(18, Math.min(h - 10, v)); g.lineTo(x, v); }
+      g.stroke(); g.fillStyle = '#fff'; g.font = 'bold 22px sans-serif'; g.fillText(up ? 'BTC  +4,2 %' : 'CAC40  -1,3 %', 10, 28);
+    });
+  }
+  function picture(e, txt) {
+    const t = canvasTex(160, 128, (g, w, h) => {
+      g.fillStyle = '#d4af37'; g.fillRect(0, 0, w, h); g.fillStyle = '#fdfaf2'; g.fillRect(8, 8, w - 16, h - 16);
+      g.font = '62px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(e, w / 2, 56);
+      g.fillStyle = '#333'; g.font = 'bold 13px sans-serif'; g.fillText(String(txt).slice(0, 20), w / 2, 106);
+    });
+    return new T.Mesh(new T.PlaneGeometry(2.6, 2.1), new T.MeshBasicMaterial({ map: t }));
+  }
+  function furniture(g, info) {
+    const t = info.tier, { W, D } = room, lux = t >= 6;
+    const wood = col(t <= 1 ? 0x6b4423 : 0x8b5a2b), fabric = col(lux ? 0x5b2333 : t >= 3 ? 0x34495e : 0x8e6e53);
+    // lit
+    const bx = -W / 2 + 3, bz = -D / 2 + 3.2, bw = t >= 4 ? 4.4 : 3;
+    g.add(box(bw + .4, .6, 5, wood, bx, 0, bz)); g.add(box(bw, .6, 4.6, col(0xffffff), bx, .6, bz + .1));
+    g.add(box(bw, .5, 2.6, col(lux ? 0xd4af37 : 0x3b82f6), bx, .9, bz + 1)); g.add(box(bw * .8, .4, .9, col(0xf5f5f5), bx, 1.2, bz - 1.6));
+    g.add(box(bw + .4, 2.2, .3, wood, bx, 0, bz - 2.6));
+    // télé avec un graphique de bourse
+    const tvz = -D / 2 + .7;
+    g.add(box(4.2, .9, 1, col(0x222222), 1, 0, tvz));
+    const scr = new T.Mesh(new T.PlaneGeometry(4.6, 2.6), new T.MeshBasicMaterial({ map: chartTex(true) })); scr.position.set(1, 2.6, tvz + .2); g.add(scr);
+    g.add(box(4.8, 2.9, .15, col(0x111111), 1, 1.15, tvz + .05));
+    // canapé + table basse
+    const sz = D * .18;
+    g.add(box(5.4, .9, 2, fabric, 1, 0, sz)); g.add(box(5.4, 1.4, .6, fabric, 1, .9, sz + .8));
+    [-2.8, 2.8].forEach(x => g.add(box(.5, 1.4, 2, fabric, 1 + x, 0, sz)));
+    g.add(box(2.6, .6, 1.4, col(lux ? 0xffffff : 0x5d4037), 1, 0, sz - 2.4));
+    g.add(box(W * .42, .05, D * .38, col(lux ? 0x7a1f2b : 0x3b6ea5), 1, 0, sz - 1.4)); // tapis
+    // plantes et lampe
+    [[-W / 2 + 1.2, D / 2 - 1.2], [W / 2 - 1.2, -D / 2 + 1.2]].forEach(([x, z]) => { g.add(cyl(.5, .4, .9, col(0xc0573b), x, 0, z, 10)); g.add(mesh(new T.SphereGeometry(.9, 10, 8), col(0x2e8b3a), x, 1.6, z)); });
+    g.add(cyl(.08, .08, 3.4, col(0x333333), -W / 2 + 1.2, 0, 0, 6));
+    g.add(mesh(new T.ConeGeometry(.7, .8, 14, 1, true), col(0xfff3c4, { emissive: night ? 0xffd27a : 0x000000, emissiveIntensity: .8, side: T.DoubleSide }), -W / 2 + 1.2, 3.6, 0));
+    if (t === 0) { // tente : sac de couchage et feu
+      g.add(box(1.4, .3, 3.4, col(0x2e86de), -1, 0, 0));
+      const f = mesh(new T.ConeGeometry(.5, 1.2, 6), col(0xffa020, { emissive: 0xff6a00, emissiveIntensity: 1 }), 2, .6, 2, false); g.add(f); animIn.push(tt => { f.scale.y = 1 + Math.sin(tt * 9) * .25; });
+    }
+    // bureau de trader avec écrans
+    if (t >= 2) {
+      const dx = W / 2 - 2.2, dz = -D * .1;
+      g.add(box(1.6, 1.4, 4.2, col(0x2d3436), dx, 0, dz)); g.add(box(1, 1, 1, col(0x111111), dx - 1.6, 0, dz));
+      const n = t >= 5 ? 3 : t >= 3 ? 2 : 1;
+      for (let i = 0; i < n; i++) { const m = new T.Mesh(new T.PlaneGeometry(1.8, 1.1), new T.MeshBasicMaterial({ map: chartTex(i !== 1) })); m.position.set(dx + .2, 2.2, dz + (i - (n - 1) / 2) * 1.35); m.rotation.y = -Math.PI / 2; g.add(m); }
+    }
+    // aquarium
+    if (t >= 4) {
+      const ax = -W / 2 + 1.1, az = D * .05;
+      g.add(box(1.4, 1, 4, col(0x222222), ax, 0, az));
+      g.add(mesh(new T.BoxGeometry(1.3, 1.8, 3.8), new T.MeshStandardMaterial({ color: 0x4fc3f7, transparent: true, opacity: .45, emissive: 0x0a4a7a, emissiveIntensity: .4 }), ax, 1.9, az, false));
+      ['🐠', '🐟', '🐡'].forEach((e, i) => { const f = emojiSprite(e, .9); g.add(f); animIn.push(tt => { f.position.set(ax, 1.6 + i * .45, az + Math.sin(tt * (.6 + i * .2) + i) * 1.4); }); });
+    }
+    // piano à queue
+    if (t >= 5) { const px = -W * .22, pz = D / 2 - 3; g.add(box(3, 1, 3.6, col(0x0a0a0a, { roughness: .2, metalness: .3 }), px, 1, pz)); g.add(box(3, .15, .5, col(0xffffff), px, 1.9, pz - 1.9)); [[-1.2, -1.4], [1.2, -1.4], [0, 1.4]].forEach(([x, z]) => g.add(cyl(.12, .12, 1, col(0x111111), px + x, 0, pz + z, 6))); }
+    // jacuzzi
+    if (t >= 6) { const jx = W / 2 - 3, jz = D / 2 - 3; g.add(cyl(2.3, 2.3, 1.1, col(0xffffff), jx, 0, jz, 24)); const wv = mesh(new T.CylinderGeometry(2, 2, .1, 24), new T.MeshStandardMaterial({ color: 0x2ec4ff, emissive: 0x0a5a8a, emissiveIntensity: .5 }), jx, 1.1, jz, false); g.add(wv); animIn.push(tt => { wv.position.y = 1.05 + Math.sin(tt * 3) * .04; }); }
+    // coffre-fort et lingots d'or (selon la fortune)
+    if (t >= 3) {
+      const sx = W / 2 - 1.6, sz2 = D / 2 - (t >= 6 ? 7 : 2);
+      g.add(box(2, 2.4, 2, col(0x4a4f57, { metalness: .7, roughness: .35 }), sx, 0, sz2)); g.add(cyl(.4, .4, .2, col(0xd4af37, { metalness: .9 }), sx - 1.05, 1.2, sz2, 12));
+      const gold = col(0xf5c518, { metalness: .9, roughness: .2, emissive: 0x3a2a00, emissiveIntensity: .3 });
+      const nBars = Math.min(36, Math.floor(Math.log10(Math.max(10, info.nw || 10)) * 4));
+      for (let i = 0; i < nBars; i++) { const row = Math.floor(i / 6), c = i % 6; const layer = Math.floor(row / 2); g.add(box(.9, .35, .45, gold, sx - 2.6 - (c % 3) * 1, layer * .36, sz2 - .6 + (row % 2) * .55 + Math.floor(c / 3) * 1.2)); }
+    }
+    // taureau doré de Wall Street
+    if (t >= 7) {
+      const gx = -W * .25, gz = -D * .05, gm = col(0xd4af37, { metalness: .95, roughness: .2 });
+      g.add(box(3.2, .6, 1.6, col(0x222222), gx, 0, gz)); g.add(box(2.6, 1.4, 1.2, gm, gx, .9, gz)); g.add(box(1, 1, 1, gm, gx + 1.6, 1.3, gz));
+      [[-1, -.4], [-1, .4], [1, -.4], [1, .4]].forEach(([x, z]) => g.add(box(.3, .9, .3, gm, gx + x, .6, gz + z)));
+      [-.35, .35].forEach(z => { const h = mesh(new T.ConeGeometry(.15, .9, 8), gm, gx + 2.2, 2.1, gz + z); h.rotation.z = -1; g.add(h); });
+    }
+  }
+  function interior(info) {
+    const g = new T.Group(); const t = info.tier;
+    room = { W: 16 + t * 2.2, D: 12 + t * 1.6 };
+    const { W, D } = room, H = 5.5 + (t >= 5 ? 1.5 : 0), lux = t >= 6;
+    const floor = box(W, .4, D, t <= 1 ? col(0x7a5230) : t <= 4 ? col(0xc8a27a) : col(0xf2efe9, { roughness: .25, metalness: .1 }), 0, -.4, 0); g.add(floor);
+    const wallMat = t === 0 ? col(0xff9a4d) : lux ? col(0x1f2a44) : col(0xf3eadb);
+    const skyMat = new T.MeshBasicMaterial({ color: night ? 0x121a40 : 0x9fd3ff });
+    [[0, -D / 2, W, 'z', [0, -1]], [0, D / 2, W, 'z', [0, 1]], [-W / 2, 0, D, 'x', [-1, 0]], [W / 2, 0, D, 'x', [1, 0]]].forEach(([x, z, len, ax, n]) => {
+      const w = ax === 'z' ? box(len, H, .35, wallMat, x, 0, z) : box(.35, H, len, wallMat, x, 0, z);
+      w.userData.n = n; w.userData.half = ax === 'z' ? D / 2 : W / 2;
+      // fenêtres (enfants du mur : elles disparaissent avec lui)
+      for (const off of [-len / 4, len / 4]) {
+        const win = new T.Mesh(new T.PlaneGeometry(2.8, 2), skyMat); const k = n[0] || n[1];
+        if (ax === 'z') { win.position.set(off, .6, -k * .2); win.rotation.y = k > 0 ? Math.PI : 0; } else { win.position.set(-k * .2, .6, off); win.rotation.y = k > 0 ? -Math.PI / 2 : Math.PI / 2; }
+        w.add(win);
+      }
+      if (lux) { const trim = box(ax === 'z' ? len : .4, .25, ax === 'z' ? .4 : len, col(0xd4af37, { metalness: .9, roughness: .2 }), 0, 0, 0); trim.position.set(0, H / 2, 0); w.add(trim); }
+      g.add(w); walls.push(w);
+    });
+    furniture(g, info);
+    // biens immobiliers en tableaux, objets de luxe sur des socles
+    const items = (info.own || []).map(id => TC.shopById[id]).filter(Boolean);
+    const estates = items.filter(i => i.type === 'estate').slice(0, 4), luxe = items.filter(i => i.type === 'luxury').slice(0, 6), autos = items.filter(i => i.type === 'car').slice(0, 4);
+    const back = walls[0];
+    estates.forEach((it, i) => { const p = picture(it.emoji, it.model); p.position.set(-W / 2 + 6 + i * 3.2, .9, .2); back.add(p); });
+    luxe.forEach((it, i) => {
+      const x = -W / 2 + 2.5 + i * 2.4, z = D / 2 - 1.6;
+      g.add(cyl(.6, .7, 1.2, col(0xffffff, { roughness: .3 }), x, 0, z, 16));
+      const sp = emojiSprite(it.emoji, 1.5); g.add(sp); animIn.push(tt => { sp.position.set(x, 2 + Math.sin(tt * 2 + i) * .15, z); });
+    });
+    // le propriétaire au milieu de son salon
+    const av = emojiSprite(info.avatar || '😎', 3); g.add(av); animIn.push(tt => { av.position.set(-1.5, 2 + Math.sin(tt * 2) * .2, D * .02); });
+    // garage avec ses voitures
+    if (autos.length) {
+      const gz = D / 2 + 7;
+      g.add(box(Math.max(14, autos.length * 6), .3, 9, col(0x4a4f57), 0, -.3, gz));
+      autos.forEach((it, i) => {
+        const c = car(parseInt(String(it.grad[0]).replace('#', ''), 16) || 0xd00000, true); const x = (i - (autos.length - 1) / 2) * 6;
+        c.position.set(x, 0, gz); c.scale.setScalar(1.4); g.add(c);
+        const lb = label(it.brand + ' ' + it.model, { scale: .3 }); lb.position.set(x, 3.4, gz); g.add(lb);
+      });
+    }
+    g.traverse(o => { if (o.isMesh) o.castShadow = o.receiveShadow = true; });
+    return g;
+  }
+  V.enter = function (info) {
+    if (!V.ready || !world) return;
+    V.exit(true);
+    savedCam = Object.assign({}, cam, { goal: null });
+    insideInfo = info; world.visible = false;
+    inside = interior(info); scene.add(inside);
+    scene.fog = null; scene.background = new T.Color(night ? 0x0d0b1e : 0x2a2140);
+    const m = Math.max(room.W, room.D);
+    Object.assign(cam, { tx: 0, ty: 2, tz: 0, r: m * 1.45, ph: .95, th: .6, goal: null, idle: 0 });
+  };
+  V.exit = function (silent) {
+    if (!inside) return;
+    scene.remove(inside);
+    inside.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material && !Array.isArray(o.material) && o.material.map && (o.isSprite || o.material.isMeshBasicMaterial)) { o.material.map.dispose(); o.material.dispose(); } });
+    inside = null; insideInfo = null; walls.length = 0; animIn.length = 0;
+    if (world) world.visible = true;
+    setSky();
+    if (savedCam) Object.assign(cam, savedCam); savedCam = null;
+  };
+  V.insideOf = () => insideInfo;
+
   /* ---------- Caméra : un doigt pour tourner, deux pour zoomer / déplacer ---------- */
   const cam = { th: .8, ph: 1.0, r: 140, tx: 0, ty: 4, tz: 0, goal: null, idle: 0 };
   function applyCam() {
-    cam.ph = Math.max(.25, Math.min(1.42, cam.ph)); cam.r = Math.max(25, Math.min(HALF * 4.5, cam.r));
-    const lim = HALF + 10; cam.tx = Math.max(-lim, Math.min(lim, cam.tx)); cam.tz = Math.max(-lim, Math.min(lim, cam.tz));
+    cam.ph = Math.max(.25, Math.min(1.42, cam.ph)); cam.r = inside ? Math.max(8, Math.min(Math.max(room.W, room.D) * 3, cam.r)) : Math.max(25, Math.min(HALF * 4.5, cam.r));
+    const lim = inside ? room.W / 2 : HALF + 10; cam.tx = Math.max(-lim, Math.min(lim, cam.tx)); cam.tz = Math.max(-lim, Math.min(lim, cam.tz));
     camera.position.set(cam.tx + cam.r * Math.sin(cam.ph) * Math.sin(cam.th), cam.r * Math.cos(cam.ph), cam.tz + cam.r * Math.sin(cam.ph) * Math.cos(cam.th));
     camera.position.y += cam.ty - 4; camera.lookAt(cam.tx, cam.ty, cam.tz);
   }
@@ -517,7 +665,8 @@
     if (cam.goal) { const g = cam.goal, k = Math.min(1, dt * 3); cam.tx += (g.tx - cam.tx) * k; cam.tz += (g.tz - cam.tz) * k; cam.r += (g.r - cam.r) * k; cam.ty += ((g.ty || 4) - cam.ty) * k; if (Math.abs(g.tx - cam.tx) + Math.abs(g.tz - cam.tz) + Math.abs(g.r - cam.r) < .5) cam.goal = null; }
     else if (cam.idle > 6) cam.th += dt * .05; // rotation lente quand on ne touche à rien
     applyCam();
-    animated.forEach(f => f(t, dt));
+    if (inside) { animIn.forEach(f => f(t, dt)); walls.forEach(w => { const n = w.userData.n; w.visible = (camera.position.x * n[0] + camera.position.z * n[1]) < w.userData.half + 2; }); }
+    else animated.forEach(f => f(t, dt));
     blinkers.forEach((b, i) => { b.visible = ((t + i * .3) % 1.4) < .7; });
     cars.forEach(c => {
       c.t += c.v * c.dir * dt; const lim = c.W / 2 + 6;
@@ -526,7 +675,7 @@
     });
     if (snow) { const a = snow.geometry.attributes.position; for (let i = 1; i < a.array.length; i += 3) { a.array[i] -= dt * 6; if (a.array[i] < 0) a.array[i] = 90; } a.needsUpdate = true; }
     // les étiquettes lointaines s'effacent pour ne pas encombrer
-    labels.forEach(l => { const d = l.position.distanceTo(camera.position); const o = Math.max(0, Math.min(1, (HALF * 3.2 - d) / (HALF * 1.2))); l.material.opacity = Math.max(.12, o); });
+    if (!inside) labels.forEach(l => { const d = l.position.distanceTo(camera.position); const o = Math.max(0, Math.min(1, (HALF * 3.2 - d) / (HALF * 1.2))); l.material.opacity = Math.max(.12, o); });
     try { renderer.render(scene, camera); } catch (e) { fail('rendu : ' + (e.message || e)); }
   }
 
