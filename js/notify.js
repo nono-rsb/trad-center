@@ -206,7 +206,7 @@
       ${!NT.subscribed() && pushSupported() && N.user && N.profile ? '<button class="btn btn-gold" data-n="enable">📡 Recevoir aussi quand l\'appli est fermée</button>' : ''}
       ${!N.user && N.enabled ? '<p class="hint">Connectez-vous (onglet 👥 Amis) pour les recevoir aussi quand l\'appli est fermée et être prévenu des envois.</p>' : ''}`;
     const key = await NT.serverKey();
-    const diag = `<p class="diag">Diagnostic : ${ios ? 'iPhone' : android ? 'Android' : 'ordinateur'} · appli installée : ${sa ? 'oui' : 'non'} · autorisation : ${supported() ? perm : 'indisponible'} · push : ${pushSupported() ? 'oui' : 'non'} · compte : ${N.user ? 'oui' : 'non'} · serveur : ${key ? 'prêt' : 'non'} · abonné : ${NT.subscribed() ? 'oui' : 'non'}${NT.lastStep ? ' · étape : ' + esc(NT.lastStep) : ''} · v13</p>`;
+    const diag = `<p class="diag">Diagnostic : ${ios ? 'iPhone' : android ? 'Android' : 'ordinateur'} · appli installée : ${sa ? 'oui' : 'non'} · autorisation : ${supported() ? perm : 'indisponible'} · push : ${pushSupported() ? 'oui' : 'non'} · compte : ${N.user ? 'oui' : 'non'} · serveur : ${key ? 'prêt' : 'non'} · abonné : ${NT.subscribed() ? 'oui' : 'non'}${NT.lastStep ? ' · étape : ' + esc(NT.lastStep) : ''} · v15</p>`;
     const opts = TC.ASSETS.map(a => `<option value="${a.id}">${a.id} — ${esc(a.name)}</option>`).join('');
     const md = TC.modal(`<h2>🔔 Notifications</h2><div class="modal-body">${status}
       <h4>Que voulez-vous recevoir ?</h4>
