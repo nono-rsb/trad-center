@@ -1,16 +1,16 @@
 {
-  "id": "maj-2026-11-10-bot2",
+  "id": "maj-2026-11-10-bot3",
   "emoji": "🤖",
-  "title": "Le bot de trading devient plus malin",
+  "title": "Le bot de trading passe en mode pro",
   "items": [
-    { "icon": "🧠", "title": "Plus prudent sur les flambées", "text": "Il évite d'acheter juste après une montée trop brutale, et ses stop-loss s'adaptent à chaque actif." },
-    { "icon": "🎯", "title": "Tes règles", "text": "Choisis ses marchés (Crypto, Bourse ou Tout), une perte max par jour, un objectif du jour et le réinvestissement des gains." },
-    { "icon": "📊", "title": "Ses résultats", "text": "Gain du jour, gain total, % de trades gagnants et sa courbe. 🔑 Nouveau aussi : changer ton mot de passe dans les Paramètres." }
+    { "icon": "🛡️", "title": "Protège ses gains", "text": "Dès +1 %, son stop remonte au prix d'achat, et il encaisse la moitié à mi-objectif. Le reste continue de monter." },
+    { "icon": "🌍", "title": "Trade partout", "text": "Cryptos, actions, indices, matières premières : il choisit les meilleures tendances et les rebonds, et ne parie plus seulement sur le Bitcoin." },
+    { "icon": "🧠", "title": "Apprend de ses erreurs", "text": "Il met de côté un actif après 2 pertes, n'achète pas de crypto quand le Bitcoin chute, et adapte ses mises au risque." }
   ],
   "button": "Voir le bot 🤖",
   "tab": "portfolio",
   "push": {
-    "title": "🤖 Le bot de trading devient plus malin",
-    "body": "Stops intelligents, choix des marchés, perte max et objectif du jour, statistiques. À tester dans Portefeuille !"
+    "title": "🤖 Le bot de trading passe en mode pro",
+    "body": "Protection des gains, ventes partielles, tous les marchés, paris plus sûrs. Allume-le dans Portefeuille !"
   }
 }
