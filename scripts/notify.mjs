@@ -199,6 +199,14 @@ async function main() {
       for (const m of box) {
         st.done[m.id] = Date.now();
         const from = pseudo[u.uid] || 'Un ami';
+        if (m.kind === 'speech') { // discours du Maire élu : à tous, au plus un toutes les 6 h
+          const prevId = weekOf(Date.now() - 7 * 86400000).id; st.speechAt = st.speechAt || {};
+          if (!st.election || st.election[prevId] !== u.uid || Date.now() - (st.speechAt[u.uid] || 0) < 6 * 3600000) continue;
+          st.speechAt[u.uid] = Date.now();
+          const text = String(m.text || '').slice(0, 140);
+          for (const s of subs.filter(s => !s.dead && s.uid !== u.uid)) await push(s, { title: `📢 Discours du Maire ${from} 👑`, body: `« ${text} »`, tag: 'speech', url: '?tab=city' });
+          continue;
+        }
         let msg;
         if (m.kind === 'transfer') msg = { title: `💸 ${from} vous a envoyé ${fmtAmt(m)}`, body: m.msg ? `« ${String(m.msg).slice(0, 120)} »` : 'Ouvrez Trad Center pour en profiter !', tag: 'transfer', url: '?tab=social' };
         else if (m.kind === 'friend') msg = { title: `👋 ${from} veut être votre ami`, body: 'Acceptez sa demande dans l\'onglet Amis.', tag: 'friend', url: '?tab=social' };

@@ -1,16 +1,16 @@
 {
-  "id": "maj-2026-11-10-ville-v3",
+  "id": "maj-2026-11-10-maire",
   "emoji": "👑",
-  "title": "Nouveau dans Trad City",
+  "title": "Le Maire a maintenant des pouvoirs",
   "items": [
-    { "icon": "🏠", "title": "Visite les maisons en 3D", "text": "Touche un bâtiment puis « Visiter » : meubles, bureau de trader, lingots d'or, objets de luxe et voitures au garage." },
-    { "icon": "🤝", "title": "Rachète les commerces des autres", "text": "Paie 2 × son prix et il est à toi. Le vendeur touche l'argent. Un commerce tout juste acheté est protégé 24 h." },
-    { "icon": "🗳️", "title": "Élection du Maire", "text": "Chaque semaine, vote à la Mairie. Lundi, l'élu porte la couronne sur la carte et gagne 300 €." }
+    { "icon": "🗳️", "title": "Promesses de campagne", "text": "À la Mairie, choisis ce que tu lanceras si tu es élu : commerces +50 %, bonus doublé, zéro frais…" },
+    { "icon": "💸", "title": "Taxe et protection", "text": "Le Maire touche 1 % de chaque rachat en ville, et ses commerces ne peuvent pas être rachetés." },
+    { "icon": "📢", "title": "Discours et palais", "text": "Le Maire envoie des discours à tous les joueurs, et son bâtiment devient un palais sur la carte." }
   ],
-  "button": "Voir la ville 🏙️",
+  "button": "Aller à la Mairie 🏤",
   "tab": "city",
   "push": {
-    "title": "👑 Élection du Maire + rachats de commerces !",
-    "body": "Vote pour le Maire de Trad City, rachète les commerces des autres et visite leurs maisons en 3D."
+    "title": "👑 Le Maire a maintenant des pouvoirs !",
+    "body": "Taxe, discours, palais et promesses de campagne. Fais ta promesse à la Mairie et gagne l'élection !"
   }
 }
