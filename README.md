@@ -70,3 +70,7 @@ js/vendor/      Lightweight Charts 4.1.3 (Apache 2.0)
 ```
 
 > Jeu de simulation : aucun argent réel n'est engagé. Ceci n'est pas un conseil en investissement. Les prix des véhicules et biens sont des prix publics approximatifs.
+
+## 📣 Annonces de nouveautés
+
+À chaque mise à jour, modifier [`announce.json`](announce.json) avec un **nouvel `id`** : la liste des nouveautés s'affiche une fois à chaque joueur à l'ouverture du jeu, et le serveur de notifications envoie `push.title` / `push.body` une fois à tous les appareils abonnés. Pour l'envoyer tout de suite : onglet Actions → *Notifications push* → *Run workflow*.
