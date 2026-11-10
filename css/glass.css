@@ -257,3 +257,15 @@ html.noel .icon-btn.gold::after { content: '❄'; margin-left: 2px; font-size: 1
 .wk-last { margin: 8px 0; font-size: 13.5px; }
 .board-head { flex-wrap: wrap; gap: 8px; }
 .ok-t { color: var(--up) !important; } .pinfo h2 .btn { vertical-align: middle; }
+
+/* ---------- Bouton flottant : activer les notifications ---------- */
+#notif-nudge { position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 140%); z-index: 70; display: flex; align-items: stretch; gap: 4px; padding: 5px; border-radius: 22px;
+  background: linear-gradient(145deg, rgba(255,255,255,.2), rgba(255,255,255,.07)); backdrop-filter: blur(24px) saturate(180%); -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255,255,255,.25); box-shadow: inset 0 1px 0 rgba(255,255,255,.4), 0 14px 40px rgba(10,0,30,.5); transition: transform .45s cubic-bezier(.2,1.4,.4,1); max-width: calc(100vw - 24px); }
+#notif-nudge.in { transform: translate(-50%, 0); }
+#notif-nudge .nn-main { display: flex; align-items: center; gap: 10px; border: 0; border-radius: 18px; padding: 8px 14px 8px 8px; background: var(--sunset); color: #fff; text-align: left; animation: glow 2s infinite; }
+#notif-nudge .nn-ic { font-size: 22px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: rgba(0,0,0,.18); animation: ring 2.4s infinite; }
+#notif-nudge .nn-t b { display: block; font-size: 14px; } #notif-nudge .nn-t small { display: block; font-size: 11.5px; color: rgba(255,255,255,.85); }
+#notif-nudge .nn-x { border: 0; background: none; color: rgba(255,255,255,.7); padding: 0 8px; font-size: 14px; }
+@keyframes ring { 0%, 60%, 100% { transform: rotate(0); } 65% { transform: rotate(-18deg); } 72% { transform: rotate(16deg); } 79% { transform: rotate(-10deg); } 86% { transform: rotate(6deg); } }
+@media (max-width: 900px) { #notif-nudge { bottom: calc(96px + env(safe-area-inset-bottom)); } }
