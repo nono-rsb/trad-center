@@ -447,3 +447,8 @@ html.gold body::before { filter: sepia(.6) saturate(1.4) hue-rotate(-12deg); }
 .lot-card .kv { text-align: left; margin: 10px 0; } .lot-card h4 { margin: 12px 0 6px; }
 .lot-bizl { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; } .lot-bizl span { padding: 5px 9px; border-radius: 999px; background: rgba(255,255,255,.1); font-size: 13px; } .lot-bizl b { color: #ffd560; }
 @media (max-width: 700px) { .city-map { padding: 8px; border-radius: 22px; } .city-grid { grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 5px; } .lot { min-height: 122px; } .biz-grid { grid-template-columns: 1fr; } .tabs button .ti { font-size: 18px; } .tabs button span { font-size: 9px !important; } }
+
+/* ---------- Connexion obligatoire ---------- */
+body.gated #tabs, body.gated .topbar, body.gated #goalbar, body.gated #notif-nudge, body.gated #teddy { display: none !important; }
+body.gated #tab-social { padding-bottom: 40px; }
+.gate-hi { margin: 4px 0 10px; padding: 10px 12px; border-radius: 14px; background: rgba(240,185,11,.14); border: 1px solid rgba(240,185,11,.4); font-size: 14px; }

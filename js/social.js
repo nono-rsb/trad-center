@@ -43,7 +43,7 @@
   function authForm() {
     const up = SO.authMode === 'signup';
     return `<div class="panel auth">
-      <div class="center"><img src="icons/icon-192.png" class="install-icon" alt=""><h2>${up ? 'Créer mon compte' : 'Connexion'}</h2>
+      <div class="center"><img src="icons/icon-192.png" class="install-icon" alt="">${document.body.classList.contains('gated') ? '<p class="gate-hi">👋 Bienvenue sur <b>Trad Center</b> ! Crée ton compte (ou connecte-toi) pour commencer à jouer avec 10 €.</p>' : ''}<h2>${up ? 'Créer mon compte' : 'Connexion'}</h2>
       <p>${up ? 'Sauvegardez votre partie en ligne, ajoutez vos amis, envoyez-leur de l\'argent ou des bitcoins et comparez vos fortunes.' : 'Retrouvez votre partie sur tous vos appareils.'}</p>
       ${up && localStorage.getItem('tradcenter.ref') ? '<p class="nbox ok">🎁 Vous avez été invité : créez votre compte puis activez les notifications 🔔 pour offrir 20 € à votre ami.</p>' : ''}</div>
       <div class="seg seg-2"><button data-soc="mode-signup" class="${up ? 'active' : ''}">Créer un compte</button><button data-soc="mode-login" class="${up ? '' : 'active'}">J'ai déjà un compte</button></div>
@@ -235,6 +235,18 @@
     const map = { 'a-pw': SO.authMode === 'signup' ? 'signup' : 'login', 'f-add': 'add', 'a-pseudo2': 'pseudo' };
     const act = map[e.target.id]; if (act) { const btn = document.querySelector(`[data-soc="${act}"]`); if (btn) btn.click(); }
   });
+
+  // Accès au jeu réservé aux joueurs connectés : sans compte, seul l'écran de connexion est visible
+  let gated = false;
+  SO.gated = () => gated;
+  function gate() {
+    const need = !!(N.enabled && N.ready && !N.error && (!N.user || N.needPseudo));
+    if (need === gated) return;
+    gated = need;
+    document.body.classList.toggle('gated', need);
+    if (TC.App) TC.App.setTab(need ? 'social' : 'markets');
+  }
+  N.on(() => gate());
 
   N.on((type, d) => {
     if (type === 'change' || type === 'synced') { if (UI.tab === 'social' && !(type === 'synced' && document.activeElement && document.activeElement.closest && document.activeElement.closest('#tab-social'))) SO.render(); SO.headerBtn(); }

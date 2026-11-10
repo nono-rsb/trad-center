@@ -39,6 +39,7 @@
     try { localStorage.setItem('tradcenter.sel', id); } catch (e) { }
   }
   function setTab(t) {
+    if (document.body.classList.contains('gated')) t = 'social'; // pas de compte : connexion d'abord
     if (['car', 'estate', 'luxury'].includes(t)) { UI.shopType = t; t = 'shop'; }
     if (t === 'ach') t = 'collection';
     UI.tab = t;
