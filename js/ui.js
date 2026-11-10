@@ -37,7 +37,7 @@
     if (lastNW != null && Math.abs(nw - lastNW) > 1e-9) flash(nwEl, nw > lastNW);
     lastNW = nw;
     const ch = (nw - G.START_CASH) / G.START_CASH * 100;
-    const ch2 = $('#s-nwch'); ch2.textContent = fmt.pct(ch); ch2.className = cls(ch);
+    const ch2 = $('#s-nwch'); if (ch2) { ch2.textContent = fmt.pct(ch); ch2.className = cls(ch); }
     $('#s-cash').textContent = fmt.eur(S().cash, true);
     const si = $('#s-inv'); if (si) si.textContent = fmt.eur(inv, true);
     const pe = $('#s-pnl'); if (pe) { pe.textContent = (pnl > 0 ? '+' : '') + fmt.eur(pnl, true); pe.className = cls(pnl); }
