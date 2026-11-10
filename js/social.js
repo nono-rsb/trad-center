@@ -60,7 +60,7 @@
     const p = N.profile; const u = N.user;
     return `<div class="panel profile">
       <button class="avatar big" data-soc="avatar" title="Changer d'avatar">${p.avatar}</button>
-      <div class="pinfo"><h2>${esc(p.pseudo)}</h2>
+      <div class="pinfo"><h2>${esc(p.pseudo)} <button class="btn btn-sm btn-ghost" data-soc="rename" title="Changer de pseudo">✏️</button></h2>
         <div class="muted">${esc(u.email || '')} ${u.emailVerified ? '<span class="st st-live">VÉRIFIÉ</span>' : '<span class="st st-sim">NON VÉRIFIÉ</span>'}</div>
         ${u.emailVerified ? '' : `<div class="verify">📧 Confirmez votre adresse via le lien reçu par e-mail. <button class="btn btn-sm" data-soc="resend">Renvoyer</button> <button class="btn btn-sm" data-soc="checkverify">C'est fait</button></div>`}
         <div class="muted small">${G.rank().r[2]} ${G.rank().r[1]} · ${fmt.eur(G.netWorth())} · ${N.lastSync ? '☁️ sauvegardé ' + new Date(N.lastSync).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '☁️ synchronisation…'}</div></div>
@@ -164,6 +164,34 @@
     upd();
   }
 
+  function renameModal() {
+    const md = TC.modal(`<h2>✏️ Changer de pseudo</h2><div class="modal-body">
+      <p>Pseudo actuel : <b>${esc(N.profile.pseudo)}</b></p>
+      <label class="fld">Nouveau pseudo<div class="inp"><input id="r-pseudo" maxlength="16" placeholder="ex : LoupDeBourse" autocomplete="nickname" value="${esc(N.profile.pseudo)}"></div></label>
+      <div class="auth-err" id="r-msg"></div>
+      <p class="hint">3 à 16 caractères : lettres (accents acceptés), chiffres ou _. Chaque pseudo est unique. Tu peux en changer une fois par jour ; ton ancien pseudo redevient libre.</p></div>
+      <div class="modal-actions"><button class="btn btn-ghost" data-close>Annuler</button><button class="btn btn-gold" id="r-go">Valider</button></div>`);
+    const inp = md.el.querySelector('#r-pseudo'), msg = md.el.querySelector('#r-msg'), go = md.el.querySelector('#r-go');
+    inp.focus(); inp.select();
+    let t = null, seq = 0;
+    inp.oninput = () => {
+      clearTimeout(t); const v = inp.value.trim(); const my = ++seq;
+      msg.className = 'auth-err'; msg.textContent = '';
+      if (v.length < 3) return;
+      t = setTimeout(async () => {
+        const k = N.keyOf(v);
+        if (k === (N.profile.nameKey || N.profile.pseudoLower)) return;
+        try { const free = await N.pseudoFree(v); if (my !== seq) return; msg.className = free ? 'auth-err ok-t' : 'auth-err'; msg.textContent = free ? '✅ Disponible' : '❌ Déjà pris'; } catch (e) { }
+      }, 350);
+    };
+    const save = async () => {
+      go.disabled = true;
+      try { await N.changePseudo(inp.value); md.close(); TC.toast(`✏️ Tu t'appelles maintenant <b>${esc(N.profile.pseudo)}</b>`, 'ok'); TC.sound('ach'); SO.render(); N.flush(); }
+      catch (e) { msg.className = 'auth-err'; msg.textContent = N.errMsg(e); go.disabled = false; }
+    };
+    go.onclick = save; inp.onkeydown = e => { if (e.key === 'Enter') save(); };
+  }
+
   function avatarModal() {
     const md = TC.modal(`<h2>Choisir un avatar</h2><div class="avatars">${N.AVATARS.map(a => `<button class="avatar big" data-av="${a}">${a}</button>`).join('')}</div>`);
     md.el.querySelector('.avatars').onclick = async e => { const b = e.target.closest('[data-av]'); if (!b) return; md.close(); try { await N.setAvatar(b.dataset.av); } catch (er) { TC.toast(N.errMsg(er), 'bad'); } };
@@ -186,6 +214,7 @@
     if (a === 'resend') return busy(b, async () => { await N.resendVerification(); TC.toast('📧 E-mail renvoyé.', 'ok'); });
     if (a === 'checkverify') return busy(b, async () => { await N.refreshUser(); TC.toast(N.user.emailVerified ? '✅ Adresse vérifiée !' : 'Pas encore vérifiée : cliquez le lien dans l\'e-mail.', N.user.emailVerified ? 'ok' : 'info'); });
     if (a === 'avatar') return avatarModal();
+    if (a === 'rename') return renameModal();
     if (a === 'add') return busy(b, async () => { const r = await N.addFriend($('#f-add').value); $('#f-add').value = ''; TC.toast(r === 'accepted' ? '🤝 Vous êtes maintenant amis !' : '📨 Demande d\'ami envoyée.', 'ok'); });
     if (a === 'copy' || a === 'share' || a === 'copylink') {
       const url = N.inviteLink();

@@ -256,3 +256,4 @@ html.noel .icon-btn.gold::after { content: '❄'; margin-left: 2px; font-size: 1
 .wk-left { font-family: var(--mono); font-weight: 700; padding: 6px 10px; border-radius: 12px; background: rgba(0,0,0,.25); border: 1px solid rgba(255,255,255,.15); white-space: nowrap; }
 .wk-last { margin: 8px 0; font-size: 13.5px; }
 .board-head { flex-wrap: wrap; gap: 8px; }
+.ok-t { color: var(--up) !important; } .pinfo h2 .btn { vertical-align: middle; }
