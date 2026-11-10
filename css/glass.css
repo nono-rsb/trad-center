@@ -373,3 +373,15 @@ html.gold body::before { filter: sepia(.6) saturate(1.4) hue-rotate(-12deg); }
 .td-vote small { display: block; margin-bottom: 14px; color: var(--muted); }
 .td-note { display: block; margin-top: 14px; color: var(--muted); font-size: 11px; }
 #teddy.quake .td-in { animation: shakex .5s 2; }
+
+/* ---------- Bot de trading ---------- */
+.bot { border-color: rgba(60,240,212,.35); }
+.bot.on { box-shadow: var(--glass-edge), 0 0 0 1px rgba(46,242,160,.45), 0 0 30px rgba(46,242,160,.15); }
+.bot-head { display: flex; gap: 12px; align-items: center; margin-bottom: 10px; } .bot-head h3 { margin: 0 0 2px; } .bot-head p { margin: 0; font-size: 13px; } .bot-head .btn { margin-left: auto; }
+.bot-ic { font-size: 40px; } .bot.on .bot-ic { animation: wobble 2s ease-in-out infinite; }
+.bot-st { font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 99px; background: rgba(255,255,255,.12); vertical-align: middle; } .bot.on .bot-st { background: rgba(46,242,160,.2); color: var(--up); }
+.bot-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin: 8px 0; font-size: 13px; }
+.bot-q { grid-template-columns: repeat(6, 1fr); margin: 0; flex: 1; min-width: 240px; }
+.bot-kv { margin: 10px 0; }
+.bot-pos { display: flex; flex-wrap: wrap; gap: 6px 14px; font-family: var(--mono); font-size: 13px; margin: 6px 0; }
+.bot-acts { font-size: 12.5px; display: grid; gap: 4px; margin: 8px 0; padding: 8px 10px; border-radius: 12px; background: rgba(0,0,0,.18); } .bot-acts small { color: var(--muted); font-family: var(--mono); margin-right: 4px; }
