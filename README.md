@@ -33,7 +33,7 @@ Yahoo Finance n'autorisant pas les appels directs depuis un navigateur, le jeu p
 
 - **💵 Comptant** : achat / vente classique, frais 0,1 %.
 - **⚡ Levier x1 à x100** : Long (hausse) ou Short (baisse), stop-loss / take-profit, prix de liquidation affiché et tracé sur le graphique. Liquidation quand la perte atteint 90 % de la marge.
-- **🎲 Paris** : plus haut ou plus bas dans 1 min, 5 min, 15 min ou 1 h ? Gain x1,9, résolu avec le vrai prix à l'échéance.
+- **🎲 Paris** : plus haut ou plus bas dans 1 min, 5 min, 15 min ou 1 h ? Gain x2, résolu avec le vrai prix à l'échéance.
 - **🏎️ Concession** : 29 véhicules, de la trottinette à la Bugatti Tourbillon (Porsche 911, GT3 RS, Huracán Tecnica, STO, Urus, Revuelto, Ferrari Roma, 296 GTB, SF90, Purosangue, F40, McLaren 750S, Pagani, Koenigsegg…).
 - **🏠 Immobilier** : de la place de parking au gratte-ciel de La Défense ; chaque bien verse un **loyer horaire**, même jeu fermé (48 h max).
 - **💎 Luxe** : Rolex, Patek Philippe, Richard Mille, Birkin, hélicoptère, yachts, jets, club de foot, fusée…
