@@ -337,15 +337,16 @@
     $('#tab-portfolio').innerHTML = (TC.Bot ? TC.Bot.panel() : '') + `
       <div class="cards">${cards.map(c => `<div class="card"><span>${c[2]}</span><label>${c[0]}</label><b>${c[1]}</b></div>`).join('')}</div>
       <div class="panel"><h3>📈 Évolution de votre patrimoine</h3><div id="nw-chart" class="nw-chart"></div></div>
-      <div class="panel"><h3>📦 Actifs au comptant</h3>${rows ? `<div class="tw"><table><thead><tr><th>Actif</th><th>Quantité</th><th>Prix moyen</th><th>Cours</th><th>Valeur</th><th>+/- value</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>` : '<div class="empty">Aucun actif. Allez dans <b>Marchés</b> pour investir vos premiers euros !</div>'}</div>
-      <div class="panel"><h3>⚡ Positions à levier</h3>${prow ? `<div class="tw"><table><thead><tr><th>Actif</th><th>Sens</th><th>Marge</th><th>Entrée</th><th>Cours</th><th>Liquidation</th><th>P&amp;L</th><th></th></tr></thead><tbody>${prow}</tbody></table></div>` : '<div class="empty">Aucune position ouverte.</div>'}</div>
+      ${!rows && !prow && !brow ? '<div class="panel"><div class="empty">Tu n\'as encore rien acheté. Va dans <b>📈 Marchés</b>, choisis un actif et touche <b>Acheter</b>.</div></div>' : ''}
+      ${rows ? `<div class="panel"><h3>📦 Mes actifs</h3><div class="tw"><table><thead><tr><th>Actif</th><th>Quantité</th><th>Prix moyen</th><th>Cours</th><th>Valeur</th><th>+/- value</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></div>` : ''}
+      ${prow ? `<div class="panel"><h3>⚡ Positions à levier</h3><div class="tw"><table><thead><tr><th>Actif</th><th>Sens</th><th>Marge</th><th>Entrée</th><th>Cours</th><th>Liquidation</th><th>P&amp;L</th><th></th></tr></thead><tbody>${prow}</tbody></table></div></div>` : ''}
       ${brow ? `<div class="panel"><h3>🎲 Paris en cours</h3><div class="tw"><table><thead><tr><th>Actif</th><th>Sens</th><th>Mise</th><th>Entrée</th><th>Cours</th><th>État</th><th>Fin dans</th></tr></thead><tbody>${brow}</tbody></table></div></div>` : ''}
-      <div class="panel"><h3>📜 Historique</h3>${lrow ? `<div class="tw"><table class="log"><tbody>${lrow}</tbody></table></div>` : '<div class="empty">Rien pour l\'instant.</div>'}</div>
-      <div class="panel stats-panel"><h3>📊 Statistiques</h3><div class="kv">
+      ${lrow ? `<div class="panel"><h3>📜 Historique</h3><div class="tw"><table class="log"><tbody>${lrow}</tbody></table></div></div>` : ''}
+      <div class="panel stats-panel"><details><summary>📊 Statistiques</summary><div class="kv">
         <span>Ordres passés</span><b>${s.stats.trades}</b><span>Meilleur trade</span><b class="up">${fmt.eur(s.stats.bestTrade)}</b>
         <span>Liquidations</span><b>${s.stats.liquidations}</b><span>Paris gagnés / perdus</span><b>${s.stats.betsWon} / ${s.stats.betsLost}</b>
         <span>Frais payés</span><b>${fmt.eur(s.stats.fees)}</b><span>Loyers encaissés</span><b>${fmt.eur(s.stats.rent)}</b>
-        <span>Dépensé en boutique</span><b>${fmt.eur(s.stats.spent)}</b><span>Partie commencée le</span><b>${new Date(s.created).toLocaleDateString('fr-FR')}</b></div></div>`;
+        <span>Dépensé en boutique</span><b>${fmt.eur(s.stats.spent)}</b><span>Partie commencée le</span><b>${new Date(s.created).toLocaleDateString('fr-FR')}</b></div></details></div>`;
     G.sampleNW();
     TC.Chart.nw($('#nw-chart'), s.nw.length > 1 ? s.nw : [[Math.floor(s.created / 1000), G.START_CASH], [Math.floor(Date.now() / 1000), nw]]);
   };

@@ -361,11 +361,16 @@
   }
   if (TC.City3D) TC.City3D.onFail = () => { if (UI().tab === 'city') setTimeout(() => C.render(), 0); };
   function onPick3d(own) { if (own.uid) lotModal(own.uid); else if (own.land) landmark(own.land); }
+  function voteBar() {
+    if (!N || !N.enabled) return '';
+    const v = C.myVote && C.myVote(), who = v && roster().find(x => x.uid === v);
+    return `<div class="vote-bar"><span>🗳️</span><div><b>Élection du Maire</b><small>${!N.user || !N.profile ? 'Crée un compte pour voter' : who ? 'Ton vote : ' + esc(who.pseudo || '?') + ' · tu peux changer jusqu\'à dimanche' : 'Tu n\'as pas encore voté cette semaine'}</small></div><button class="btn btn-sm ${v ? '' : 'btn-gold'}" data-land="mairie">${v ? 'Mairie' : 'Voter'}</button></div>`;
+  }
   C.render = function () {
     const root = $('#tab-city'); if (!root) return;
     const use3d = !view2d && TC.City3D && TC.City3D.supported() && !TC.City3D.failed;
     const v3 = TC.City3D, why = v3 && (!v3.supported() ? 'WebGL désactivé sur ce navigateur' : v3.failed ? v3.error || 'erreur inconnue' : null);
-    root.innerHTML = (TC.Mayor ? TC.Mayor.banner() : '') + (use3d ? map3dHtml() : (why ? `<div class="nbox c3-err">⚠️ La 3D n'a pas pu s'afficher sur cet appareil : <b>${esc(why)}</b>. Voici la carte en 2D. <button class="btn btn-sm" data-c3="retry">🔄 Réessayer la 3D</button></div>` : '') + mapHtml().replace('<div class="city-sky">', '<div class="city-sky">' + (v3 && v3.supported() && !v3.failed ? '<button class="c3-back" data-c3="3d">🧊 Vue 3D</button>' : ''))) + bizHtml();
+    root.innerHTML = (TC.Mayor ? TC.Mayor.banner() : '') + voteBar() + (use3d ? map3dHtml() : (why ? `<div class="nbox c3-err">⚠️ La 3D n'a pas pu s'afficher sur cet appareil : <b>${esc(why)}</b>. Voici la carte en 2D. <button class="btn btn-sm" data-c3="retry">🔄 Réessayer la 3D</button></div>` : '') + mapHtml().replace('<div class="city-sky">', '<div class="city-sky">' + (v3 && v3.supported() && !v3.failed ? '<button class="c3-back" data-c3="3d">🧊 Vue 3D</button>' : ''))) + bizHtml();
     if (use3d) {
       TC.City3D.load().then(ok => {
         const host = $('#city3d-host'); if (!host) return;
