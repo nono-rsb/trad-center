@@ -303,6 +303,7 @@
       jet: own(it => /jet/i.test(it.model)),
       collector: s.owned.length >= 10,
       phoenix: s.stats.resets > 0,
+      lucky: !!s.luckyChest,
       xmas: !!(s.xmas && s.xmas.played25),
       advent: !!(s.xmas && s.xmas.advent && Object.keys(s.xmas.advent).length >= 24),
     };

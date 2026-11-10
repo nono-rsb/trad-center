@@ -352,14 +352,17 @@
 
   /* ================= BOUTIQUE ================= */
   UI.shopType = 'car';
+  const shopSeg = type => `<div class="seg seg-4 shop-tabs" id="shop-tabs">${Object.entries(TC.SHOP_TYPES).map(([k, v]) => `<button data-shop="${k}" class="${k === type ? 'active' : ''}">${v.icon} ${v.label}</button>`).join('')}<button data-shop="chest" class="${type === 'chest' ? 'active' : ''}">🧰 Coffre</button></div>`;
   UI.shop = function (type) {
     type = type || UI.shopType; UI.shopType = type;
+    if (type === 'chest' && TC.Chest.isSpinning()) return; // ne pas effacer la roulette en cours
+    if (type === 'chest') { $('#tab-shop').innerHTML = shopSeg(type) + '<div id="chest-root"></div>'; TC.Chest.render($('#chest-root')); return; }
     const T = TC.SHOP_TYPES[type]; const cash = S().cash;
     let items = TC.SHOP.filter(i => i.type === type && (!i.limited || TC.season.noel));
     items = items.slice().sort((x, y) => UI.shopSort === 'asc' ? x.price - y.price : y.price - x.price);
     const ownedCount = id => S().owned.filter(o => o.item === id).length;
     $('#tab-shop').innerHTML = `
-      <div class="seg seg-3 shop-tabs" id="shop-tabs">${Object.entries(TC.SHOP_TYPES).map(([k, v]) => `<button data-shop="${k}" class="${k === type ? 'active' : ''}">${v.icon} ${v.label}</button>`).join('')}</div>
+      ${shopSeg(type)}
       <div class="shop-head"><div><h2>${T.icon} ${T.label}</h2><p>${T.note}${type === 'estate' ? ` · loyer : ${fmt.num(TC.RENT_RATE_PER_HOUR * 100, 2)} % de la valeur par heure (jusqu'à ${TC.RENT_MAX_HOURS} h d'accumulation)` : ''}</p></div>
         <div class="shop-cash">Cash : <b>${fmt.eur(cash)}</b> <div class="seg" data-sort><button data-sort="asc" class="${UI.shopSort === 'asc' ? 'active' : ''}">Prix ↑</button><button data-sort="desc" class="${UI.shopSort === 'desc' ? 'active' : ''}">Prix ↓</button></div></div></div>
       <div class="shop-grid">${items.map(it => {
@@ -380,6 +383,7 @@
 
   // mise à jour légère (sans redessiner les photos)
   UI.shopUpdate = function (type) {
+    if (type === 'chest') { const b = $('#chest-open'); if (b && !b.closest('.chest-hero').querySelector('.opening')) b.disabled = S().cash < TC.Chest.PRICE; return; }
     const cash = S().cash; const root = $('#tab-shop');
     const cb = root.querySelector('.shop-cash b'); if (cb) cb.textContent = fmt.eur(cash);
     root.querySelectorAll('.item[data-item]').forEach(card => {
