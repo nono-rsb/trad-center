@@ -269,6 +269,49 @@
     });
   };
 
+  /* ---------------- Bouton flottant « active les notifications » ---------------- */
+  const NUDGE_KEY = 'tradcenter.nudge.until';
+  function nudgeState() {
+    if (!supported()) return isIOS() && !standalone() ? 'ios' : null;
+    const perm = Notification.permission;
+    if (perm === 'default') return 'ask';
+    if (perm === 'denied') return 'denied';
+    if (pushSupported() && N.enabled && N.user && N.profile && !NT.subscribed()) return 'push';
+    if (N.enabled && !N.user) return 'login';
+    return null;
+  }
+  NT.nudge = function () {
+    let el = $('#notif-nudge');
+    const st = nudgeState();
+    let snooze = 0; try { snooze = +localStorage.getItem(NUDGE_KEY) || 0; } catch (e) { }
+    const show = st && Date.now() > snooze && !$('#modal').classList.contains('open');
+    if (!show) { if (el) el.remove(); return; }
+    const txt = {
+      ask: ['🔔', 'Active les notifications', 'Argent reçu, grosses hausses, alertes…'],
+      push: ['📡', 'Reçois-les même appli fermée', 'Un toucher suffit'],
+      ios: ['📲', 'Installe l\'appli pour les notifications', 'Sur iPhone, c\'est obligatoire'],
+      denied: ['🔕', 'Tes notifications sont bloquées', 'Touche pour savoir comment les réactiver'],
+      login: ['👤', 'Crée ton compte pour les notifications', 'Et ne rate aucun envoi d\'argent'],
+    }[st];
+    if (!el) { el = document.createElement('div'); el.id = 'notif-nudge'; document.body.appendChild(el); requestAnimationFrame(() => el.classList.add('in')); }
+    el.dataset.st = st;
+    el.innerHTML = `<button class="nn-main"><span class="nn-ic">${txt[0]}</span><span class="nn-t"><b>${txt[1]}</b><small>${txt[2]}</small></span></button><button class="nn-x" title="Plus tard">✕</button>`;
+  };
+  document.addEventListener('click', async e => {
+    const el = e.target.closest('#notif-nudge'); if (!el) return;
+    if (e.target.closest('.nn-x')) { try { localStorage.setItem(NUDGE_KEY, Date.now() + 24 * 3600000); } catch (er) { } el.remove(); return; }
+    const st = el.dataset.st;
+    if (st === 'ask' || st === 'push') {
+      try { const r = await NT.enable(); el.remove(); if (r === true) { TC.toast('🔔 Notifications activées !', 'ok'); TC.sound('kaching'); } else NT.open(); }
+      catch (er) { el.remove(); NT.open(); }
+      return;
+    }
+    if (st === 'ios') { el.remove(); return $('#b-install').click(); }
+    if (st === 'login') { el.remove(); return TC.App.setTab('social'); }
+    el.remove(); NT.open();
+  });
+  setTimeout(() => { NT.nudge(); setInterval(NT.nudge, 15000); }, 25000);
+
   /* ---------------- Branchements ---------------- */
   setInterval(scan, 30000);
   setTimeout(scan, 20000);
