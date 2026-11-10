@@ -25,6 +25,9 @@
     return p;
   }
   N.keyOf = keyOf;
+  // Profil tel qu'affiché : un pseudo changé (displayName) remplace le pseudo d'origine
+  const prof = (id, data) => Object.assign({ uid: id }, data, { pseudo: (data && data.displayName) || (data && data.pseudo) });
+  N.prof = prof;
   N.db = () => db;
   // Demande au serveur de notifications de prévenir un autre joueur (même appli fermée).
   // Le message est rangé dans la « boîte d'envoi » de son propre profil ; le serveur rédige le texte lui-même.
@@ -94,7 +97,7 @@
     try {
       const snap = await db.collection('users').doc(user.uid).get();
       if (!snap.exists) { N.needPseudo = true; N.ready = true; emit('change'); return; }
-      N.profile = snap.data();
+      N.profile = prof(user.uid, snap.data());
       N.ready = true; emit('change');
       await linkSave();
     } catch (e) { console.error(e); N.error = N.errMsg(e); N.ready = true; emit('change'); }
@@ -149,6 +152,30 @@
     G.reset(false); // l'appareil repart sur une partie invité ; la partie du compte reste en ligne
     location.reload();
   };
+  // Changer de pseudo : le nouveau nom est réservé dans « usernames » (unique), puis l'ancien est libéré.
+  // Le pseudo d'origine du profil ne change pas (règles Firestore) : le nouveau va dans displayName.
+  N.PSEUDO_COOLDOWN = 24 * 3600000;
+  N.changePseudo = async function (p) {
+    p = checkPseudo(p);
+    const uid = N.user.uid, key = keyOf(p);
+    const oldKey = N.profile.nameKey || N.profile.pseudoLower;
+    if (p === N.profile.pseudo) throw userErr('C\'est déjà ton pseudo.');
+    const last = N.profile.pseudoChangedAt || 0;
+    if (Date.now() - last < N.PSEUDO_COOLDOWN) throw userErr('Tu pourras rechanger de pseudo dans ' + TC.fmt.dur(N.PSEUDO_COOLDOWN - (Date.now() - last)) + '.');
+    const ref = db.collection('users').doc(uid);
+    if (key !== oldKey) {
+      try { await db.collection('usernames').doc(key).set({ uid }); } // échoue si le pseudo appartient déjà à quelqu'un
+      catch (e) { if (String(e.code).includes('permission-denied')) throw userErr('Ce pseudo est déjà pris.'); throw e; }
+      try { await ref.update({ displayName: p, nameKey: key, pseudoChangedAt: Date.now(), updatedAt: Date.now() }); }
+      catch (e) { await db.collection('usernames').doc(key).delete().catch(() => { }); throw e; }
+      if (oldKey) await db.collection('usernames').doc(oldKey).delete().catch(() => { });
+    } else {
+      await ref.update({ displayName: p, pseudoChangedAt: Date.now(), updatedAt: Date.now() }); // même nom, accents ou majuscules
+    }
+    Object.assign(N.profile, { pseudo: p, displayName: p, nameKey: key, pseudoChangedAt: Date.now() });
+    emit('change');
+  };
+
   N.setAvatar = async function (a) {
     await db.collection('users').doc(N.user.uid).update({ avatar: a, updatedAt: Date.now() });
     N.profile.avatar = a; emit('change');
@@ -228,7 +255,7 @@
     unsubs.push(() => clearInterval(t));
   }
   async function loadProfiles(ids) {
-    const out = await Promise.all(ids.map(id => db.collection('users').doc(id).get().then(s => s.exists ? Object.assign({ uid: id }, s.data()) : null).catch(() => null)));
+    const out = await Promise.all(ids.map(id => db.collection('users').doc(id).get().then(s => s.exists ? prof(id, s.data()) : null).catch(() => null)));
     return out.filter(Boolean).sort((a, b) => (b.nw || 0) - (a.nw || 0));
   }
   const claiming = new Set();
@@ -260,7 +287,7 @@
     const reverse = N.incoming.find(r => r.from === other);
     if (reverse) { await N.accept(reverse); return 'accepted'; }
     const op = await db.collection('users').doc(other).get();
-    await db.collection('friendRequests').doc(me + '_' + other).set({ from: me, to: other, fromPseudo: N.profile.pseudo, fromAvatar: N.profile.avatar, toPseudo: op.exists ? op.data().pseudo : pseudo, createdAt: Date.now() });
+    await db.collection('friendRequests').doc(me + '_' + other).set({ from: me, to: other, fromPseudo: N.profile.pseudo, fromAvatar: N.profile.avatar, toPseudo: op.exists ? prof(other, op.data()).pseudo : pseudo, createdAt: Date.now() });
     N.notifyPlayer(other, 'friend');
     return 'sent';
   };
@@ -302,7 +329,7 @@
       const p = await db.collection('users').doc(ref).get(); if (!p.exists || p.data().bot) return;
       await db.collection('users').doc(N.user.uid).update({ referredBy: ref, updatedAt: Date.now() });
       N.profile.referredBy = ref;
-      await db.collection('friendRequests').doc(N.user.uid + '_' + ref).set({ from: N.user.uid, to: ref, fromPseudo: N.profile.pseudo, fromAvatar: N.profile.avatar, toPseudo: p.data().pseudo, createdAt: Date.now() });
+      await db.collection('friendRequests').doc(N.user.uid + '_' + ref).set({ from: N.user.uid, to: ref, fromPseudo: N.profile.pseudo, fromAvatar: N.profile.avatar, toPseudo: prof(ref, p.data()).pseudo, createdAt: Date.now() });
       N.notifyPlayer(ref, 'friend');
     } catch (e) { console.warn('ref', e); }
   }
@@ -321,14 +348,14 @@
     try {
       const snap = await db.collection('users').where('referredBy', '==', N.user.uid).get();
       const paid = G.state.refPaid || (G.state.refPaid = {});
-      N.referrals = snap.docs.map(d => ({ uid: d.id, pseudo: d.data().pseudo, ok: !!d.data().refOk, paid: !!paid[d.id] }));
+      N.referrals = snap.docs.map(d => ({ uid: d.id, pseudo: prof(d.id, d.data()).pseudo, ok: !!d.data().refOk, paid: !!paid[d.id] }));
       for (const d of snap.docs) {
         if (!d.data().refOk || paid[d.id]) continue;
         paid[d.id] = Date.now();
         G.state.cash += N.REF_BONUS;
-        G.state.log.unshift({ t: Date.now(), kind: 'bonus', eur: N.REF_BONUS, who: d.data().pseudo });
+        G.state.log.unshift({ t: Date.now(), kind: 'bonus', eur: N.REF_BONUS, who: prof(d.id, d.data()).pseudo });
         G.save(true);
-        emit('referral', { pseudo: d.data().pseudo, eur: N.REF_BONUS });
+        emit('referral', { pseudo: prof(d.id, d.data()).pseudo, eur: N.REF_BONUS });
       }
       emit('change');
     } catch (e) { console.warn('ref', e); }
@@ -345,7 +372,7 @@
   N.loadXmasBoard = async function () {
     const y = new Date().getFullYear();
     const snap = await db.collection('users').orderBy('xmasGain', 'desc').limit(30).get();
-    N.xmasBoard = snap.docs.map(d => Object.assign({ uid: d.id }, d.data())).filter(u => !u.bot && u.xmasYear === y).slice(0, 10);
+    N.xmasBoard = snap.docs.map(d => prof(d.id, d.data())).filter(u => !u.bot && u.xmasYear === y).slice(0, 10);
     N.xmasChamp = N.xmasBoard.length ? N.xmasBoard[0].uid : null;
     return N.xmasBoard;
   };
@@ -355,7 +382,7 @@
     N.boardScope = scope;
     if (scope === 'friends') { N.board = null; emit('change'); return; }
     const snap = await db.collection('users').orderBy('nw', 'desc').limit(50).get();
-    N.board = snap.docs.map(d => Object.assign({ uid: d.id }, d.data())).filter(u => !u.bot);
+    N.board = snap.docs.map(d => prof(d.id, d.data())).filter(u => !u.bot);
     emit('change');
   };
 })();

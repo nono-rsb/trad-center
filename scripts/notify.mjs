@@ -172,7 +172,7 @@ async function main() {
       ? (fullAt = now, cache.clear(), (await getDocs(collection(db, 'users'))).docs)
       : (await getDocs(query(collection(db, 'users'), where('updatedAt', '>', since - 120000)))).docs;
     since = now;
-    docs.forEach(d => cache.set(d.id, { uid: d.id, ...d.data() }));
+    docs.forEach(d => { const x = d.data(); cache.set(d.id, { uid: d.id, ...x, pseudo: x.displayName || x.pseudo }); });
     return [...cache.values()].filter(u => !u.bot);
   }
   async function tick(withPrices) {
