@@ -104,7 +104,7 @@
       $('#adm-list').innerHTML = `<p class="hint">${users.length} joueur(s) · ${Object.keys(A.bans).length} bloqué(s)</p>` + rows.map(u => {
         const fl = flags(u), ban = A.isBanned(u.uid);
         return `<button class="adm-row ${ban ? 'ban' : ''}" data-u="${u.uid}">${TC.Style ? TC.Style.avatar(u, 's') : ''}<b>${esc(u.pseudo || '?')}${TC.Style ? TC.Style.badge(u) : ''}</b>
-          <span class="adm-nw">${fmt.eur(u.nw || 0, true)}</span><small>${u.updatedAt ? 'vu ' + fmt.time(u.updatedAt) : ''}</small>
+          <span class="adm-nw">${fmt.eur(u.nw || 0, true)}</span><small>${u.updatedAt ? 'vu ' + fmt.time(u.updatedAt) : ''}${u.playMs ? ' · ⏱️ ' + TC.Play.fmt(u.playMs) : ''}</small>
           ${ban ? '<i class="adm-tag ban">BLOQUÉ</i>' : ''}${fl.map(x => `<i class="adm-tag">${esc(x)}</i>`).join('')}</button>`;
       }).join('');
     };
@@ -141,7 +141,7 @@
           <span>Ordres passés</span><b>${trades}</b><span>Paris gagnés / perdus</span><b>${(st.stats || {}).betsWon || 0} / ${(st.stats || {}).betsLost || 0}</b>
           <span>Liquidations</span><b>${(st.stats || {}).liquidations || 0}</b><span>Bonus / codes / cadeaux</span><b>${fmt.eur(bonus)}</b>
           <span>Coffres ouverts</span><b>${st.chests ? st.chests.opened + ' (' + fmt.eur(st.chests.won) + ' gagnés)' : 0}</b><span>Codes de triche</span><b>${esc(Object.keys(st.cheats || {}).join(', ') || 'aucun')}</b>
-          <span>Bot</span><b>${st.bot && st.bot.unlocked ? (st.bot.on ? 'actif' : 'en pause') + ', ' + fmt.eur(st.bot.pnl || 0) : 'non'}</b><span>Partie créée</span><b>${st.created ? new Date(st.created).toLocaleDateString('fr-FR') : '?'}</b></div>
+          <span>Bot</span><b>${st.bot && st.bot.unlocked ? (st.bot.on ? 'actif' : 'en pause') + ', ' + fmt.eur(st.bot.pnl || 0) : 'non'}</b><span>Partie créée</span><b>${st.created ? new Date(st.created).toLocaleDateString('fr-FR') : '?'}</b><span>Temps de jeu</span><b>${st.playMs ? TC.Play.fmt(st.playMs) : 'pas encore compté'}</b></div>
         <h4>📦 Actifs</h4>${hold.length ? hold.sort((a, b) => b.val - a.val).map(h => `<div class="adm-line"><b>${esc(h.id)}</b><span>${fmt.qty(h.qty)}</span><span>payé ${fmt.eur(h.cost)}</span><b>${fmt.eur(h.val)}</b></div>`).join('') : '<div class="hint">Aucun</div>'}
         <h4>⚡ Positions à levier</h4>${(st.positions || []).length ? st.positions.map(p => `<div class="adm-line"><b>${esc(p.asset)}</b><span>${p.side} x${p.lev}</span><span>marge ${fmt.eur(p.margin)}</span><span>entrée ${fmt.eur(p.entry)}</span></div>`).join('') : '<div class="hint">Aucune</div>'}
         <h4>🎲 Paris en cours</h4>${(st.bets || []).length ? st.bets.map(b => `<div class="adm-line"><b>${esc(b.asset)}</b><span>${b.dir === 'up' ? 'hausse' : 'baisse'}</span><span>${fmt.eur(b.stake)}</span><span>fin ${fmt.time(b.end)}</span></div>`).join('') : '<div class="hint">Aucun</div>'}

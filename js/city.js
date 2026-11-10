@@ -415,6 +415,8 @@
         <p class="muted">${isMayor ? '👑 Maire de Trad City · ' : ''}${esc(t.name)} · n°${i + 1} de la ville</p>
         ${can3d ? `<button class="btn btn-gold btn-xl lot-visit" data-visit="${esc(p.uid)}">🏠 ${p.me ? 'Entrer chez moi' : 'Visiter sa maison'}</button>` : ''}
         <div class="kv"><span>Patrimoine</span><b>${fmt.eur(p.nw || 0)}</b><span>Rang</span><b>${esc(p.rank || G.rank(p.nw || 0).r[1])}</b>
+          <span>⏱️ Temps de jeu</span><b>${p.me ? TC.Play.fmt(TC.Play.ms()) : p.playMs ? TC.Play.fmt(p.playMs) : 'pas encore compté'}</b>
+          <span>📅 Joue depuis le</span><b>${TC.Play.date(p.me ? TC.Play.since() : (p.playSince || p.createdAt))}</b>
           ${top ? `<span>Plus bel objet</span><b>${top.emoji} ${esc(top.brand + ' ' + top.model)}</b>` : ''}${p.items ? `<span>Objets</span><b>${p.items}</b>` : ''}</div>
         <h4>🏪 Commerces</h4>${biz.length ? `<div class="lot-takes">${biz.map(([id, l]) => { const why = p.me ? null : C.takeBlock(p, id), pr = C.takePrice(id, l);
           return `<div class="take"><span>${C.byId[id].e} ${esc(C.byId[id].name)} <b>${'★'.repeat(l)}</b></span>${p.me ? '' : why ? `<small>${esc(why)}</small>` : `<button class="btn btn-sm btn-gold" data-take="${id}" ${S().cash >= pr ? '' : 'disabled'}>Racheter ${fmt.eur(pr, true)}</button>`}</div>`; }).join('')}</div>` : '<p class="muted">Aucun commerce pour l\'instant.</p>'}

@@ -64,6 +64,7 @@
       <div class="pinfo"><h2>${esc(p.pseudo)}${TC.Style.badge(TC.Style.mine())} <button class="btn btn-sm btn-ghost" data-soc="rename" title="Changer de pseudo">✏️</button></h2>
         <div class="muted">${esc(u.email || '')} ${u.emailVerified ? '<span class="st st-live">VÉRIFIÉ</span>' : '<span class="st st-sim">NON VÉRIFIÉ</span>'}</div>
         ${u.emailVerified ? '' : `<div class="verify">📧 Confirmez votre adresse via le lien reçu par e-mail. <button class="btn btn-sm" data-soc="resend">Renvoyer</button> <button class="btn btn-sm" data-soc="checkverify">C'est fait</button></div>`}
+        <div class="playtime">⏱️ <b>${TC.Play.fmt(TC.Play.ms())}</b> de jeu · joue depuis le ${TC.Play.date(TC.Play.since())}</div>
         <div class="muted small">${G.rank().r[2]} ${G.rank().r[1]} · ${fmt.eur(G.netWorth())} · ${N.lastSync ? '☁️ sauvegardé ' + new Date(N.lastSync).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '☁️ synchronisation…'}</div></div>
       <div class="pactions"><button class="btn btn-sm" data-soc="share">📤 Inviter</button><button class="btn btn-sm btn-ghost" data-soc="logout">Déconnexion</button></div>
     </div>`;

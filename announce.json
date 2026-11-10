@@ -1,16 +1,15 @@
 {
-  "id": "maj-2026-11-10-bot3",
-  "emoji": "🤖",
-  "title": "Le bot de trading passe en mode pro",
+  "id": "maj-2026-11-10-temps",
+  "emoji": "⏱️",
+  "title": "Nouveau : le temps de jeu",
   "items": [
-    { "icon": "🛡️", "title": "Protège ses gains", "text": "Dès +1 %, son stop remonte au prix d'achat, et il encaisse la moitié à mi-objectif. Le reste continue de monter." },
-    { "icon": "🌍", "title": "Trade partout", "text": "Cryptos, actions, indices, matières premières : il choisit les meilleures tendances et les rebonds, et ne parie plus seulement sur le Bitcoin." },
-    { "icon": "🧠", "title": "Apprend de ses erreurs", "text": "Il met de côté un actif après 2 pertes, n'achète pas de crypto quand le Bitcoin chute, et adapte ses mises au risque." }
+    { "icon": "⏱️", "title": "Ton temps de jeu", "text": "Il s'affiche sur ton profil (onglet Amis) et sur ta fiche dans la Ville. Seul le temps où le jeu est ouvert compte." },
+    { "icon": "💵", "title": "Cash et patrimoine séparés", "text": "En haut : le cash que tu peux dépenser, et ton patrimoine total. Touche-les pour voir le détail." }
   ],
-  "button": "Voir le bot 🤖",
-  "tab": "portfolio",
+  "button": "Voir mon profil 👤",
+  "tab": "social",
   "push": {
-    "title": "🤖 Le bot de trading passe en mode pro",
-    "body": "Protection des gains, ventes partielles, tous les marchés, paris plus sûrs. Allume-le dans Portefeuille !"
+    "title": "⏱️ Combien de temps as-tu joué ?",
+    "body": "Ton temps de jeu s'affiche maintenant sur ton profil, et le cash est séparé du patrimoine en haut de l'écran."
   }
 }
