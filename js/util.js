@@ -69,6 +69,28 @@
     o.connect(g); g.connect(ac.destination);
     o.start(ac.currentTime + start); o.stop(ac.currentTime + start + dur + 0.05);
   }
+  /* ---------- Vibration ----------
+   * Android : vraie vibration (navigator.vibrate). iPhone : Safari n'a pas cette fonction ; depuis iOS 18,
+   * basculer un interrupteur <input switch> déclenche le retour haptique du système, à condition que ce soit
+   * pendant (ou juste après) un toucher de l'écran. On s'en sert pour faire « tic » quand on envoie de l'argent. */
+  let hapEl = null;
+  function iosTick() {
+    try {
+      if (!hapEl) {
+        hapEl = document.createElement('label'); hapEl.setAttribute('aria-hidden', 'true');
+        hapEl.style.cssText = 'position:fixed;left:-100px;top:0;width:1px;height:1px;opacity:0;pointer-events:none;overflow:hidden';
+        hapEl.innerHTML = '<input type="checkbox" switch>'; document.body.appendChild(hapEl);
+      }
+      hapEl.click();
+    } catch (e) { }
+  }
+  TC.haptic = function (pattern) {
+    pattern = pattern || [30];
+    if (TC.Game && TC.Game.state && TC.Game.state.sound === false) return;
+    try { if (navigator.vibrate && navigator.vibrate(pattern)) return; } catch (e) { }
+    const taps = Math.max(1, Math.ceil(pattern.length / 2));
+    for (let i = 0; i < Math.min(taps, 3); i++) setTimeout(iosTick, i * 140);
+  };
   TC.sound = function (kind) {
     if (!TC.Game || !TC.Game.state.sound) return;
     try { if (navigator.vibrate && kind !== 'click') navigator.vibrate(kind === 'lose' ? [40, 60, 40] : kind === 'cash' || kind === 'ach' || kind === 'win' ? [20, 40, 20, 40, 60] : 15); } catch (e) { }

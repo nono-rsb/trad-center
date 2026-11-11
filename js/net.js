@@ -279,7 +279,7 @@
         tx.update(ref, { claimed: true, claimedAt: Date.now() });
         return s.data();
       });
-      if (data) { G.receive(data); emit('received', data); N.flush(); }
+      if (data) { G.receive(data); emit('received', data); N.flush(); if (TC.haptic) TC.haptic([60, 40, 60, 40, 140]); } // argent reçu : vibration
     } catch (e) { console.warn('claim', e); }
     claiming.delete(ref.id);
   }
@@ -314,6 +314,7 @@
 
   /* ---------------- Envois ---------------- */
   N.send = async function (friend, kind, asset, amount, msg) {
+    if (TC.haptic) TC.haptic([25]); // « tic » dès qu'on appuie sur Envoyer
     const t = G.takeForTransfer(kind, asset, amount);
     if (!t.ok) throw userErr(t.msg);
     try {
@@ -325,6 +326,7 @@
     G.logSent(t, friend.pseudo);
     N.flush();
     N.notifyPlayer(friend.uid, 'transfer', { asset: t.asset || null, qty: t.qty, eur: t.eur, msg: (msg || '').slice(0, 120) });
+    if (TC.haptic) TC.haptic([40, 60, 40]); // argent parti : double vibration
     return t;
   };
 
