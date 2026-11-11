@@ -181,6 +181,36 @@
       return top + 16;
     },
   ];
+  // Manoir : grande bâtisse en pierre, toits d'ardoise, tourelles, perron et allée
+  function manor(g, r) {
+    const stone = col(0xd9cdb4), slate = col(0x3d4655), white = col(0xffffff), win = col(0x9fd0ff, { emissive: night ? 0xffd27a : 0, emissiveIntensity: .7 });
+    g.add(box(14, .4, 9, col(0xbfb39a), 0, 0, -1));
+    g.add(box(12, 6, 7, stone, 0, .4, -1)); g.add(gable(12.8, 3.4, 7.6, slate, 0, 6.4, -1));
+    g.add(box(4, 5, 4.2, stone, 0, .4, 3.3)); g.add(gable(4.6, 2.6, 4.6, slate, 0, 5.4, 3.3)); // avant-corps
+    [-6.4, 6.4].forEach(x => { g.add(cyl(1.6, 1.7, 8.4, stone, x, .4, -1, 18)); g.add(mesh(new T.ConeGeometry(2, 3.6, 18), slate, x, 10.6, -1)); });
+    for (let i = -2; i <= 2; i++) if (i) { g.add(box(1.1, 1.5, .12, win, i * 2.3, 1.6, 2.52)); g.add(box(1.1, 1.5, .12, win, i * 2.3, 4.2, 2.52)); }
+    g.add(box(1.6, 2.6, .15, col(0x5b3a1e), 0, .4, 5.42)); g.add(box(2.2, .25, .4, white, 0, 3.1, 5.5));
+    [[-1.4, 5.6], [1.4, 5.6]].forEach(([x, z]) => g.add(cyl(.22, .22, 2.8, white, x, .4, z, 10)));
+    g.add(box(3.2, .3, 1.6, col(0xcfc5b0), 0, 0, 6.2)); g.add(box(2.6, .08, 4, col(0xd8c9a3), 0, .05, 8.4)); // perron et allée
+    [-3.5, 3.5].forEach(x => g.add(cyl(.9, .9, 1.4, col(0x2e8b3a), x, 0, 7.2, 10)));
+    g.add(cyl(.08, .08, 3, col(0x777777), 0, 9.8, -1, 6)); g.add(box(1.2, .8, .05, col(0x7a1f2b), .6, 12, -1));
+    return 13;
+  }
+  // personnage 3D du joueur (corps simple + son avatar comme tête), qui se promène devant chez lui
+  function person(av, color, me) {
+    const g = new T.Group(), c = col(color), dark = col(0x2a2f3a);
+    const legL = box(.35, 1.1, .35, dark, -.22, 0, 0), legR = box(.35, 1.1, .35, dark, .22, 0, 0);
+    [legL, legR].forEach(l => { l.geometry.translate(0, -.55, 0); l.position.y = 1.1; g.add(l); });
+    g.add(mesh(new T.CylinderGeometry(.42, .5, 1.4, 12), c, 0, 1.8, 0));
+    const armL = box(.24, 1.1, .24, c, -.62, 0, 0), armR = box(.24, 1.1, .24, c, .62, 0, 0);
+    [armL, armR].forEach(a => { a.geometry.translate(0, -.5, 0); a.position.y = 2.4; g.add(a); });
+    const head = emojiSprite(av || '😎', 1.5); head.position.y = 3.2; g.add(head);
+    if (me) { const ring = mesh(new T.TorusGeometry(.9, .08, 8, 24), new T.MeshBasicMaterial({ color: 0xffd23f }), 0, .06, 0, false); ring.rotation.x = Math.PI / 2; g.add(ring); }
+    g.traverse(o => { if (o.isMesh) o.castShadow = true; });
+    g.userData.walk = (t, k) => { const sw = Math.sin(t * 5 + k) * .5; legL.rotation.x = sw; legR.rotation.x = -sw; armL.rotation.x = -sw * .8; armR.rotation.x = sw * .8; };
+    return g;
+  }
+  const SKIN = [0xe63946, 0x3a86ff, 0x2a9d8f, 0xf4a261, 0x8338ec, 0x06d6a0, 0xff006e, 0x264653, 0xffbe0b];
   function hedge(g, s) { const m = col(0x2e8b3a); [[0, s / 2], [0, -s / 2]].forEach(([x, z]) => g.add(box(s, .8, .5, m, x, 0, z))); [[s / 2, 0], [-s / 2, 0]].forEach(([x, z]) => g.add(box(.5, .8, s, m, x, 0, z))); }
   function palm(g, x, z) {
     const t = cyl(.22, .32, 5, col(0x8b6b45), x, 0, z, 8); t.rotation.z = .08; g.add(t);
@@ -403,7 +433,11 @@
         lotPos[it.land] = { x: s.x, z: s.z, h };
       } else {
         const p = it.p;
-        h = BUILD[Math.min(BUILD.length - 1, p.tier)](b, r);
+        h = p.tier === 'manor' ? manor(b, r) : BUILD[Math.max(0, Math.min(BUILD.length - 1, +p.tier || 0))](b, r);
+        // le joueur en 3D, qui fait les cent pas devant sa résidence
+        const pr = person(p.avatar, SKIN[(r() * SKIN.length) | 0], p.me), k = r() * 6;
+        pr.position.set(3, .45, 8); g.add(pr);
+        animated.push(t => { const x = Math.sin(t * .35 + k) * 4.2; const dir = Math.cos(t * .35 + k); pr.position.x = x; pr.rotation.y = dir > 0 ? Math.PI / 2 : -Math.PI / 2; pr.userData.walk(t, k); });
         b.rotation.y = 0;
         b.userData.pick = { uid: p.uid };
         // commerces aux coins du bloc

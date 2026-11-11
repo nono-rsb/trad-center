@@ -256,6 +256,20 @@ async function main() {
       }
     } catch (e) { log('hebdo', e.message); }
 
+    // Objectif 100 joueurs : une notification par jour (vers 18 h, heure de Paris) pour inviter à partager
+    try {
+      const parisH = +new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Paris', hour: '2-digit', hourCycle: 'h23' }).format(new Date());
+      const day = new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris' }).format(new Date());
+      if (parisH >= 18 && st.shareDay !== day) {
+        st.shareDay = day;
+        const n = users.length, left = Math.max(0, 100 - n);
+        const msg = left ? { title: `🎁 Plus que ${left} joueur${left > 1 ? 's' : ''} avant la grosse surprise !`, body: `On est ${n} sur Trad Center. Partage ton lien : à 100 joueurs, surprise pour tout le monde (et +20 € par ami inscrit).`, tag: 'share', url: '?share=1' }
+          : { title: '🎉 On est plus de 100 joueurs !', body: 'Merci ! Continue d\'inviter tes amis : +20 € pour chaque ami inscrit avec ton lien.', tag: 'share', url: '?share=1' };
+        log('rappel partage', n, 'joueurs');
+        for (const s of subs.filter(s => !s.dead)) await push(s, msg);
+      }
+    } catch (e) { log('partage', e.message); }
+
     // Élection du maire : résultat le lundi (une fois par semaine)
     try {
       const prev = weekOf(Date.now() - 7 * 86400000), cur = weekOf(Date.now()), f = 'vote_' + prev.id;
