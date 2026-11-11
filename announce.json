@@ -1,28 +1,33 @@
 {
-  "id": "maj-2026-11-11-carte",
-  "emoji": "💳",
-  "title": "Nouveau : ta carte bancaire 3D",
+  "id": "maj-2026-11-11-banque",
+  "emoji": "🏦",
+  "title": "Nouvelle appli : Trad Banque",
   "items": [
     {
-      "icon": "💳",
-      "title": "Carte bancaire 3D",
-      "text": "En haut du Portefeuille : fais-la tourner au doigt et touche-la pour la retourner."
+      "icon": "🏦",
+      "title": "Trad Banque",
+      "text": "Ta banque, en appli séparée : solde, carte 3D, relevé de compte. Portefeuille → « Ouvrir Trad Banque », puis ajoute-la à l'écran d'accueil."
     },
     {
-      "icon": "🐐",
-      "title": "Classic → GOAT",
-      "text": "Silver à 10 000 €, Or à 100 000 €, Platine à 1 M€, Diamond à 10 M€… et GOAT à 100 M€."
+      "icon": "📲",
+      "title": "Trad Drop",
+      "text": "Virement instantané entre deux téléphones : l'un affiche un code à 4 chiffres, l'autre le tape. Même entre inconnus."
     },
     {
-      "icon": "✅",
-      "title": "Clans vérifiés",
-      "text": "Remplissez ensemble une cagnotte de 10 000 € pour obtenir le badge ✓ du clan."
+      "icon": "👩‍💼",
+      "title": "Ta conseillère Camille",
+      "text": "Bilan, prochaine carte, impôts, où placer ton argent : elle répond avec tes vrais chiffres."
+    },
+    {
+      "icon": "✓",
+      "title": "Offre le vérifié",
+      "text": "Abonnés Trad Center+ : offrez 1 semaine de badge à 3 amis par mois, ou parrainez un ami pour 100 €/mois."
     }
   ],
-  "button": "Voir ma carte 💳",
+  "button": "Ouvrir Trad Banque 🏦",
   "push": {
-    "title": "💳 Ta carte bancaire 3D est arrivée !",
-    "body": "Classic, Silver, Or, Platine, Diamond… atteindras-tu la carte GOAT ? Et faites vérifier vos clans ✓"
+    "title": "🏦 Nouvelle appli : Trad Banque !",
+    "body": "Virements instantanés avec Trad Drop, ta conseillère bancaire et ta carte 3D. Ouvre ton Portefeuille !"
   },
   "tab": "portfolio"
 }

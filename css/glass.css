@@ -644,3 +644,5 @@ button.nw { border: 0; background: none; color: inherit; font: inherit; cursor: 
 .cv-who { display: flex; flex-wrap: wrap; gap: 6px; } .cv-who span { font-size: 12px; padding: 3px 8px; border-radius: 999px; background: rgba(255,255,255,.08); }
 .cv-give { display: flex; flex-wrap: wrap; gap: 6px; }
 .cv-ok { color: var(--up); font-weight: 700; }
+.pg-act { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+#card-zone.show { display: block; } .cc-bank { display: block; width: max-content; margin: 10px auto 0; text-decoration: none; }

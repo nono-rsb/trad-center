@@ -1,0 +1,17 @@
+{
+  "name": "Trad Banque",
+  "short_name": "Trad Banque",
+  "description": "La banque de ton compte Trad Center : solde, virements instantanés, Trad Drop et conseillère.",
+  "lang": "fr",
+  "id": "./bank.html",
+  "start_url": "./bank.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#071a2b",
+  "theme_color": "#071a2b",
+  "categories": ["finance"],
+  "icons": [
+    { "src": "icons/bank-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/bank-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
