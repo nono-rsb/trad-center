@@ -1,23 +1,28 @@
 {
-  "id": "quiz-finance-2026-11-11",
-  "emoji": "🧠",
-  "title": "Quiz finance éclair : jusqu'à 14 h 30 !",
+  "id": "maj-2026-11-11-clans",
+  "emoji": "🛡️",
+  "title": "Nouveau : les clans !",
   "items": [
     {
-      "icon": "🧠",
-      "title": "10 questions",
-      "text": "Bourse, cryptos, argent : +15 € par bonne réponse, +50 € de bonus pour un 10/10."
+      "icon": "🛡️",
+      "title": "Crée ou rejoins un clan",
+      "text": "Onglet Amis : crée ton clan (500 €) avec un tag unique et un emblème, ou rejoins celui de tes amis."
     },
     {
-      "icon": "⏳",
-      "title": "Seulement 2 heures",
-      "text": "Le quiz disparaît à 14 h 30. Une seule tentative par joueur."
+      "icon": "🏆",
+      "title": "Clan de la semaine",
+      "text": "Les gains de tous les membres s'additionnent : chaque lundi, chaque membre du clan n°1 gagne 100 €."
+    },
+    {
+      "icon": "👥",
+      "title": "Un seul compte par joueur",
+      "text": "Les doubles comptes sur un même appareil sont maintenant bloqués automatiquement."
     }
   ],
-  "button": "OK 👍",
+  "button": "Voir les clans 🛡️",
   "push": {
-    "title": "🧠 Quiz finance éclair : jusqu'à 200 € à gagner !",
-    "body": "10 questions, seulement jusqu'à 14 h 30. Ouvre Trad Center vite !"
+    "title": "🛡️ Les clans arrivent sur Trad City !",
+    "body": "Crée ton clan ou rejoins tes amis : chaque semaine, le meilleur clan fait gagner 100 € à chaque membre."
   },
-  "silent": true
+  "tab": "social"
 }

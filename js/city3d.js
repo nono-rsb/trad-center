@@ -414,7 +414,7 @@
         });
         // sa plus belle voiture garée devant
         if (p.car) { const c = car(p.car.color, true); c.position.set(-2.5, .45, 9.6); c.rotation.y = Math.PI / 2; g.add(c); }
-        const txt = (p.mayor ? '👑 ' : '') + (p.me ? 'Toi' : p.pseudo) + (p.plus ? ' ✓' : '');
+        const txt = (p.mayor ? '👑 ' : '') + (p.tag ? '[' + p.tag + '] ' : '') + (p.me ? 'Toi' : p.pseudo) + (p.plus ? ' ✓' : '');
         const lb = label(txt, p.me ? { bg: 'rgba(255,200,40,.95)', color: '#2a1a00', scale: 1.1 } : p.mayor ? { bg: 'rgba(255,215,90,.92)', color: '#2a1a00', scale: 1.15, border: '#fff' } : p.friend ? { bg: 'rgba(40,110,230,.9)', scale: .95 } : {});
         lb.position.set(s.x, h + 3.2, s.z); world.add(lb); labels.push(lb);
         lotPos[p.uid] = { x: s.x, z: s.z, h };
