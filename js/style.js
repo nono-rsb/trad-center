@@ -82,7 +82,7 @@
   /* ---------- Abonnement Trad Center+ ---------- */
   ST.subscribe = function () {
     const p = S().plus || (S().plus = { until: 0, auto: true });
-    if (ST.isPlus(ST.mine())) return;
+    if ((p.until || 0) > Date.now()) return; // déjà abonné (un badge offert n'empêche pas de s'abonner)
     if (S().cash < ST.PLUS_PRICE) return TC.toast(`Il te faut ${fmt.eur(ST.PLUS_PRICE)} de cash`, 'bad');
     spend(ST.PLUS_PRICE, 'Abonnement Trad Center+ (1 mois)');
     p.until = Date.now() + ST.PLUS_DAYS * 86400000; p.auto = true; st().look.frame = 'fr_plus'; G.save(true);
@@ -94,14 +94,16 @@
   // renouvellement mensuel automatique
   function renew() {
     const p = S().plus; if (!p || !p.until || p.until > Date.now() || p.ended) return;
-    if (p.auto && S().cash >= ST.PLUS_PRICE) {
-      spend(ST.PLUS_PRICE, 'Renouvellement Trad Center+');
+    const cost = ST.PLUS_PRICE + 100 * (p.sponsors || []).length; // + 100 € par ami parrainé
+    if (p.auto && S().cash >= cost) {
+      spend(cost, 'Renouvellement Trad Center+' + ((p.sponsors || []).length ? ` (+${(p.sponsors || []).length} parrainage(s))` : ''));
       p.until = Math.max(p.until, Date.now() - 86400000) + ST.PLUS_DAYS * 86400000; G.save(true);
-      TC.toast(`✓ Trad Center+ renouvelé pour ${ST.PLUS_DAYS} jours (−${fmt.eur(ST.PLUS_PRICE)})`, 'info', 6000);
+      TC.toast(`✓ Trad Center+ renouvelé pour ${ST.PLUS_DAYS} jours (−${fmt.eur(cost)})`, 'info', 6000);
     } else {
-      p.ended = Date.now(); if (st().look.frame === 'fr_plus') st().look.frame = null; G.save(true);
-      TC.toast(p.auto ? `Trad Center+ terminé : il te manquait ${fmt.eur(ST.PLUS_PRICE - S().cash)} pour le renouveler.` : 'Ton abonnement Trad Center+ est terminé.', 'bad', 7000);
+      p.ended = Date.now(); p.sponsors = []; if (st().look.frame === 'fr_plus') st().look.frame = null; G.save(true);
+      TC.toast(p.auto ? `Trad Center+ terminé : il te manquait ${fmt.eur(cost - S().cash)} pour le renouveler.` : 'Ton abonnement Trad Center+ est terminé.', 'bad', 7000);
     }
+    if (TC.PlusGift) TC.PlusGift.publish();
     after();
   }
   // le bonus quotidien est augmenté de 50 % pour les membres
@@ -129,7 +131,8 @@
         }).join('')}</div>`;
     const md = TC.modal(`<h2>🎨 Mon style</h2>
       <div class="st-preview">${ST.avatar(me, 'xl')}<div><b class="st-name">${esc((TC.Net && TC.Net.profile && TC.Net.profile.pseudo) || 'Toi')} ${ST.badge(me)}</b><small>Cash : ${fmt.eur(S().cash)}</small>
-        <div class="st-plus">${plus ? `<span class="vbadge">✓</span> Trad Center+ jusqu'au ${new Date(p.until).toLocaleDateString('fr-FR')} · <label><input type="checkbox" id="st-auto" ${p.auto !== false ? 'checked' : ''}> renouvellement auto</label>`
+        <div class="st-plus">${plus && !((p.until || 0) > Date.now()) ? `<span class="vbadge">✓</span> Vérifié offert${S().plusGift && S().plusGift.from ? ' par ' + esc(S().plusGift.from) : ''} jusqu'au ${new Date(me.plusUntil).toLocaleDateString('fr-FR')}`
+          : plus ? `<span class="vbadge">✓</span> Trad Center+ jusqu'au ${new Date(p.until).toLocaleDateString('fr-FR')} · <label><input type="checkbox" id="st-auto" ${p.auto !== false ? 'checked' : ''}> renouvellement auto</label> <button class="btn btn-sm btn-plus" data-pgopen>🎁 Offrir le vérifié</button>`
           : `<button class="btn btn-sm btn-plus" data-plusgo="1"><span class="vbadge">✓</span> Devenir vérifié : ${fmt.eur(ST.PLUS_PRICE)}/mois</button>`}</div></div></div>
       <div class="seg st-tabs">${Object.entries(ST.SLOTS).map(([k, v]) => `<button data-stab="${k}" class="${k === tab ? 'active' : ''}">${v.icon}<span>${v.label}</span></button>`).join('')}</div>
       ${grid}
@@ -149,15 +152,16 @@
     });
   };
   ST.plusInfo = function () {
-    const me = ST.mine(), plus = ST.isPlus(me);
+    const plus = ((S().plus || {}).until || 0) > Date.now(); // abonnement personnel (pas un badge offert)
     const md = TC.modal(`<div class="center"><div class="big-emoji"><span class="vbadge xl">✓</span></div><h2>Trad Center+</h2>
       <p><b>${fmt.eur(ST.PLUS_PRICE)} / mois</b> (argent du jeu), renouvelé automatiquement si tu as assez de cash. Tu peux l'arrêter quand tu veux.</p></div>
       <div class="news">
         <div class="news-i"><span><span class="vbadge">✓</span></span><div><b>Badge vérifié</b><small>À côté de ton pseudo : amis, classements, demandes d'ami.</small></div></div>
         <div class="news-i"><span>🖼️</span><div><b>Cadre exclusif « vérifié »</b><small>Un halo bleu animé autour de ton avatar.</small></div></div>
         <div class="news-i"><span>🎁</span><div><b>Bonus quotidien +50 %</b><small>15 € par jour au lieu de 10 € (30 € en décembre).</small></div></div>
+        <div class="news-i"><span>🤝</span><div><b>Offre le vérifié à tes amis</b><small>1 semaine offerte à 3 amis chaque mois, ou parraine un ami pour 100 € de plus par mois.</small></div></div>
       </div>
-      <div class="modal-actions"><button class="btn btn-ghost" data-close>Plus tard</button>${plus ? '<button class="btn" data-close>Déjà membre ✓</button>' : `<button class="btn btn-plus" id="plus-go" ${S().cash >= ST.PLUS_PRICE ? '' : 'disabled'}>${S().cash >= ST.PLUS_PRICE ? 'S\'abonner' : 'Il te faut ' + fmt.eur(ST.PLUS_PRICE)}</button>`}</div>`);
+      <div class="modal-actions"><button class="btn btn-ghost" data-close>Plus tard</button>${plus ? '<button class="btn btn-plus" data-pgopen>🎁 Offrir le vérifié</button>' : `<button class="btn btn-plus" id="plus-go" ${S().cash >= ST.PLUS_PRICE ? '' : 'disabled'}>${S().cash >= ST.PLUS_PRICE ? 'S\'abonner' : 'Il te faut ' + fmt.eur(ST.PLUS_PRICE)}</button>`}</div>`);
     const go = md.el.querySelector('#plus-go'); if (go) go.onclick = () => ST.subscribe();
   };
 

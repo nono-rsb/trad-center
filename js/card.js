@@ -80,12 +80,15 @@
     if (lastTier != null && idx > lastTier) { TC.sound('kaching'); TC.confetti(220); TC.toast(`${t.icon} Nouvelle carte ${t.name} débloquée !`, 'ok', 6000); }
     lastTier = idx; S().cardTier = Math.max(S().cardTier || 0, idx);
   };
+  // dans une autre page (appli Trad Banque) : la carte se place où on veut
+  K.mountInto = function (box) { if (!el) { el = build(); lastTier = S().cardTier != null ? S().cardTier : null; } el.classList.add('show'); box.appendChild(el); K.update(); };
   function mount() {
     const pane = document.getElementById('tab-portfolio'); if (!pane) return;
     el = build(); pane.parentNode.insertBefore(el, pane);
+    const link = document.createElement('a'); link.className = 'btn cc-bank'; link.href = 'bank.html'; link.innerHTML = '🏦 Ouvrir Trad Banque'; el.appendChild(link);
     lastTier = S().cardTier != null ? S().cardTier : null;
     K.update();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount); else mount();
-  setInterval(() => { if (TC.UI && TC.UI.tab === 'portfolio' && !drag) K.update(); }, 2000);
+  setInterval(() => { if (((TC.UI && TC.UI.tab === 'portfolio') || (el && el.classList.contains('show'))) && !drag) K.update(); }, 2000);
 })();
