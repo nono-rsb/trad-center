@@ -188,7 +188,8 @@
     const oldKey = N.profile.nameKey || N.profile.pseudoLower;
     if (p === N.profile.pseudo) throw userErr('C\'est déjà ton pseudo.');
     const last = N.profile.pseudoChangedAt || 0;
-    if (Date.now() - last < N.PSEUDO_COOLDOWN) throw userErr('Tu pourras rechanger de pseudo dans ' + TC.fmt.dur(N.PSEUDO_COOLDOWN - (Date.now() - last)) + '.');
+    const forced = TC.Admin && TC.Admin.botBlocked && (TC.Admin.botBlocked(uid) || {}).need === 'pseudo'; // suspendu pour pseudo interdit : pas d'attente
+    if (!forced && Date.now() - last < N.PSEUDO_COOLDOWN) throw userErr('Tu pourras rechanger de pseudo dans ' + TC.fmt.dur(N.PSEUDO_COOLDOWN - (Date.now() - last)) + '.');
     const ref = db.collection('users').doc(uid);
     if (key !== oldKey) {
       try { await db.collection('usernames').doc(key).set({ uid }); } // échoue si le pseudo appartient déjà à quelqu'un

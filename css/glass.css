@@ -687,3 +687,11 @@ body.gated #sh-chip { display: none; }
 .sh-mine { display: flex; flex-direction: column; gap: 4px; margin-top: 10px; } .sh-mine > div { display: flex; justify-content: space-between; gap: 8px; font-size: 12.5px; padding: 6px 10px; border-radius: 10px; background: rgba(255,255,255,.06); }
 .sh-mine > .ok b { color: var(--up); } .sh-mine > .no b { color: var(--down); } .sh-mine small { color: var(--muted); font-size: 11.5px; }
 .adm-mod { margin-bottom: 12px; padding: 10px; border-radius: 14px; background: rgba(29,155,240,.1); border: 1px solid rgba(29,155,240,.35); } .adm-mod h4 { margin: 0 0 8px; }
+/* Sentinelle, le robot modérateur */
+.botbadge { display: inline-block; margin-left: 5px; padding: 1px 5px; border-radius: 5px; background: #5b6474; color: #fff; font-size: 10px; font-weight: 800; letter-spacing: .5px; vertical-align: middle; line-height: 1.4; }
+.sentinel { display: flex; gap: 12px; align-items: flex-start; }
+.sentinel .sn-txt { flex: 1; min-width: 0; } .sentinel .sn-txt > b { display: block; font-size: 16px; } .sentinel small { color: var(--muted, #a39dbd); }
+.sentinel p { margin: 6px 0; font-size: 14px; }
+.sn-stats { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--muted, #a39dbd); } .sn-stats b { color: var(--text, #fff); }
+.bn-ren { display: flex; gap: 8px; margin: 8px 0; } .bn-ren input { flex: 1; min-width: 0; }
+#banned .nbox { text-align: left; margin: 10px 0; }

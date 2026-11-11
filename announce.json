@@ -1,33 +1,32 @@
 {
-  "id": "promo-partage-2026-11-11",
-  "emoji": "📣",
-  "title": "Partage le jeu et gagne de l'argent !",
+  "id": "sentinelle-2026-11-11",
+  "emoji": "🤖",
+  "title": "Voici Sentinelle, le robot modérateur",
   "items": [
     {
-      "icon": "👻",
-      "title": "Story Snap publique : 400 €",
-      "text": "Poste Trad Center en story publique, fais une capture et réclame tes 400 €."
+      "icon": "🛡️",
+      "title": "Sentinelle ✓ BOT",
+      "text": "Un nouveau compte officiel, certifié et marqué BOT, surveille le jeu jour et nuit. Tu le trouves dans l'onglet Amis."
     },
     {
-      "icon": "🔒",
-      "title": "Story Snap privée : 200 €",
-      "text": "Story pour tes amis proches : 200 €."
+      "icon": "🚫",
+      "title": "Triche et doubles comptes",
+      "text": "Fortune qui explose sans raison, plusieurs comptes sur un téléphone : Sentinelle les repère et suspend les comptes."
     },
     {
-      "icon": "💬",
-      "title": "WhatsApp : 200 €",
-      "text": "Message ou statut WhatsApp avec le lien du jeu : 200 €."
+      "icon": "🤬",
+      "title": "Pas d'insultes",
+      "text": "Pseudo, nom de clan ou discours insultant : compte suspendu jusqu'à correction."
     },
     {
-      "icon": "⏳",
-      "title": "Jusqu'à dimanche soir",
-      "text": "Une demande par jour pour chaque type, jusqu'au dimanche 15 novembre. Le créateur vérifie ta capture puis te paie."
+      "icon": "📣",
+      "title": "Le partage paie toujours",
+      "text": "Story Snap publique 400 €, privée 200 €, WhatsApp 200 € : jusqu'à dimanche soir."
     }
   ],
-  "button": "Partager et gagner 📣",
+  "button": "Compris 👍",
   "push": {
-    "title": "📣 Story Snap = 400 € ! (jusqu'à dimanche)",
-    "body": "Story Snap publique : 400 €, privée : 200 €, WhatsApp : 200 €. Partage Trad Center, fais une capture et réclame ton argent dans le jeu !"
-  },
-  "share": true
+    "title": "🤖 Sentinelle veille sur Trad Center",
+    "body": "Un robot modérateur certifié surveille maintenant le jeu : triche, doubles comptes et insultes sont suspendus. Joue fair-play !"
+  }
 }
