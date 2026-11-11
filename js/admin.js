@@ -133,11 +133,18 @@
         await A.loadBans();
         const s = await N.db().collection('users').get();
         users = s.docs.map(d => N.prof(d.id, d.data())).filter(u => !u.bot).sort((a, b) => (b.nw || 0) - (a.nw || 0));
+        try { const bu = await N.db().collection('usernames').doc('tradcenter_bot').get(); if (bu.exists) { const bp = await N.db().collection('users').doc(bu.data().uid).get(); mod = (bp.exists && bp.data().modReports) || []; } } catch (e) { mod = []; }
         try { const gs = await giftRef().get(); decided = {}; ((gs.exists && gs.data().list) || []).forEach(g => { if (g.claim) decided[g.claim] = 1; }); } catch (e) { }
         render();
       } catch (e) { $('#adm-list').innerHTML = `<div class="empty">Erreur : ${esc(N.errMsg(e))}</div>`; }
     };
-    let decided = {};
+    let decided = {}, mod = [];
+    const modSeen = () => G.state.modSeen || (G.state.modSeen = {});
+    const modHtml = () => {
+      const L = mod.filter(r => !modSeen()[r.id]).slice().reverse();
+      return `<div class="adm-mod"><h4>🤖 Rapport du modérateur ${L.length ? `(${L.length})` : ''}</h4>${L.length ? L.map(r => `<div class="adm-claim"><div><b>${esc(r.kind)}</b><small>${esc(r.pseudo)} · ${esc(r.detail || '')} · ${fmt.time(r.at)}</small></div>
+        <button class="btn btn-sm" data-u="${esc(r.uid)}" data-modsee="1">Voir</button><button class="btn btn-sm btn-ghost" data-modok="${esc(r.id)}">✓</button></div>`).join('') : '<p class="hint">Rien à signaler 👍 Le robot surveille les joueurs toutes les 10 minutes.</p>'}</div>`;
+    };
     const claimsHtml = () => {
       const R = (TC.Share && TC.Share.REWARDS) || {};
       const pend = [];
@@ -149,7 +156,7 @@
     const render = () => {
       const q = filter.toLowerCase();
       const rows = users.filter(u => !q || (u.pseudo || '').toLowerCase().includes(q));
-      $('#adm-list').innerHTML = claimsHtml() + `<p class="hint">${users.length} joueur(s) · ${Object.keys(A.bans).length} bloqué(s)</p>` + rows.map(u => {
+      $('#adm-list').innerHTML = modHtml() + claimsHtml() + `<p class="hint">${users.length} joueur(s) · ${Object.keys(A.bans).length} bloqué(s)</p>` + rows.map(u => {
         const fl = flags(u), ban = A.isBanned(u.uid);
         return `<button class="adm-row ${ban ? 'ban' : ''}" data-u="${u.uid}">${TC.Style ? TC.Style.avatar(u, 's') : ''}<b>${esc(u.pseudo || '?')}${TC.Style ? TC.Style.badge(u) : ''}</b>
           <span class="adm-nw">${fmt.eur(u.nw || 0, true)}</span><small>${u.updatedAt ? 'vu ' + fmt.time(u.updatedAt) : ''}${u.playMs ? ' · ⏱️ ' + TC.Play.fmt(u.playMs) : ''}</small>
@@ -159,6 +166,8 @@
     md.el.querySelector('#adm-q').oninput = e => { filter = e.target.value; render(); };
     md.el.querySelector('#adm-reload').onclick = load;
     md.el.querySelector('#adm-list').addEventListener('click', async e => {
+      const mk = e.target.closest('[data-modok]'); if (mk) { modSeen()[mk.dataset.modok] = Date.now(); G.save(); render(); return; }
+      const ms = e.target.closest('[data-modsee]'); if (ms) return A.player(ms.dataset.u);
       const pv = e.target.closest('[data-cproof]');
       if (pv) { // la capture est dans la sauvegarde privée du joueur (lisible par le créateur)
         pv.disabled = true;
