@@ -86,9 +86,12 @@
 
   SH.count = async function () {
     const c = S().playerCount;
-    if (c && Date.now() - c.at < 3 * 3600000) return c.n;
-    const snap = await N.db().collection('users').get();
-    const n = snap.docs.filter(d => !d.data().bot).length;
+    if (c && Date.now() - c.at < 6 * 3600000) return c.n;
+    let n;
+    try { // comptage côté serveur : ~1 lecture au lieu d'une par joueur
+      const all = await N.db().collection('users').count().get(), bots = await N.db().collection('users').where('bot', '==', true).count().get();
+      n = all.data().count - bots.data().count;
+    } catch (e) { const snap = await N.db().collection('users').get(); n = snap.docs.filter(d => !d.data().bot).length; }
     S().playerCount = { n, at: Date.now() }; G.save();
     return n;
   };
@@ -123,6 +126,6 @@
   if (N && N.on) N.on(t => { if (t === 'linked') { if (fromPush) { S().sharePop = today(); setTimeout(() => SH.popup(true), 1500); } else setTimeout(maybe, 25000); } });
   setInterval(maybe, 30 * 60000);
   if (N && N.on) N.on(t => { if (t === 'linked' || t === 'change') SH.chip(); });
-  setInterval(() => SH.chip(), 60000);
+  setInterval(() => { if (!document.hidden) SH.chip(); }, 5 * 60000);
   document.addEventListener('click', e => { if (e.target.closest('[data-sharepop]')) SH.popup(true); });
 })();

@@ -37,7 +37,7 @@
     clearTimeout(saveT);
     G.state.updatedAt = Date.now();
     const w = () => { try { localStorage.setItem(KEY, JSON.stringify(G.state)); } catch (e) { } };
-    if (TC.Net && TC.Net.queueSync) TC.Net.queueSync();
+    if (TC.Net && TC.Net.queueSync) (now && TC.Net.flushSoon ? TC.Net.flushSoon : TC.Net.queueSync)();
     if (now) w(); else saveT = setTimeout(w, 400);
   };
   window.addEventListener('beforeunload', () => { try { localStorage.setItem(KEY, JSON.stringify(G.state)); } catch (e) { } });

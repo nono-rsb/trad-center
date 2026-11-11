@@ -237,25 +237,40 @@
   }
   function emitAsk(cloud, local) { return new Promise(res => emit('askSave', { cloud, local, res })); }
 
+  /* Économie du forfait gratuit Firebase (20 000 écritures / jour pour tout le jeu) :
+   * la partie part en ligne au plus toutes les 90 s pendant qu'on joue, tout de suite quand on quitte l'appli
+   * ou après une action importante (N.flushSoon), et jamais si rien n'a changé. */
+  const SYNC_EVERY = 90000, PUB_EVERY = 5 * 60000;
+  let lastSave = 0, lastPub = 0, lastJson = '', lastPubKey = '';
   N.queueSync = function () {
     if (!linked || !N.user) return;
-    clearTimeout(syncT); syncT = setTimeout(N.flush, 4000);
+    if (syncT) return; // déjà prévue
+    syncT = setTimeout(N.flush, Math.max(4000, lastSave + SYNC_EVERY - Date.now()));
+  };
+  N.flushSoon = function () { // action importante (achat, gain, réglage) : bientôt en ligne, mais pas plus d'une fois toutes les 15 s
+    if (!linked || !N.user) return; clearTimeout(syncT);
+    syncT = setTimeout(N.flush, Math.max(1500, lastSave + 15000 - Date.now()));
   };
   N.flush = async function () {
-    clearTimeout(syncT);
+    clearTimeout(syncT); syncT = null;
     if (!linked || !N.user || !db) return;
     const s = G.state; const nw = G.netWorth();
     const top = s.owned.slice().sort((a, b) => b.price - a.price)[0];
     try {
-      await db.collection('saves').doc(N.user.uid).set({ state: JSON.stringify(s), updatedAt: s.updatedAt || Date.now(), nw });
+      const json = JSON.stringify(s);
+      if (json !== lastJson) { await db.collection('saves').doc(N.user.uid).set({ state: json, updatedAt: s.updatedAt || Date.now(), nw }); lastJson = json; lastSave = Date.now(); }
       const pub = { nw, rank: G.rank(nw).r[1], items: s.owned.length, topItem: top ? top.item : null, updatedAt: Date.now() };
       if (TC.Weekly) pub[TC.Weekly.current().field] = TC.Weekly.gain();
       if (TC.Style) { const m = TC.Style.mine(); pub.look = m.look || {}; pub.plusUntil = m.plusUntil || 0; }
       if (TC.Play) { pub.playMs = Math.round(TC.Play.ms()); pub.playSince = TC.Play.since(); }
       if (TC.City) pub.city = TC.City.pub();
       if (TC.Xmas && TC.Xmas.raceGain() != null) { pub.xmasGain = TC.Xmas.raceGain(); pub.xmasYear = new Date().getFullYear(); }
-      await db.collection('users').doc(N.user.uid).update(pub);
-      Object.assign(N.profile || {}, pub);
+      // profil public (classements, amis) : toutes les 5 min, ou tout de suite si l'apparence, la ville ou le rang changent
+      const key = JSON.stringify([pub.rank, pub.items, pub.topItem, pub.look, pub.plusUntil, pub.city]);
+      if (key !== lastPubKey || Date.now() - lastPub > PUB_EVERY || document.hidden) {
+        await db.collection('users').doc(N.user.uid).update(pub); lastPub = Date.now(); lastPubKey = key;
+        Object.assign(N.profile || {}, pub);
+      }
       N.lastSync = Date.now(); emit('synced');
     } catch (e) { console.warn('sync', e); }
   };
@@ -282,7 +297,7 @@
     unsubs.push(db.collection('transfers').where('to', '==', uid).where('claimed', '==', false).onSnapshot(snap => {
       snap.docChanges().forEach(ch => { if (ch.type === 'added') claim(ch.doc.ref); });
     }, e => console.warn(e)));
-    const t = setInterval(() => { if (N.friends.length) loadProfiles(N.friends.map(f => f.uid)).then(f => { N.friends = f; emit('change'); }); }, 60000);
+    const t = setInterval(() => { if (N.friends.length && !document.hidden) loadProfiles(N.friends.map(f => f.uid)).then(f => { N.friends = f; emit('change'); }); }, 5 * 60000);
     unsubs.push(() => clearInterval(t));
   }
   async function loadProfiles(ids) {
@@ -394,7 +409,7 @@
     } catch (e) { console.warn('ref', e); }
   };
   N.on(t => { if (t === 'linked') { N.checkReferrals(); applyReferral(); } });
-  setInterval(() => N.checkReferrals(), 120000);
+  setInterval(() => { if (!document.hidden) N.checkReferrals(); }, 10 * 60000);
 
   /* ---------------- Noël ---------------- */
   // Père Noël secret : 25 € offerts par la banque du jeu (le donneur ne paie rien)
@@ -414,6 +429,8 @@
   N.loadBoard = async function (scope) {
     N.boardScope = scope;
     if (scope === 'friends') { N.board = null; emit('change'); return; }
+    if (N.board && Date.now() - (N.boardAt || 0) < 120000) { emit('change'); return; }
+    N.boardAt = Date.now();
     const snap = await db.collection('users').orderBy('nw', 'desc').limit(50).get();
     N.board = snap.docs.map(d => prof(d.id, d.data())).filter(u => !u.bot && !u.deleted && !(TC.Admin && TC.Admin.isBanned(u.uid)));
     emit('change');

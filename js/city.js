@@ -521,5 +521,5 @@
     if (t.closest('#city-collect')) { C.collect(); after(); }
   });
   if (N && N.on) N.on(ev => { if (ev === 'linked') { players = null; C.checkTakeovers(); C.checkElection(); } });
-  setInterval(() => { C.checkTakeovers(); C.checkElection(); }, 5 * 60000);
+  setInterval(() => { if (!document.hidden) { C.checkTakeovers(); C.checkElection(); } }, 5 * 60000);
 })();

@@ -91,5 +91,5 @@
   };
   document.addEventListener('click', e => { if (e.target.closest('[data-pgopen]')) PG.open(); });
   if (N && N.on) N.on(t => { if (t === 'linked') { PG.sync(); PG.publish(); } });
-  setInterval(() => PG.sync(), 5 * 60000);
+  setInterval(() => { if (!document.hidden) PG.sync(); }, 10 * 60000);
 })();
