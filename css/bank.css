@@ -112,3 +112,5 @@ body.bank-app #tax-bar { position: relative; }
 .bk-arshadow { position: absolute; left: 0; top: 0; z-index: 1; height: 26px; border-radius: 50%; background: radial-gradient(closest-side, rgba(0,0,0,.6), transparent); opacity: 0; pointer-events: none; }
 .bk-arhint { position: absolute; left: 12px; right: 12px; bottom: 12px; z-index: 3; text-align: center; padding: 9px 12px; border-radius: 14px; background: rgba(0,0,0,.55); color: #fff; font-weight: 700; font-size: 14px; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
 .bk-term.rx { width: min(78vw, 300px); padding: 8px 12px 10px; margin: 0 auto 8px; } .bk-term.rx .bk-leds { margin-bottom: 6px; } .bk-term.rx .bk-lcd { padding: 6px; } .bk-term.rx .bk-lcd span { font-size: 14px; }
+.bk-ar.seek { aspect-ratio: 1; max-width: 360px; } .bk-ar.seek .bk-cam-frame { z-index: 1; }
+.bk-dcard { width: min(86vw, 330px); margin: 4px auto 14px; } .bk-dcard .cc { cursor: default; }
