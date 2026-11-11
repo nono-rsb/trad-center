@@ -1,23 +1,23 @@
 {
-  "id": "maj-2026-11-10-impots",
-  "emoji": "🏛️",
-  "title": "Nouveau : l'impôt sur les riches",
+  "id": "quiz-finance-2026-11-11",
+  "emoji": "🧠",
+  "title": "Quiz finance éclair : jusqu'à 14 h 30 !",
   "items": [
     {
-      "icon": "🏛️",
-      "title": "Impôt progressif",
-      "text": "Les recettes des commerces et les loyers sont imposés selon ton patrimoine : 0 % jusqu'à 10 000 €, puis de plus en plus, jusqu'à 45 % maximum."
+      "icon": "🧠",
+      "title": "10 questions",
+      "text": "Bourse, cryptos, argent : +15 € par bonne réponse, +50 € de bonus pour un 10/10."
     },
     {
-      "icon": "📊",
-      "title": "Sans effet de seuil",
-      "text": "Comme le vrai impôt, chaque tranche a son taux : gagner plus ne fait jamais perdre d'argent. Touche « impôt ⓘ » pour voir le barème."
+      "icon": "⏳",
+      "title": "Seulement 2 heures",
+      "text": "Le quiz disparaît à 14 h 30. Une seule tentative par joueur."
     }
   ],
-  "button": "Voir mes commerces 🏪",
-  "tab": "city",
+  "button": "OK 👍",
   "push": {
-    "title": "🏛️ Les riches paient l'impôt à Trad City !",
-    "body": "Commerces et loyers : impôt progressif jusqu'à 45 %. Les petits joueurs n'en paient pas jusqu'à 10 000 €."
-  }
+    "title": "🧠 Quiz finance éclair : jusqu'à 200 € à gagner !",
+    "body": "10 questions, seulement jusqu'à 14 h 30. Ouvre Trad Center vite !"
+  },
+  "silent": true
 }
