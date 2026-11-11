@@ -262,13 +262,28 @@ async function main() {
       }
     } catch (e) { }
 
+    // ❓ Questions des joueurs : le créateur est prévenu des nouvelles, le joueur des réponses (créateur ou Claude)
+    try {
+      st.qa = st.qa || {}; let ans = {};
+      try { ans = JSON.parse(fs.readFileSync(path.join(ROOT, 'answers.json'), 'utf8')).answers || {}; } catch (e) { }
+      try { const d = await getDoc(doc(db, 'admin', 'qa')); if (d.exists()) Object.assign(ans, d.data()); } catch (e) { }
+      const adminSubs = subs.filter(s => s.uid === TC.ADMIN_UID && !s.dead);
+      for (const u of users) for (const x of (u.ask || [])) {
+        if (!x || !x.id) continue;
+        const qk = 'q:' + x.id, ak = 'a:' + x.id, a = ans[x.id];
+        if (!st.qa[qk]) { st.qa[qk] = Date.now(); if (Date.now() - (x.t || 0) < 86400000 && u.uid !== TC.ADMIN_UID && !a) for (const s of adminSubs) await push(s, { title: `❓ Question de ${u.pseudo || 'un joueur'}`, body: String(x.q || '').slice(0, 140), tag: 'qa-new', url: '?qa=admin' }); }
+        if (a && a.a && !st.qa[ak]) { st.qa[ak] = Date.now(); if (Date.now() - (a.t || Date.now()) < 7 * 86400000) for (const s of subs.filter(s => s.uid === u.uid && !s.dead)) await push(s, { title: '💬 Réponse à ta question', body: String(a.a).slice(0, 140), tag: 'qa', url: '?qa=1' }); }
+      }
+      prune(st.qa, 60 * 86400000);
+    } catch (e) { log('questions', e.message); }
+
     // Championnat de la semaine : annonce du champion le lundi (une fois par semaine)
     try {
       const prev = weekOf(Date.now() - 7 * 86400000), cur = weekOf(Date.now());
       st.weekly = st.weekly || {};
       if (!st.weekly[prev.id] && 7 * 86400000 - cur.left > 5 * 60000) { // au moins 5 min après lundi 0 h
         let bans = {}; try { const b = await getDoc(doc(db, 'admin', 'bans')); bans = (b.exists() && b.data().users) || {}; } catch (e) { }
-        const top = users.filter(u => !bans[u.uid] && typeof u[prev.field] === 'number' && u[prev.field] > 0).sort((a, b) => b[prev.field] - a[prev.field])[0];
+        const top = users.filter(u => !bans[u.uid] && u.uid !== TC.ADMIN_UID && typeof u[prev.field] === 'number' && u[prev.field] > 0).sort((a, b) => b[prev.field] - a[prev.field])[0];
         st.weekly[prev.id] = top ? top.uid : 'aucun';
         if (top) {
           log('champion de la semaine', prev.id, top.pseudo);
