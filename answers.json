@@ -1,0 +1,4 @@
+{
+  "info": "Réponses de Claude (assistant du créateur) aux questions des joueurs : id de la question → { a: réponse, t: date (ms), status: fait | refuse | reponse | prevu }",
+  "answers": {}
+}

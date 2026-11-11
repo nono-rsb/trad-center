@@ -52,7 +52,8 @@
     const prev = W.previous();
     try {
       const top = await W.board(prev.field, 0); // toujours frais pour la prime
-      W.lastChamp = top[0] && top[0].gain > 0 ? top[0] : null;
+      const champ = top.find(u => u.uid !== TC.ADMIN_UID); // le créateur du jeu est hors concours : la prime va au meilleur joueur
+      W.lastChamp = champ && champ.gain > 0 ? champ : null;
       const paid = S().weeklyPaid || (S().weeklyPaid = {});
       if (W.lastChamp && W.lastChamp.uid === N.user.uid && !paid[prev.id]) {
         paid[prev.id] = Date.now();
@@ -61,7 +62,7 @@
         G.save(true);
         TC.sound('kaching'); TC.confetti(220);
         TC.modal(`<div class="center"><div class="big-emoji">🏆</div><h2>Champion de la semaine !</h2>
-          <p>Tu as gagné <b>${fmt.eur(top[0].gain)}</b> la semaine dernière, plus que tous les autres joueurs.</p>
+          <p>Tu as gagné <b>${fmt.eur(W.lastChamp.gain)}</b> la semaine dernière, plus que tous les autres joueurs.</p>
           <p>Ta récompense : <b>+${fmt.eur(W.PRIZE)}</b> 🎉</p>
           <div class="modal-actions"><button class="btn btn-gold btn-xl" data-close>Encaisser 💰</button></div></div>`);
         if (TC.App) TC.App.after();
@@ -80,7 +81,8 @@
       <div class="board" id="wk-board"><div class="empty">Chargement…</div></div>`;
     try {
       const rows = await W.board(c.field, 15000); const b = el.querySelector('#wk-board'); if (!b) return;
-      b.innerHTML = rows.length ? rows.map((r, i) => `<div class="brow ${r.uid === N.user.uid ? 'me' : ''}"><span class="pos">${['🥇', '🥈', '🥉'][i] || i + 1}</span>${TC.Style.avatar(r, 's')}<b>${TC.Clan ? TC.Clan.badge(r) : ''}${esc(r.pseudo || '')}${TC.Style.badge(r)}</b><small>${i === 0 ? '+' + fmt.eur(W.PRIZE) + ' si ça tient' : ''}</small><span class="bnw ${r.gain >= 0 ? 'up' : 'down'}">${r.gain >= 0 ? '+' : ''}${fmt.eur(r.gain, true)}</span></div>`).join('') : '<div class="empty">Personne n\'a encore joué cette semaine : fonce !</div>';
+      let rk = 0;
+      b.innerHTML = rows.length ? rows.map(r => { const hc = r.uid === TC.ADMIN_UID, i = hc ? -1 : rk++; return `<div class="brow ${r.uid === N.user.uid ? 'me' : ''} ${hc ? 'hc' : ''}"><span class="pos">${hc ? '👑' : ['🥇', '🥈', '🥉'][i] || i + 1}</span>${TC.Style.avatar(r, 's')}<b>${TC.Clan ? TC.Clan.badge(r) : ''}${esc(r.pseudo || '')}${TC.Style.badge(r)}</b><small>${hc ? 'hors concours' : i === 0 ? '+' + fmt.eur(W.PRIZE) + ' si ça tient' : ''}</small><span class="bnw ${r.gain >= 0 ? 'up' : 'down'}">${r.gain >= 0 ? '+' : ''}${fmt.eur(r.gain, true)}</span></div>`; }).join('') : '<div class="empty">Personne n\'a encore joué cette semaine : fonce !</div>';
     } catch (e) { const b = el.querySelector('#wk-board'); if (b) b.innerHTML = '<div class="empty">Classement indisponible</div>'; }
   };
 

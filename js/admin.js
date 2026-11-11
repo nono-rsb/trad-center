@@ -176,7 +176,7 @@
   }
   A.open = async function () {
     if (!A.isAdmin()) return;
-    const md = TC.modal(`<h2>🛡️ Mode créateur</h2><div class="adm"><div class="adm-bar"><input id="adm-q" placeholder="Rechercher un joueur…" value="${esc(filter)}"><button class="btn btn-sm" id="adm-reload">↻</button></div><div id="adm-list" class="adm-list"><div class="empty">Chargement…</div></div></div>`, { cls: 'wide' });
+    const md = TC.modal(`<h2>🛡️ Mode créateur</h2><div class="adm"><div class="adm-bar"><input id="adm-q" placeholder="Rechercher un joueur…" value="${esc(filter)}"><button class="btn btn-sm" id="adm-reload">↻</button><button class="btn btn-sm" data-qadmin>❓ Questions</button></div><div id="adm-list" class="adm-list"><div class="empty">Chargement…</div></div></div>`, { cls: 'wide' });
     const load = async () => {
       try {
         await A.loadBans();

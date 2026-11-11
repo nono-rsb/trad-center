@@ -1,27 +1,32 @@
 {
-  "id": "carte-drop-2026-11-11",
-  "emoji": "💳",
-  "title": "Ta carte t'accompagne partout",
+  "id": "questions-2026-11-11",
+  "emoji": "❓",
+  "title": "Pose tes questions",
   "items": [
     {
-      "icon": "💳",
-      "title": "Dès l'écran Trad Drop",
-      "text": "Ta carte s'affiche avant même de choisir Recevoir ou Envoyer."
+      "icon": "❓",
+      "title": "Nouveau : bouton ❓ en haut",
+      "text": "Pose une question sur le jeu, signale un bug ou propose une idée de modification."
     },
     {
-      "icon": "✋",
-      "title": "Dans ta main pendant la recherche",
-      "text": "En « Envoyer », la caméra s'ouvre et ta carte est déjà dans ta main pendant que tu vises le QR de ton ami."
+      "icon": "⚡",
+      "title": "Réponse tout de suite",
+      "text": "Pour les questions sur le jeu, une réponse automatique s'affiche dès que tu écris."
     },
     {
-      "icon": "📲",
-      "title": "Puis tu la poses sur son téléphone",
-      "text": "Choisis le montant, « Payer avec ma carte », pose-la sur son écran : bip, payé !"
+      "icon": "💬",
+      "title": "Le créateur te répond",
+      "text": "Ta question est transmise au créateur. Les idées justes sont ajoutées au jeu ; sinon on t'explique pourquoi. Tu reçois une notification."
+    },
+    {
+      "icon": "🏆",
+      "title": "Championnat plus juste",
+      "text": "Le créateur du jeu est maintenant hors concours : les 500 € de la semaine reviennent au meilleur joueur."
     }
   ],
   "button": "Compris 👍",
   "push": {
-    "title": "💳 Ta carte dans ta main, dès le début",
-    "body": "Dans Trad Drop, ta carte apparaît dans ta main dès que tu cherches ton ami avec la caméra."
+    "title": "❓ Pose tes questions au créateur",
+    "body": "Nouveau bouton ❓ : questions, bugs, idées. Et le championnat des 500 € est réservé aux joueurs."
   }
 }
