@@ -359,6 +359,13 @@ async function main() {
         if (a && a.a && !st.qa[ak]) { st.qa[ak] = Date.now(); if (Date.now() - (a.t || Date.now()) < 7 * 86400000) for (const s of subs.filter(s => s.uid === u.uid && !s.dead)) await push(s, { title: '💬 Réponse à ta question', body: String(a.a).slice(0, 140), tag: 'qa', url: '?qa=1' }); }
       }
       prune(st.qa, 60 * 86400000);
+      // Boîte de réception de Claude : les questions sans réponse (sans pseudo ni identifiant, coordonnées masquées)
+      // sont publiées sur la branche qa-inbox du dépôt, que Claude lit lors de ses réveils programmés.
+      const mask = t => String(t || '').replace(/[\w.+-]+@[\w-]+\.[\w.]+/g, '[e-mail masqué]').replace(/(\+?\d[\d .-]{7,}\d)/g, '[numéro masqué]').replace(/https?:\/\/\S+/g, '[lien masqué]').slice(0, 300);
+      const inbox = [];
+      for (const u of users) for (const x of (u.ask || [])) if (x && x.id && !ans[x.id] && Date.now() - (x.t || 0) < 14 * 86400000 && u.uid !== TC.ADMIN_UID) inbox.push({ id: x.id, type: x.k === 'idee' ? 'idee' : x.k === 'bug' ? 'bug' : 'question', q: mask(x.q), t: x.t });
+      inbox.sort((a, b) => a.t - b.t);
+      fs.writeFileSync(path.join(ROOT, 'scripts', 'qa-inbox.json'), JSON.stringify({ info: 'Questions des joueurs sans réponse (anonymes). Réponses : answers.json sur main.', updated: inbox.length ? Math.max(...inbox.map(x => x.t)) : 0, questions: inbox }, null, 2));
     } catch (e) { log('questions', e.message); }
 
     // Championnat de la semaine : annonce du champion le lundi (une fois par semaine)
