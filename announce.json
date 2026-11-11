@@ -1,28 +1,28 @@
 {
-  "id": "maj-2026-11-11-drop2",
+  "id": "maj-2026-11-11-drop3",
   "emoji": "📲",
-  "title": "Trad Drop : approche les téléphones !",
+  "title": "Trad Drop : maintenant avec QR code",
   "items": [
     {
-      "icon": "📲",
-      "title": "Comme un AirDrop",
-      "text": "Dans Trad Banque → Drop : l'un touche « Recevoir », l'autre « Envoyer », puis approchez les deux téléphones. iPhone et Android."
+      "icon": "📷",
+      "title": "Vise, c'est payé",
+      "text": "Trad Banque → Drop : ton ami affiche un QR code, tu le vises avec ta caméra, l'argent part tout de suite. iPhone et Android."
     },
     {
-      "icon": "🤜🤛",
-      "title": "Ou cogne-les",
-      "text": "Un petit choc entre les deux téléphones suffit aussi à les relier."
+      "icon": "🔊",
+      "title": "Bips et choc en bonus",
+      "text": "Le téléphone qui reçoit émet aussi des petits bips, et cogner les téléphones marche toujours."
     },
     {
       "icon": "✅",
-      "title": "Coche verte et vibration",
-      "text": "Une grosse coche verte s'affiche des deux côtés quand l'argent est passé."
+      "title": "Coche verte",
+      "text": "Une grosse coche verte, une vibration et un « ka-ching » quand l'argent est passé."
     }
   ],
   "button": "Essayer 📲",
   "push": {
-    "title": "📲 Trad Drop : approche les téléphones pour payer !",
-    "body": "Comme un AirDrop pour ton argent : rapproche deux téléphones (ou cogne-les) et c'est envoyé ✅"
+    "title": "📲 Trad Drop : scanne et c'est payé !",
+    "body": "Ton ami affiche un QR code, tu le vises avec ta caméra : l'argent part instantanément ✅"
   },
   "tab": "portfolio"
 }

@@ -72,9 +72,10 @@
   function dropScreen() {
     if (drop && drop.mode === 'recv') {
       const left = Math.max(0, Math.ceil((drop.until - Date.now()) / 1000));
-      return `<h2 class="bk-h">📲 Trad Drop</h2><div class="bk-radar"><i></i><i></i><i></i><span>${meAv()}</span></div>
-        <p class="bk-center bk-big">Approche ton téléphone de celui qui t'envoie l'argent</p>
-        <div class="bk-sens"><span class="${drop.sound ? 'on' : ''}">🔊 Signal ${drop.sound ? 'émis' : 'coupé'}</span><span class="${drop.bump ? 'on' : ''}">🤜🤛 Choc ${drop.bump ? 'prêt' : 'indispo'}</span></div>
+      return `<h2 class="bk-h">📲 Trad Drop</h2>
+        <p class="bk-center bk-big">Montre cet écran à la personne qui t'envoie l'argent</p>
+        <div class="bk-qr">${TC.QR.svg('TRADDROP:' + drop.code)}<span class="bk-qr-av">${meAv()}</span></div>
+        <div class="bk-sens"><span class="on">📷 QR prêt</span><span class="${drop.sound ? 'on' : ''}">🔊 Bips ${drop.sound ? 'émis' : 'coupés'}</span><span class="${drop.bump ? 'on' : ''}">🤜🤛 Choc ${drop.bump ? 'prêt' : 'indispo'}</span></div>
         <p class="bk-center muted">Code de secours</p><div class="bk-code sm">${drop.code.split('').map(c => `<b>${c}</b>`).join('')}</div>
         <p class="bk-center muted">Valable encore <b id="bk-left">${left}</b> s · garde cet écran ouvert, volume monté</p>
         <button class="btn btn-ghost bk-full" id="bk-dstop">Arrêter</button>`;
@@ -83,10 +84,10 @@
       return `<h2 class="bk-h">📲 Trad Drop</h2>
         <div class="bk-panel"><div class="bk-amtin"><input id="bk-damt" type="number" inputmode="decimal" min="1" step="0.01" placeholder="0,00" value="${drop.amt || ''}"><span>€</span></div><small class="muted">Disponible : ${fmt.eur(S().cash)}</small>
           <input id="bk-dmsg" maxlength="120" placeholder="Message (facultatif)" class="bk-msg" value="${esc(drop.msg || '')}"></div>
-        <div class="bk-radar seek"><i></i><i></i><i></i><span>📲</span></div>
-        <p class="bk-center bk-big">${drop.status || 'Approche ton téléphone de celui de ton ami…'}</p>
-        <div class="bk-sens"><span class="${drop.mic ? 'on' : ''}">🎙️ Écoute ${drop.mic ? 'active' : 'refusée'}</span><span class="${drop.bump ? 'on' : ''}">🤜🤛 Choc ${drop.bump ? 'prêt' : 'indispo'}</span></div>
-        <p class="hint bk-center">Ton ami doit être sur « Recevoir ». Approchez les téléphones (haut-parleur contre micro) ou cognez-les doucement.</p>
+        <div class="bk-cam" id="bk-cam">${drop.cam === false ? '<p>📷 Caméra refusée : autorise-la dans les réglages, ou utilise les bips, le choc ou le code.</p>' : ''}<i class="bk-cam-frame"></i></div>
+        <p class="bk-center bk-big">${drop.status || 'Vise le QR code sur l\'écran de ton ami'}</p>
+        <div class="bk-sens"><span class="${drop.cam ? 'on' : ''}">📷 Caméra</span><span class="${drop.mic ? 'on' : ''}">🎙️ Bips</span><span class="${drop.bump ? 'on' : ''}">🤜🤛 Choc</span></div>
+        <p class="hint bk-center">Ton ami doit être sur « Recevoir ». Approche ton téléphone de son écran : c'est reconnu tout seul.</p>
         <div class="bk-alt"><span>ou tape son code</span><input id="bk-dcode" inputmode="numeric" maxlength="4" placeholder="• • • •"><button class="btn btn-sm" id="bk-dfind">OK</button></div>
         <button class="btn btn-ghost bk-full" id="bk-dstop">Annuler</button>`;
     }
@@ -99,12 +100,17 @@
     }
     return `<h2 class="bk-h">📲 Trad Drop</h2><p class="bk-center">Envoie de l'argent en approchant deux téléphones, iPhone ou Android.</p>
       <div class="bk-drop2"><button class="bk-dbig" id="bk-drecv">📥<b>Recevoir</b><small>Mon téléphone attend l'argent</small></button>
-        <button class="bk-dbig" id="bk-dseek">📤<b>Envoyer</b><small>J'approche mon téléphone du sien</small></button></div>
-      <p class="hint">Le téléphone qui reçoit émet un signal sonore très aigu ; celui qui envoie l'écoute au micro. Vous pouvez aussi cogner doucement les deux téléphones. Si vous n'êtes pas encore amis, vous le devenez automatiquement.</p>`;
+        <button class="bk-dbig" id="bk-dseek">📤<b>Envoyer</b><small>Je scanne son écran</small></button></div>
+      <p class="hint">Le téléphone qui reçoit affiche un QR code (et émet des petits bips) ; celui qui envoie le vise avec sa caméra. Vous pouvez aussi cogner doucement les deux téléphones. Si vous n'êtes pas encore amis, vous le devenez automatiquement.</p>`;
   }
+  let camVideo = null;
+  const camEl = () => camVideo || (camVideo = document.createElement('video'));
   function keepInputs() { if (!drop) return; const a = $('#bk-damt'), m = $('#bk-dmsg'); if (a) drop.amt = a.value; if (m) drop.msg = m.value; }
+  let wake = null; // garder l'écran allumé pendant le Drop
+  async function awake(on) { try { if (on && navigator.wakeLock && !wake) wake = await navigator.wakeLock.request('screen'); if (!on && wake) { await wake.release(); wake = null; } } catch (e) { wake = null; } }
   async function startRecv() {
     TC.Sonic.ctx(); // à créer pendant le toucher (iPhone)
+    awake(true);
     const bumpOk = TC.Bump.start(async () => { try { await N.db().collection('users').doc(me()).update({ bump: fs() }); } catch (e) { } });
     const code = String(Math.floor(1000 + Math.random() * 9000));
     drop = { mode: 'recv', code, until: Date.now() + 3 * 60000 };
@@ -113,15 +119,17 @@
     drop.bump = await bumpOk; render();
   }
   async function stopDrop(silent) {
-    TC.Sonic.stop(); TC.Bump.stop();
+    TC.Sonic.stop(); TC.Bump.stop(); awake(false);
     if (drop && drop.mode === 'recv') { try { await N.db().collection('users').doc(me()).update({ drop: null }); } catch (e) { } }
     drop = null; if (!silent) render();
   }
   async function startSeek() {
-    TC.Sonic.ctx();
+    TC.Sonic.ctx(); awake(true);
     const bumpOk = TC.Bump.start(onSenderBump);
     drop = { mode: 'seek' }; render();
-    try { await TC.Sonic.listen(code => { if (drop && drop.mode === 'seek') findCode(code, 'par le son 🔊').catch(() => { }); }); drop.mic = true; } catch (e) { drop.mic = false; }
+    const onQR = txt => { const m = /TRADDROP:(\d{4})/.exec(txt || ''); if (m && drop && drop.mode === 'seek' && !drop.busy) { drop.busy = true; findCode(m[1], 'en scannant 📷').catch(() => { if (drop) drop.busy = false; }); } };
+    try { await TC.QR.scan(camEl(), onQR); drop.cam = true; } catch (e) { drop.cam = false; }
+    try { await TC.Sonic.listen(code => { if (drop && drop.mode === 'seek' && !drop.busy) findCode(code, 'par les bips 🔊').catch(() => { }); }); drop.mic = true; } catch (e) { drop.mic = false; }
     drop.bump = await bumpOk; keepInputs(); render();
   }
   // choc côté envoyeur : on cherche un téléphone en « Recevoir » qui a eu un choc au même instant
@@ -141,7 +149,7 @@
     } catch (e) { if (drop) { drop.status = 'Recherche impossible, réessaie'; render(); } }
   }
   function found(target, code, via) {
-    keepInputs(); TC.Sonic.stopListen(); TC.Bump.stop();
+    keepInputs(); TC.Sonic.stopListen(); TC.QR.stop(); TC.Bump.stop();
     drop = Object.assign({}, drop, { mode: 'send', target, code, via });
     TC.haptic([30, 40, 30]); TC.sound('ach'); render();
   }
@@ -208,7 +216,7 @@
       case 'revenus': return `Revenus passifs : commerces <b>${fmt.eur(ph)}/h</b>, loyers <b>${fmt.eur(rent)}/h</b>, soit environ <b>${fmt.eur((ph + rent) * 24)}</b> par jour avant impôt. Pense à encaisser : la caisse des commerces est plafonnée à 24 h et les loyers à 48 h.`;
       case 'risque': return 'Règles d\'or : ne mets jamais tout sur un seul actif, utilise un stop-loss, évite le levier élevé (x10 = une baisse de 10 % efface tout), et ne parie pas plus de 5 % de ton argent d\'un coup.';
       case 'bot': { const b = s.bot; return b && b.unlocked ? `Ton bot est ${b.on ? '<b>allumé</b>' : 'en pause'}, avec un budget de ${fmt.eur(b.budget)} et un résultat de <b>${fmt.eur(b.pnl || 0)}</b>. Pour limiter les risques, active la pause automatique sur perte du jour (Réglages avancés).` : 'Tu n\'as pas encore le bot de trading (100 € dans Portefeuille). Il trade à ta place pendant que le jeu est ouvert, mais il peut aussi perdre.'; }
-      case 'virement': return 'Pour un virement : onglet 💸 Virement, choisis un ami et un montant. Pour un ami à côté de toi, utilise le 📲 Trad Drop : il touche « Recevoir », tu touches « Envoyer », puis approchez les téléphones (ou cognez-les doucement) : coche verte, c\'est envoyé.';
+      case 'virement': return 'Pour un virement : onglet 💸 Virement, choisis un ami et un montant. Pour un ami à côté de toi, utilise le 📲 Trad Drop : il touche « Recevoir » et un QR code s\'affiche, tu touches « Envoyer » et tu vises son écran avec ta caméra : coche verte, c\'est envoyé.';
       default: return 'Je peux t\'aider sur : ton bilan, ta carte, où placer ton argent, tes impôts, tes revenus, les risques, le bot ou les virements. Choisis un sujet ci-dessous 👇';
     }
   }
@@ -242,6 +250,7 @@
     r.innerHTML = `<header class="bk-top"><b>🏦 Trad Banque</b><span>${TC.Style ? TC.Style.avatar(Object.assign({}, N.profile, TC.Style.mine()), 's') : ''}</span></header><main class="bk-main">${body}</main>
       <nav class="bk-nav">${NAV.map(([k, i, l]) => `<button data-tab="${k}" class="${B.tab === k ? 'on' : ''}"><i>${i}</i><span>${l}</span></button>`).join('')}</nav>`;
     if (B.tab === 'home' && TC.Card) TC.Card.mountInto($('#bk-card'));
+    const camBox = $('#bk-cam'); if (camBox && camVideo && drop && drop.cam) camBox.prepend(camVideo);
     if (scroll) { const c = $('.bk-chat'); if (c) c.scrollTop = c.scrollHeight; }
   }
   function bindLogin() {
