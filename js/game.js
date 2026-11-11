@@ -75,7 +75,8 @@
   G.levValue = () => S().positions.reduce((s, p) => s + G.posValue(p), 0);
   G.betsValue = () => S().bets.reduce((s, b) => s + b.stake, 0);
   G.itemsValue = () => S().owned.reduce((s, o) => s + G.itemResale(o), 0);
-  G.netWorth = () => S().cash + G.spotValue() + G.levValue() + G.betsValue() + G.itemsValue();
+  G.occValue = () => ((S().occ && S().occ.inv) || []).reduce((s, x) => s + (x.status === 'own' || x.status === 'listed' || x.status === 'transit' ? (x.fake ? 0 : x.cote * 0.8) : x.status === 'sold' ? x.soldPrice || 0 : 0), 0); // articles Trad Occaz (revente rapide)
+  G.netWorth = () => S().cash + G.spotValue() + G.levValue() + G.betsValue() + G.itemsValue() + G.occValue();
   G.rank = (nw) => { nw = nw == null ? G.netWorth() : nw; let r = TC.RANKS[0], next = null; for (let i = 0; i < TC.RANKS.length; i++) { if (nw >= TC.RANKS[i][0]) { r = TC.RANKS[i]; next = TC.RANKS[i + 1] || null; } } return { r, next }; };
   G.prestige = () => S().owned.reduce((s, o) => s + Math.round(Math.sqrt(o.price) / 3), 0);
 

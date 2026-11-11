@@ -97,7 +97,7 @@
     const pane = document.getElementById('tab-portfolio'); if (!pane) return;
     el = build(); pane.parentNode.insertBefore(el, pane);
     const acts = document.createElement('div'); acts.className = 'cc-actions';
-    acts.innerHTML = '<a class="btn" href="bank.html">🏦 Ouvrir Trad Banque</a><button class="btn btn-gold" data-bankinstall>📲 Sur l\'écran d\'accueil</button>'; el.appendChild(acts);
+    acts.innerHTML = '<a class="btn" href="bank.html">🏦 Ouvrir Trad Banque</a><a class="btn" href="occaz.html">🏷️ Trad Occaz</a><button class="btn btn-gold" data-bankinstall>📲 Sur l\'écran d\'accueil</button>'; el.appendChild(acts);
     lastTier = S().cardTier != null ? S().cardTier : null;
     K.update();
   }
