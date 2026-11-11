@@ -28,6 +28,12 @@
       if (!A.botUid) return;
       const p = await db.collection('users').doc(A.botUid).get();
       if (p.exists) { const first = !A.bot; A.bot = N.prof(A.botUid, p.data()); A.botBlocks = A.bot.modBlocks || {}; if (first && TC.Social && TC.UI && TC.UI.tab === 'social') TC.Social.render(); }
+      // compte de Claude (assistant IA du créateur) : son uid est publié par Sentinelle, donc impossible à imiter
+      if (A.bot && A.bot.claudeUid) {
+        TC.CLAUDE_UID = A.bot.claudeUid;
+        const c = await db.collection('users').doc(TC.CLAUDE_UID).get();
+        if (c.exists) { const first = !A.claude; A.claude = N.prof(TC.CLAUDE_UID, c.data()); if (first && TC.Social && TC.UI && TC.UI.tab === 'social') TC.Social.render(); }
+      }
     } catch (e) { }
   };
   A.botBlocked = uid => { const b = uid && A.botBlocks[uid]; return b && (!b.until || b.until > Date.now()) ? b : null; };
@@ -43,6 +49,22 @@
       <p>Je surveille le jeu jour et nuit : triche, doubles comptes, insultes, fausses demandes de récompense. Ceux qui ne respectent pas les règles sont suspendus.</p>
       <div class="sn-stats"><span><b>${b.modTotal || 0}</b> signalement${(b.modTotal || 0) > 1 ? 's' : ''}</span><span><b>${nb}</b> compte${nb > 1 ? 's' : ''} suspendu${nb > 1 ? 's' : ''}</span>${b.modRound ? `<span>dernière ronde ${fmt.time(b.modRound)}</span>` : ''}</div></div></div>`;
   };
+  // fiche de Claude (onglet Amis) : qui il est, ses paris pour le fun
+  A.claudeCard = function () {
+    const c = A.claude; if (!c) return '';
+    const g = c.cb || { cash: 10, bets: [], wins: 0, losses: 0 }, bets = (g.bets || []).slice().reverse().slice(0, 4);
+    const friend = (N.friends || []).some(f => f.uid === c.uid), asked = (N.outgoing || []).some(r => r.to === c.uid);
+    const NAME = id => (TC.assetById && TC.assetById[id] && TC.assetById[id].name) || id;
+    return `<div class="panel sentinel claude">${TC.Style ? TC.Style.avatar(c, 'm') : '🧡'}<div class="sn-txt"><b>${esc(c.pseudo)}${TC.Style ? TC.Style.badge(c) : ''}</b><small>${esc(c.role || 'Assistant IA du créateur')}</small>
+      <p>Salut ! Je suis Claude, l'IA qui aide le créateur à fabriquer Trad Center. Je réponds aux questions ❓ et j'ajoute au jeu les idées justes. Et je parie un peu, pour le fun 🎲 (hors concours).</p>
+      <div class="sn-stats"><span><b>${fmt.eur(c.nw != null ? c.nw : g.cash)}</b></span><span><b>${g.wins || 0}</b> gagné${(g.wins || 0) > 1 ? 's' : ''} · <b>${g.losses || 0}</b> perdu${(g.losses || 0) > 1 ? 's' : ''}</span></div>
+      ${bets.length ? `<div class="cl-bets">${bets.map(b => `<div><span>${b.dir === 'up' ? '📈' : '📉'} ${esc(NAME(b.a))}</span><small>${fmt.eur(b.stake)} · ${fmt.time(b.at)}</small><b class="${b.res === 'win' ? 'up' : b.res === 'lose' ? 'down' : ''}">${b.res === 'win' ? '+' + fmt.eur(b.gain) : b.res === 'lose' ? fmt.eur(b.gain) : '⏳ en cours'}</b></div>`).join('')}</div>` : '<p class="hint">Mon premier pari arrive bientôt…</p>'}
+      <div class="cl-act">${friend ? '<span class="hint">🤝 On est amis</span>' : asked ? '<span class="hint">✉️ Demande envoyée, j\'accepte vite</span>' : '<button class="btn btn-sm btn-gold" data-addclaude>➕ Ajouter Claude en ami</button>'}<button class="btn btn-sm" data-qa>❓ Me poser une question</button></div></div></div>`;
+  };
+  document.addEventListener('click', async e => {
+    if (!e.target.closest('[data-addclaude]') || !A.claude) return;
+    try { await N.addFriend(A.claude.pseudo); TC.toast('✉️ Demande envoyée à Claude : il accepte à son prochain passage', 'ok', 6000); } catch (x) { TC.toast(N.errMsg ? N.errMsg(x) : 'Impossible', 'bad'); }
+  });
   A.enforce = function () {
     const me = N.user && N.user.uid;
     const lock = $('#banned');
