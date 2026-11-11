@@ -662,3 +662,8 @@ button.nw { border: 0; background: none; color: inherit; font: inherit; cursor: 
 .sh-bar i { position: absolute; inset: 0 auto 0 0; background: linear-gradient(90deg, var(--accent), #ff5fa2); }
 .sh-bar span { position: relative; display: block; line-height: 26px; font-weight: 800; font-size: 13px; }
 .sh-bonus { font-size: 13px; }
+/* Installer Trad Banque */
+.bi-icon { width: 76px; height: 76px; border-radius: 18px; box-shadow: 0 8px 20px rgba(0,0,0,.4); }
+.bi-steps { text-align: left; padding-left: 22px; display: flex; flex-direction: column; gap: 8px; font-size: 15px; } .bi-ic { display: inline-block; padding: 0 6px; border-radius: 8px; background: rgba(255,255,255,.12); }
+.bi-link { display: flex; gap: 8px; } .bi-link input { flex: 1; min-width: 0; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.15); border-radius: 12px; padding: 9px 10px; color: var(--text); font-size: 12px; }
+.cc-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 10px; } .cc-actions .btn { text-decoration: none; }

@@ -85,7 +85,8 @@
   function mount() {
     const pane = document.getElementById('tab-portfolio'); if (!pane) return;
     el = build(); pane.parentNode.insertBefore(el, pane);
-    const link = document.createElement('a'); link.className = 'btn cc-bank'; link.href = 'bank.html'; link.innerHTML = '🏦 Ouvrir Trad Banque'; el.appendChild(link);
+    const acts = document.createElement('div'); acts.className = 'cc-actions';
+    acts.innerHTML = '<a class="btn" href="bank.html">🏦 Ouvrir Trad Banque</a><button class="btn btn-gold" data-bankinstall>📲 Sur l\'écran d\'accueil</button>'; el.appendChild(acts);
     lastTier = S().cardTier != null ? S().cardTier : null;
     K.update();
   }

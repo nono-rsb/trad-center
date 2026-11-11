@@ -5,7 +5,7 @@
   "lang": "fr",
   "id": "./bank.html",
   "start_url": "./bank.html",
-  "scope": "./",
+  "scope": "./bank",
   "display": "standalone",
   "background_color": "#071a2b",
   "theme_color": "#071a2b",
