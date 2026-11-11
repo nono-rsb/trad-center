@@ -1,37 +1,32 @@
 {
-  "id": "avatars-2026-11-11",
-  "emoji": "🧑‍🎨",
-  "title": "Crée ton vrai avatar",
+  "id": "paiement-camera-2026-11-11",
+  "emoji": "📷",
+  "title": "Paie en réalité augmentée",
   "items": [
     {
-      "icon": "🧑",
-      "title": "Un vrai personnage",
-      "text": "Fini les emojis : crée ton avatar dessiné. Peau, visage, yeux, sourcils, nez, bouche, coiffure, barbe, vêtement, fond, détails."
+      "icon": "📷",
+      "title": "Ta carte apparaît dans la caméra",
+      "text": "Trad Banque → Drop → Envoyer → « Payer avec ma carte » : la caméra s'ouvre et ta carte 3D flotte au-dessus du téléphone de ton ami."
     },
     {
-      "icon": "🌈",
-      "title": "Toutes les couleurs",
-      "text": "Cheveux, yeux, peau, vêtement, fond : choisis dans la palette ou prends n'importe quelle couleur avec 🌈. Gratuit et sans limite."
+      "icon": "🃏",
+      "title": "Elle se pose dessus",
+      "text": "Approche-toi : la carte suit son téléphone, puis se pose sur son écran. Voyants, bip, paiement accepté !"
     },
     {
-      "icon": "🧢",
-      "title": "Tes articles de marque dessus",
-      "text": "Casquette, lunettes, chaîne, doudoune, costume, couronne… ce que tu as acheté s'affiche sur ton personnage."
+      "icon": "🏧",
+      "title": "Son téléphone devient une borne",
+      "text": "En « Recevoir », son écran affiche un Trad Terminal qui s'allume et bipe quand l'argent arrive."
     },
     {
-      "icon": "🎲",
-      "title": "En panne d'idée ?",
-      "text": "Bouton « Au hasard ». Touche ton avatar → onglet 🧑 Avatar."
-    },
-    {
-      "icon": "💎",
-      "title": "Et le bot Investisseur",
-      "text": "Ton bot a un nouveau mode diversifié, testé sur 1 an de vrais cours."
+      "icon": "🧑‍🎨",
+      "title": "Et ton nouvel avatar ?",
+      "text": "Touche ton avatar → 🧑 Avatar pour créer ton personnage."
     }
   ],
   "button": "Compris 👍",
   "push": {
-    "title": "🧑‍🎨 Crée ton vrai avatar",
-    "body": "Les avatars sont maintenant de vrais personnages personnalisables à 100 %, avec tes articles de marque dessus."
+    "title": "📷 Paie en réalité augmentée",
+    "body": "Ta carte 3D se pose sur le téléphone de ton ami à travers la caméra. Bip, payé !"
   }
 }
