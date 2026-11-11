@@ -41,6 +41,7 @@
       <div id="bk-card"></div>
       <div class="bk-bal"><div><small>Solde disponible</small><b>${fmt.eur(S().cash)}</b></div><div><small>Patrimoine total</small><b>${fmt.eur(nw)}</b></div></div>
       <div class="bk-quick"><button data-go="send">💸<span>Virement</span></button><button data-go="drop">📲<span>Trad Drop</span></button><button data-go="history">📜<span>Relevé</span></button><button data-go="advisor">💬<span>Conseiller</span></button></div>
+      <div class="bk-panel"><h3>🔒 Sécurité</h3><div id="bk-pk"></div></div>
       <div class="bk-panel"><h3>7 derniers jours</h3><div class="bk-flow"><div><small>Entrées</small><b class="in">+${fmt.eur(tin)}</b></div><div><small>Sorties</small><b class="out">−${fmt.eur(tout)}</b></div></div></div>
       <div class="bk-panel"><h3>Dernières opérations <button class="bk-link" data-go="history">Tout voir</button></h3>${ops.length ? ops.map(opRow).join('') : '<div class="empty">Aucune opération pour l\'instant.</div>'}</div>
       ${TC.BankInstall && !TC.BankInstall.installed() ? '<button class="bk-install" data-bankinstall><img src="icons/bank-180.png" alt=""><div><b>Mets Trad Banque sur ton écran d\'accueil</b><small>Une vraie appli, à côté du jeu</small></div><span>📲</span></button>' : ''}
@@ -194,6 +195,7 @@
     const amt = +drop.amt;
     if (!(amt > 0)) throw new Error('Entre un montant.');
     if (amt > S().cash) throw new Error('Solde insuffisant.');
+    await TC.Pass.check(); // Face ID / empreinte d'abord, puis on présente la carte (comme un vrai paiement mobile)
     drop.mode = 'pay'; drop.paying = false; render();
     drop.motion = await TC.Tap.start(lv => {
       const c = $('#bk-paycard'); if (!c || drop.paying) return;
@@ -302,6 +304,7 @@
     r.innerHTML = `<header class="bk-top"><b>🏦 Trad Banque</b><span>${TC.Style ? TC.Style.avatar(Object.assign({}, N.profile, TC.Style.mine()), 's') : ''}</span></header><main class="bk-main">${body}</main>
       <nav class="bk-nav">${NAV.map(([k, i, l]) => `<button data-tab="${k}" class="${B.tab === k ? 'on' : ''}"><i>${i}</i><span>${l}</span></button>`).join('')}</nav>`;
     if (B.tab === 'home' && TC.Card) TC.Card.mountInto($('#bk-card'));
+    if (B.tab === 'home' && TC.Pass) TC.Pass.block($('#bk-pk'));
     if (drop && drop.mode === 'pay') mountPayCard();
         const camBox = $('#bk-cam'); if (camBox && camVideo && drop && drop.cam) camBox.prepend(camVideo);
     if (scroll) { const c = $('.bk-chat'); if (c) c.scrollTop = c.scrollHeight; }
@@ -326,6 +329,7 @@
       const f = (N.friends || []).find(x => x.uid === B.to); if (!f) throw new Error('Choisis un bénéficiaire.');
       const amt = +$('#bk-amt').value; if (!(amt > 0)) throw new Error('Entre un montant.');
       if (!(await TC.confirm('Confirmer le virement', `<b>${fmt.eur(amt)}</b> à <b>${esc(f.pseudo)}</b>`, 'Envoyer', 'btn-gold'))) return;
+      await TC.Pass.check();
       await N.send(f, 'cash', null, amt, $('#bk-msg').value);
       TC.sound('kaching'); TC.toast(`✅ Virement de ${fmt.eur(amt)} envoyé à ${esc(f.pseudo)}`, 'ok', 6000); B.tab = 'home'; render();
     });
@@ -338,6 +342,8 @@
         if (b.id === 'bk-dfind') return busy(() => findCode($('#bk-dcode').value.trim()));
     if (b.id === 'bk-dsend') return busy(async () => {
       const amt = +$('#bk-damt').value; const who = drop.target.pseudo;
+      if (!(amt > 0)) throw new Error('Entre un montant.');
+      await TC.Pass.check();
       b.textContent = '📲 Envoi…'; await dropSend(amt, $('#bk-dmsg').value);
       okOverlay('Envoyé !', `<b>${fmt.eur(amt)}</b> à ${esc(who)}`); await stopDrop(true); B.tab = 'home'; render();
     });

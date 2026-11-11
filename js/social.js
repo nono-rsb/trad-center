@@ -159,6 +159,7 @@
     el.querySelector('#s-go').onclick = async () => {
       const btn = el.querySelector('#s-go'); btn.disabled = true;
       try {
+        if (TC.Pass) await TC.Pass.check();
         const t = await N.send(friend, kind, el.querySelector('#s-asset').value, el.querySelector('#s-amt').value, el.querySelector('#s-msg').value);
         md.close(); TC.sound('cash'); TC.confetti(80);
         TC.toast(`📤 ${t.kind === 'cash' ? fmt.eur(t.eur) : fmt.qty(t.qty) + ' ' + t.asset} envoyé(s) à ${esc(friend.pseudo)} !`, 'ok');
