@@ -600,6 +600,7 @@ button.nw { border: 0; background: none; color: inherit; font: inherit; cursor: 
 .cc-stage { perspective: 1100px; }
 .cc { position: relative; width: 100%; aspect-ratio: 1.586; transform-style: preserve-3d; transition: transform .6s cubic-bezier(.2,.9,.3,1.15); cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none;
   --c1: #2b3a67; --c2: #10162e; --ink: #fff; --acc: #8fb3ff; animation: ccfloat 6s ease-in-out infinite; }
+.cc.tilting { transition: transform .1s linear; }
 .cc.drag { transition: none; cursor: grabbing; animation: none; }
 @keyframes ccfloat { 0%, 100% { translate: 0 0; } 50% { translate: 0 -6px; } }
 .cc-face { position: absolute; inset: 0; border-radius: 18px; backface-visibility: hidden; -webkit-backface-visibility: hidden; overflow: hidden; color: var(--ink);
@@ -695,3 +696,5 @@ body.gated #sh-chip { display: none; }
 .sn-stats { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--muted, #a39dbd); } .sn-stats b { color: var(--text, #fff); }
 .bn-ren { display: flex; gap: 8px; margin: 8px 0; } .bn-ren input { flex: 1; min-width: 0; }
 #banned .nbox { text-align: left; margin: 10px 0; }
+.pk-row { display: flex; align-items: center; gap: 10px; } .pk-row > div { flex: 1; min-width: 0; } .pk-row b { display: block; font-size: 14px; } .pk-row small { display: block; font-size: 12px; color: var(--muted); } .pk-ic { font-size: 26px; }
+#pk-set { margin: 8px 0; padding: 10px 12px; border-radius: 14px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); }

@@ -1,37 +1,32 @@
 {
-  "id": "occaz-2026-11-11",
-  "emoji": "🏷️",
-  "title": "Nouvelle appli : Trad Occaz",
+  "id": "faceid-2026-11-11",
+  "emoji": "🔐",
+  "title": "Ta carte bouge et Face ID protège tes paiements",
   "items": [
     {
+      "icon": "💳",
+      "title": "Carte 3D vivante",
+      "text": "Dans Trad Banque et le Portefeuille, ta carte suit les mouvements de ton téléphone, avec le reflet qui bouge. Touche l'écran une fois pour l'activer."
+    },
+    {
+      "icon": "🔐",
+      "title": "Payer avec Face ID",
+      "text": "Trad Banque → Sécurité → Activer. Chaque paiement, virement ou achat Trad Occaz te demandera Face ID (ou ton empreinte sur Android)."
+    },
+    {
+      "icon": "🛡️",
+      "title": "Ton visage reste sur ton téléphone",
+      "text": "Le jeu ne voit jamais ton visage ni ton empreinte : ton téléphone dit seulement « c'est bien lui »."
+    },
+    {
       "icon": "🏷️",
-      "title": "Achète, revends, deviens pro",
-      "text": "Sneakers, fringues, luxe, montres, tech, jeux… Trouve les bonnes affaires et revends-les plus cher. Portefeuille → 🏷️ Trad Occaz."
-    },
-    {
-      "icon": "💬",
-      "title": "Négocie comme un vrai",
-      "text": "Fais des offres aux vendeurs. Les acheteurs robots vont essayer de te faire baisser tes prix : accepte, refuse ou contre-propose."
-    },
-    {
-      "icon": "📦",
-      "title": "Envoie tes colis",
-      "text": "Vendu ? Envoie le colis vite pour un avis 5★. L'argent arrive à la livraison."
-    },
-    {
-      "icon": "⚠️",
-      "title": "Attention aux arnaques",
-      "text": "Une Rolex à prix cassé par un nouveau membre ? Méfiance : contrefaçon possible. Ouvre un litige dans l'heure pour être remboursé."
-    },
-    {
-      "icon": "⭐",
-      "title": "Ou garde-le pour toi",
-      "text": "Ce que tu achètes peut aller dans ta collection perso."
+      "title": "Trad Occaz",
+      "text": "Achète, négocie et revends des articles d'occasion. Portefeuille → Trad Occaz."
     }
   ],
   "button": "Compris 👍",
   "push": {
-    "title": "🏷️ Nouvelle appli : Trad Occaz",
-    "body": "Achète des articles d'occasion, négocie et revends-les plus cher. Attention aux arnaques ! Portefeuille → Trad Occaz."
+    "title": "🔐 Face ID pour tes paiements",
+    "body": "Ta carte bouge avec ton téléphone, et tu peux protéger tes paiements avec Face ID dans Trad Banque."
   }
 }

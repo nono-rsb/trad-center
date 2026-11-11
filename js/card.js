@@ -27,6 +27,31 @@
   const since = () => { const d = new Date(S().created || Date.now()); return String(d.getMonth() + 1).padStart(2, '0') + '/' + String(d.getFullYear() + 5).slice(2); };
 
   let el = null, rx = -8, ry = 14, drag = null, last = null;
+  /* ---------- La carte suit les mouvements du téléphone (gyroscope) ---------- */
+  const tilt = { x: 0, y: 0, apply: null }; let flipT = 0;
+  let base = null, tgt = { x: 0, y: 0 }, raf = 0;
+  const calm = matchMedia('(prefers-reduced-motion: reduce)');
+  function orient(e) {
+    if (e.beta == null || e.gamma == null || calm.matches) return;
+    const b = e.beta, g = e.gamma;
+    base = base ? { b: base.b * 0.985 + b * 0.015, g: base.g * 0.985 + g * 0.015 } : { b, g }; // position « neutre » qui suit lentement la façon de tenir le téléphone
+    const cl = v => Math.max(-28, Math.min(28, v));
+    tgt = { x: cl(-(b - base.b) * 0.9), y: cl((g - base.g) * 0.9) };
+    if (!raf) raf = requestAnimationFrame(step);
+  }
+  function step() {
+    raf = 0;
+    tilt.x += (tgt.x - tilt.x) * 0.25; tilt.y += (tgt.y - tilt.y) * 0.25;
+    if (tilt.apply) tilt.apply();
+    if (Math.abs(tgt.x - tilt.x) + Math.abs(tgt.y - tilt.y) > 0.05) raf = requestAnimationFrame(step);
+  }
+  K.motion = async function () { // iPhone : autorisation à demander pendant un toucher
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches || K.motionOn) return;
+    K.motionOn = true; // l'écoute est déjà en place ; sans autorisation, aucun événement n'arrive : sans risque
+    try { if (window.DeviceOrientationEvent && typeof DeviceOrientationEvent.requestPermission === 'function') await DeviceOrientationEvent.requestPermission(); } catch (e) { }
+  };
+  window.addEventListener('deviceorientation', orient); // Android : marche souvent sans rien demander
+  { const once = () => { document.removeEventListener('touchend', once); document.removeEventListener('click', once); K.motion(); }; document.addEventListener('touchend', once, { passive: true }); document.addEventListener('click', once); }
   const snap = v => Math.round((v - 14) / 180) * 180 + 14; // face avant ou arrière, légèrement inclinée
   function build() {
     const zone = document.createElement('div'); zone.id = 'card-zone';
@@ -44,8 +69,9 @@
         </div></div></div>
       <p class="cc-hint">☝️ Glisse pour la faire tourner · touche pour la retourner</p>`;
     const card = zone.querySelector('#cc');
-    const apply = () => { card.style.transform = `rotateX(${rx}deg) rotateY(${ry}deg)`; card.style.setProperty('--sx', (50 + ry * 1.2) + '%'); card.style.setProperty('--sy', (50 - rx * 1.5) + '%'); };
-    card.addEventListener('pointerdown', e => { card.setPointerCapture(e.pointerId); drag = { x: e.clientX, y: e.clientY, moved: 0 }; last = drag; card.classList.add('drag'); });
+    const apply = () => { const X = rx + (drag ? 0 : tilt.x), Y = ry + (drag ? 0 : tilt.y); card.style.transform = `rotateX(${X.toFixed(2)}deg) rotateY(${Y.toFixed(2)}deg)`; card.style.setProperty('--sx', (50 + Y * 1.2) + '%'); card.style.setProperty('--sy', (50 - X * 1.5) + '%'); };
+    tilt.apply = () => { if (!drag && zone.isConnected && Date.now() - flipT > 650) { card.classList.add('tilting'); apply(); } };
+    card.addEventListener('pointerdown', e => { card.classList.remove('tilting'); card.setPointerCapture(e.pointerId); drag = { x: e.clientX, y: e.clientY, moved: 0 }; last = drag; card.classList.add('drag'); });
     card.addEventListener('pointermove', e => {
       if (!drag) return; const dx = e.clientX - last.x, dy = e.clientY - last.y; last = { x: e.clientX, y: e.clientY };
       drag.moved += Math.abs(dx) + Math.abs(dy);
@@ -55,7 +81,7 @@
       if (!drag) return; card.classList.remove('drag');
       if (drag.moved < 8) { ry = snap(ry) + 180; TC.sound('click'); } // toucher : retourner la carte
       else ry = snap(ry); // lâcher : elle se remet face avant ou face arrière
-      rx = -8; drag = null; apply();
+      rx = -8; drag = null; flipT = Date.now(); card.classList.remove('tilting'); apply();
     };
     card.addEventListener('pointerup', end); card.addEventListener('pointercancel', end);
     apply();

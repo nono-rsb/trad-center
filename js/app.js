@@ -286,6 +286,7 @@
       <div class="kv"><span>Pseudo</span><b>${esc((N.profile && N.profile.pseudo) || '')}</b><span>E-mail</span><b>${esc(N.user.email)}</b><span>Mot de passe</span><b>••••••••</b></div>
       <p class="hint">🔒 Ton mot de passe n'est jamais enregistré en clair, même pas par le jeu : personne ne peut le lire. Si tu l'as oublié, change-le ou reçois un e-mail pour le réinitialiser.</p>
       <div class="modal-actions left"><button class="btn" id="b-pw">🔑 Changer mon mot de passe</button><button class="btn btn-ghost" id="b-pwmail">📧 Mot de passe oublié</button></div>
+      <div id="pk-set"></div>
       <button class="btn btn-sell logout-btn" id="b-logout">🚪 Se déconnecter</button>
       <button class="btn btn-ghost btn-sm del-btn" id="b-delacc">🗑️ Supprimer mon compte</button>` : N && N.enabled ? `<h4>👤 Mon compte</h4><p class="hint">Tu joues en invité : ta partie n'est que sur cet appareil.</p><button class="btn btn-gold logout-btn" id="b-login">🔐 Se connecter ou créer un compte</button>` : ''}
       <h4>Jeu</h4>
@@ -306,6 +307,7 @@
       <h4>Zone dangereuse</h4>
       <button class="btn btn-sell" id="b-reset">🗑️ Recommencer une partie à 10 €</button>
       </div>`);
+    if (TC.Pass) TC.Pass.block(md.el.querySelector('#pk-set'));
     const pwb = md.el.querySelector('#b-pw'); if (pwb) pwb.onclick = () => changePw();
     const da = md.el.querySelector('#b-delacc'); if (da) da.onclick = () => {
       const m2 = TC.modal(`<h2>🗑️ Supprimer mon compte</h2><div class="modal-body">
