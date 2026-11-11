@@ -102,12 +102,12 @@ body.bank-app #tax-bar { position: relative; }
 .bk-waves { position: absolute; left: 50%; top: -30px; transform: translateX(-50%) rotate(-90deg); font-size: 26px; font-weight: 900; color: var(--mint); letter-spacing: -.1em; animation: waves 1.2s ease-in-out infinite; pointer-events: none; }
 @keyframes waves { 50% { opacity: .3; } }
 /* Paiement en réalité augmentée : caméra + carte posée sur l'autre téléphone */
-.bk-ar { position: relative; width: 100%; max-width: 420px; aspect-ratio: 3 / 4; margin: 0 auto 10px; border-radius: 24px; overflow: hidden; background: #000; perspective: 800px; }
+.bk-ar { position: relative; container-type: normal; width: 100%; max-width: 420px; aspect-ratio: 3 / 4; margin: 0 auto 10px; border-radius: 24px; overflow: hidden; background: #000; perspective: 800px; }
 .bk-ar video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .bk-ar .bk-term.ar { position: absolute; top: 10px; left: 50%; transform: translateX(-50%) scale(.72); transform-origin: top center; width: 300px; margin: 0; z-index: 3; opacity: .94; }
-.bk-arcard { position: absolute; left: 0; top: 0; z-index: 2; transform-origin: 50% 50%; will-change: transform, width; pointer-events: auto; cursor: pointer; }
+.bk-arcard { position: absolute; left: 0; top: 0; z-index: 2; width: 320px; transform-origin: 50% 50%; will-change: transform, width; pointer-events: auto; cursor: pointer; }
 .bk-arcard .cc { box-shadow: 0 18px 30px rgba(0,0,0,.45); animation: none; }
-.bk-arcard.landing { transition: transform .35s cubic-bezier(.2,1.3,.4,1), width .35s ease; }
+.bk-arcard.landing { transition: transform .35s cubic-bezier(.2,1.3,.4,1); }
 .bk-arcard.landed .cc { box-shadow: 0 0 0 3px #3ee66b, 0 0 34px rgba(62,230,107,.8); border-radius: 18px; }
 .bk-arshadow { position: absolute; left: 0; top: 0; z-index: 1; height: 26px; border-radius: 50%; background: radial-gradient(closest-side, rgba(0,0,0,.6), transparent); opacity: 0; pointer-events: none; }
 .bk-arhint { position: absolute; left: 12px; right: 12px; bottom: 12px; z-index: 3; text-align: center; padding: 9px 12px; border-radius: 14px; background: rgba(0,0,0,.55); color: #fff; font-weight: 700; font-size: 14px; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }

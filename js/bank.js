@@ -215,6 +215,10 @@
       drop.ar = true;
     } catch (e) { drop.ar = false; }
     render(); if (drop.ar) arStart();
+    if (drop.ar && TC.Hand) { // main dans la caméra : la carte se tient dans la main
+      ar.handLoading = true;
+      TC.Hand.start(camEl(), h => { ar.hand = h; ar.handSeen = Date.now(); }).then(ok => { ar.handOk = ok; ar.handLoading = false; }).catch(e => { ar.handLoading = false; ar.handOk = false; console.warn('main', e); });
+    }
     drop.motion = await TC.Tap.start(lv => {
       const c = $('#bk-paycard'); if (!c || drop.paying || drop.ar) return;
       c.style.transform = `translateY(${(-lv * 70).toFixed(1)}px) translateZ(${(-lv * 140).toFixed(1)}px) rotateX(${(lv * 38).toFixed(1)}deg)`;
@@ -225,7 +229,9 @@
   function mountPayCard() { const box = $('#bk-paycard'); if (box && TC.Card && !box.firstChild) box.appendChild(TC.Card.face()); }
   // boucle d'animation : la carte suit le QR code vu par la caméra, puis s'y pose quand on est assez près
   let ar = {}, arRaf = 0;
-  function arStop() { cancelAnimationFrame(arRaf); arRaf = 0; }
+  // la carte est toujours dessinée à 320 px de large puis agrandie / réduite : le texte reste net et bien placé
+  const arTf = (x, y, w, rot, tilt) => `translate(${(x - 160).toFixed(1)}px, ${(y - 101).toFixed(1)}px) rotate(${rot.toFixed(1)}deg) scale(${(w / 320).toFixed(3)}) rotateX(${tilt.toFixed(1)}deg)`;
+  function arStop() { cancelAnimationFrame(arRaf); arRaf = 0; if (TC.Hand) TC.Hand.stop(); }
   function arStart() {
     arStop();
     const frame = () => {
@@ -233,7 +239,28 @@
       const box = $('#bk-ar'), card = $('#bk-paycard'), sh = $('#bk-arshadow'), v = camVideo; if (!box || !card) return;
       const W = box.clientWidth, H = box.clientHeight, now = Date.now();
       let tg;
-      if (ar.qr && now - ar.seen < 350 && v && v.videoWidth) {
+      const qrFresh = ar.qr && now - ar.seen < 350 && v && v.videoWidth;
+      if (ar.hand && now - ar.handSeen < 300 && v && v.videoWidth) { // ✋ la carte est dans la main
+        const s = Math.max(W / ar.hand.vw, H / ar.hand.vh), ox = (ar.hand.vw * s - W) / 2, oy = (ar.hand.vh * s - H) / 2;
+        const P = i => ({ x: ar.hand.pts[i][0] * s - ox, y: ar.hand.pts[i][1] * s - oy });
+        const w0 = P(0), i5 = P(5), m9 = P(9), p17 = P(17), size = Math.hypot(m9.x - w0.x, m9.y - w0.y);
+        const cx = (w0.x + i5.x + m9.x + p17.x) / 4 * 0.5 + m9.x * 0.5, cy = (w0.y + i5.y + m9.y + p17.y) / 4 * 0.5 + m9.y * 0.5;
+        let ang = Math.atan2(p17.y - i5.y, p17.x - i5.x) * 180 / Math.PI; if (ang > 90) ang -= 180; if (ang < -90) ang += 180;
+        tg = { w: Math.max(W * 0.25, Math.min(W * 0.95, size * 2.2)), x: cx, y: cy, rot: ang, tilt: 10, sh: 0.5 };
+        let over = false;
+        if (qrFresh) { // la carte touche l'écran de l'autre ?
+          const sq = Math.max(W / ar.qr.vw, H / ar.qr.vh), qx = (ar.qr.vw * sq - W) / 2, qy = (ar.qr.vh * sq - H) / 2;
+          const q = ['tl', 'tr', 'br', 'bl'].map(k => ({ x: ar.qr[k].x * sq - qx, y: ar.qr[k].y * sq - qy }));
+          const qcx = q.reduce((t, a) => t + a.x, 0) / 4, qcy = q.reduce((t, a) => t + a.y, 0) / 4, qw = Math.hypot(q[1].x - q[0].x, q[1].y - q[0].y);
+          ar.last = { cx: qcx, cy: qcy, qw };
+        }
+        // la main cache souvent le QR en arrivant dessus : on garde sa dernière position 1,5 s
+        if (ar.last && now - ar.seen < 1500) over = Math.hypot(cx - ar.last.cx, cy - ar.last.cy) < ar.last.qw * 0.6;
+        ar.over = over ? (ar.over || 0) + 1 : 0;
+        const pm = $('#bk-paymsg'); if (pm && !drop.paying) pm.textContent = over ? '✨ Pose-la…' : ar.last && now - ar.seen < 1500 ? '✋ Tu tiens ta carte : pose-la sur son téléphone' : '✋ Tu tiens ta carte ! Vise son téléphone';
+        box.classList.add('hand');
+        if (ar.over >= 3 && !drop.paying && now - ar.start > 800) return arLand();
+      } else if (qrFresh) {
         const s = Math.max(W / ar.qr.vw, H / ar.qr.vh), ox = (ar.qr.vw * s - W) / 2, oy = (ar.qr.vh * s - H) / 2;
         const P = k => ({ x: ar.qr[k].x * s - ox, y: ar.qr[k].y * s - oy });
         const tl = P('tl'), tr = P('tr'), br = P('br'), bl = P('bl');
@@ -245,11 +272,12 @@
       } else {
         if (ar.max > 0.3 && ar.seen && now - ar.seen > 300 && !drop.paying && now - ar.start > 1200) return arLand(); // trop près pour voir le QR : on est collés
         tg = { w: W * 0.6, x: W / 2, y: H * 0.72, rot: 0, tilt: 14, sh: 0 };
+        box.classList.remove('hand');
+        const pm = $('#bk-paymsg'); if (pm && !drop.paying) pm.textContent = ar.handLoading ? '⏳ Activation de la détection de la main…' : ar.handOk ? `✋ Montre ta main, ou vise l'écran de ${drop.target.pseudo || 'ton ami'}` : `📷 Vise l'écran de ${drop.target.pseudo || 'ton ami'}`;
       }
       const p = ar.pose || (ar.pose = Object.assign({}, tg)), k = 0.28;
       ['w', 'x', 'y', 'rot', 'tilt', 'sh'].forEach(f => { p[f] += (tg[f] - p[f]) * k; });
-      card.style.width = p.w + 'px';
-      card.style.transform = `translate(${(p.x - p.w / 2).toFixed(1)}px, ${(p.y - p.w * 0.315).toFixed(1)}px) rotate(${p.rot.toFixed(1)}deg) rotateX(${p.tilt.toFixed(1)}deg)`;
+      card.style.transform = arTf(p.x, p.y, p.w, p.rot, p.tilt);
       if (sh) { sh.style.opacity = (p.sh * 0.6).toFixed(2); sh.style.width = p.w * 0.9 + 'px'; sh.style.transform = `translate(${(p.x - p.w * 0.45).toFixed(1)}px, ${(p.y + p.w * 0.35).toFixed(1)}px)`; }
       arRaf = requestAnimationFrame(frame);
     };
@@ -259,8 +287,7 @@
     arStop(); const card = $('#bk-paycard'), L = ar.last, box = $('#bk-ar');
     if (card && box) {
       const W = box.clientWidth, w = L ? Math.min(W * 0.9, L.qw * 1.25) : W * 0.7, x = L ? L.cx : W / 2, y = L ? L.cy : box.clientHeight / 2;
-      card.classList.add('landing'); card.style.width = w + 'px';
-      card.style.transform = `translate(${(x - w / 2).toFixed(1)}px, ${(y - w * 0.315).toFixed(1)}px) rotate(0deg) rotateX(0deg)`;
+      card.classList.add('landing'); card.style.transform = arTf(x, y, w, 0, 0);
     }
     setTimeout(payTap, 380);
   }
