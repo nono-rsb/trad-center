@@ -1,32 +1,32 @@
 {
-  "id": "paiement-camera-2026-11-11",
-  "emoji": "📷",
-  "title": "Paie en réalité augmentée",
+  "id": "paiement-main-2026-11-11",
+  "emoji": "✋",
+  "title": "Paie avec ta main",
   "items": [
     {
-      "icon": "📷",
-      "title": "Ta carte apparaît dans la caméra",
-      "text": "Trad Banque → Drop → Envoyer → « Payer avec ma carte » : la caméra s'ouvre et ta carte 3D flotte au-dessus du téléphone de ton ami."
+      "icon": "✋",
+      "title": "La carte dans ta main",
+      "text": "Payer avec ma carte : montre ta main à la caméra, ta carte 3D apparaît dedans et suit tous tes mouvements."
     },
     {
-      "icon": "🃏",
-      "title": "Elle se pose dessus",
-      "text": "Approche-toi : la carte suit son téléphone, puis se pose sur son écran. Voyants, bip, paiement accepté !"
+      "icon": "📲",
+      "title": "Pose-la sur son téléphone",
+      "text": "Amène ta main sur l'écran de ton ami (en « Recevoir ») : la carte se pose, voyants, bip, payé !"
     },
     {
-      "icon": "🏧",
-      "title": "Son téléphone devient une borne",
-      "text": "En « Recevoir », son écran affiche un Trad Terminal qui s'allume et bipe quand l'argent arrive."
+      "icon": "🔒",
+      "title": "Tout reste sur ton téléphone",
+      "text": "La détection de la main tourne dans ton téléphone : aucune image de la caméra n'est envoyée sur internet."
     },
     {
-      "icon": "🧑‍🎨",
-      "title": "Et ton nouvel avatar ?",
-      "text": "Touche ton avatar → 🧑 Avatar pour créer ton personnage."
+      "icon": "🔐",
+      "title": "Toujours protégé par Face ID",
+      "text": "Active-le dans Trad Banque → Sécurité."
     }
   ],
   "button": "Compris 👍",
   "push": {
-    "title": "📷 Paie en réalité augmentée",
-    "body": "Ta carte 3D se pose sur le téléphone de ton ami à travers la caméra. Bip, payé !"
+    "title": "✋ Paie avec ta main",
+    "body": "Montre ta main à la caméra : ta carte apparaît dedans. Pose-la sur le téléphone de ton ami, bip, payé !"
   }
 }
