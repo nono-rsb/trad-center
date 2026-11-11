@@ -677,3 +677,4 @@ button.nw { border: 0; background: none; color: inherit; font: inherit; cursor: 
 .pf-img { display: block; max-width: 100%; max-height: 40vh; margin: 10px auto; border-radius: 12px; }
 .pf-view { position: fixed; inset: 0; z-index: 600; background: rgba(0,0,0,.9); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 16px; color: #fff; text-align: center; }
 .pf-view img { max-width: 100%; max-height: 80vh; border-radius: 12px; } .pf-view small { color: #aaa; }
+.del-btn { width: 100%; margin-top: 6px; color: var(--down); }

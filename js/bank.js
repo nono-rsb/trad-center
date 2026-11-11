@@ -31,7 +31,7 @@
       <div class="auth-err" id="bk-err"></div>
       <button class="btn btn-gold btn-xl" id="bk-login">Se connecter</button>
       <button class="btn btn-ghost btn-sm" id="bk-forgot">Mot de passe oublié ?</button>
-      <p class="hint">Pas encore de compte ? <a href="./">Crée-le dans le jeu Trad Center</a>.</p></div>`;
+      <p class="hint">Pas encore de compte ? <a href="./">Crée-le dans le jeu Trad Center</a>.</p><p class="hint"><a href="confidentialite.html">Confidentialité et conditions</a></p></div>`;
   }
   function home() {
     const nw = G.netWorth(), ops = S().log.slice(0, 6).map(op);
