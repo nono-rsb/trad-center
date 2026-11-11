@@ -57,11 +57,11 @@
     c.last = Date.now();
     if (r <= 0) return 0;
     const t = TC.Tax ? TC.Tax.on(r) : { net: r, tax: 0, rate: 0 };
-    S().cash += t.net; c.earned = (c.earned || 0) + t.net; if (TC.Tax) TC.Tax.pay(t.tax);
-    log({ kind: 'biz', asset: t.tax ? `Recette des commerces (brut ${fmt.eur(r)}, impôt ${TC.Tax.pct(t.rate)})` : 'Recette des commerces', eur: t.net });
+    S().cash += r; c.earned = (c.earned || 0) + r; if (TC.Tax && t.tax) TC.Tax.owe(t.tax, 'commerces'); // l'impôt est à payer soi-même (3 jours)
+    log({ kind: 'biz', asset: t.tax ? `Recette des commerces (impôt à payer : ${fmt.eur(t.tax)})` : 'Recette des commerces', eur: r });
     G.save(true);
-    if (!quiet) { TC.sound('kaching'); TC.toast(`💰 +${fmt.eur(t.net)} encaissés${t.tax ? ` (impôt ${TC.Tax.pct(t.rate)} : −${fmt.eur(t.tax)})` : ''}`, 'ok'); }
-    return t.net;
+    if (!quiet) { TC.sound('kaching'); TC.toast(`💰 +${fmt.eur(r)} encaissés${t.tax ? ` · 🏛️ ${fmt.eur(t.tax)} d'impôt à payer sous 3 jours` : ''}`, 'ok', 5000); }
+    return r;
   };
   C.buy = function (id) {
     const b = C.byId[id]; if (!b) return;

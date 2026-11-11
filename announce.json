@@ -1,28 +1,27 @@
 {
-  "id": "maj-2026-11-11-drop3",
-  "emoji": "📲",
-  "title": "Trad Drop : maintenant avec QR code",
+  "id": "maj-2026-11-11-impots-drop",
+  "emoji": "🏛️",
+  "title": "Nouveau : tu paies tes impôts toi-même",
   "items": [
     {
-      "icon": "📷",
-      "title": "Vise, c'est payé",
-      "text": "Trad Banque → Drop : ton ami affiche un QR code, tu le vises avec ta caméra, l'argent part tout de suite. iPhone et Android."
+      "icon": "🏛️",
+      "title": "Impôts à payer",
+      "text": "Les recettes des commerces et les loyers arrivent en entier, mais l'impôt est à payer sous 3 jours (bandeau jaune en haut → Payer)."
     },
     {
-      "icon": "🔊",
-      "title": "Bips et choc en bonus",
-      "text": "Le téléphone qui reçoit émet aussi des petits bips, et cogner les téléphones marche toujours."
+      "icon": "⛔",
+      "title": "Sinon : compte bloqué",
+      "text": "Impôt non payé à temps : +10 % et plus aucun achat, pari ou virement tant que ce n'est pas réglé. Revendre reste possible."
     },
     {
-      "icon": "✅",
-      "title": "Coche verte",
-      "text": "Une grosse coche verte, une vibration et un « ka-ching » quand l'argent est passé."
+      "icon": "📲",
+      "title": "Trad Drop par QR code",
+      "text": "Dans Trad Banque → Drop : ton ami affiche un QR code, tu le vises avec ta caméra, c'est envoyé ✅"
     }
   ],
-  "button": "Essayer 📲",
+  "button": "OK 👍",
   "push": {
-    "title": "📲 Trad Drop : scanne et c'est payé !",
-    "body": "Ton ami affiche un QR code, tu le vises avec ta caméra : l'argent part instantanément ✅"
-  },
-  "tab": "portfolio"
+    "title": "🏛️ Les impôts arrivent : paie-les à temps !",
+    "body": "Tu as 3 jours pour payer l'impôt sur tes commerces et loyers, sinon ton compte est bloqué. Et le Trad Drop marche maintenant par QR code 📲"
+  }
 }

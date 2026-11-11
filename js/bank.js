@@ -6,6 +6,7 @@
   const { $, esc, fmt } = TC;
   const G = TC.Game, N = TC.Net, S = () => G.state;
   const B = TC.Bank = { tab: 'home' };
+  B.refresh = () => render();
   const root = () => $('#bank');
   const me = () => N.user && N.user.uid;
   const pseudo = () => (N.profile && N.profile.pseudo) || 'toi';
@@ -212,7 +213,9 @@
       case 'carte': return t && nx ? `Tu as la carte <b>${t.icon} ${t.name}</b>. Pour passer <b>${nx.icon} ${nx.name}</b>, il te faut <b>${fmt.eur(nx.min)}</b> de patrimoine, soit encore <b>${fmt.eur(Math.max(0, nx.min - nw))}</b>.` : `Tu as la carte <b>🐐 GOAT</b>, la plus haute. Respect.`;
       case 'placer': return cash < 25 ? 'Ton cash est faible. Commence par récupérer ton bonus quotidien 🎁, puis achète un petit commerce (la citronnade à 25 € se rembourse en 12 h).'
         : `Avec ${fmt.eur(cash)} de cash, une répartition prudente : environ <b>50 %</b> en commerces ou immobilier (revenus réguliers), <b>30 %</b> sur des actifs solides (Bitcoin, indices comme le CAC 40) et <b>20 %</b> gardés en cash pour saisir les occasions. Évite de tout mettre au même endroit.`;
-      case 'impots': return `Ton taux d'impôt sur les revenus (commerces et loyers) est de <b>${TC.Tax ? TC.Tax.pct(rate) : '0 %'}</b>. Tu as déjà payé <b>${fmt.eur((s.stats && s.stats.taxes) || 0)}</b> d'impôts. Sous 10 000 € de patrimoine, c'est 0 %.`;
+      case 'impots': { const due = TC.Tax ? TC.Tax.due() : 0, bl = TC.Tax && TC.Tax.blocked();
+        return `Ton taux d'impôt sur les revenus (commerces et loyers) est de <b>${TC.Tax ? TC.Tax.pct(rate) : '0 %'}</b>. Tu as déjà payé <b>${fmt.eur((s.stats && s.stats.taxes) || 0)}</b> d'impôts.<br><br>`
+          + (bl ? `⛔ <b>Ton compte est bloqué</b> : ${fmt.eur(due)} d'impôts impayés (majorés de 10 %). Touche le bandeau rouge en haut pour payer.` : due ? `Tu dois <b>${fmt.eur(due)}</b>, à payer avant le ${new Date(TC.Tax.deadline()).toLocaleDateString('fr-FR')} (bandeau en haut). Sinon : compte bloqué et +10 %.` : 'Tu ne dois rien aux impôts en ce moment 👍'); }
       case 'revenus': return `Revenus passifs : commerces <b>${fmt.eur(ph)}/h</b>, loyers <b>${fmt.eur(rent)}/h</b>, soit environ <b>${fmt.eur((ph + rent) * 24)}</b> par jour avant impôt. Pense à encaisser : la caisse des commerces est plafonnée à 24 h et les loyers à 48 h.`;
       case 'risque': return 'Règles d\'or : ne mets jamais tout sur un seul actif, utilise un stop-loss, évite le levier élevé (x10 = une baisse de 10 % efface tout), et ne parie pas plus de 5 % de ton argent d\'un coup.';
       case 'bot': { const b = s.bot; return b && b.unlocked ? `Ton bot est ${b.on ? '<b>allumé</b>' : 'en pause'}, avec un budget de ${fmt.eur(b.budget)} et un résultat de <b>${fmt.eur(b.pnl || 0)}</b>. Pour limiter les risques, active la pause automatique sur perte du jour (Réglages avancés).` : 'Tu n\'as pas encore le bot de trading (100 € dans Portefeuille). Il trade à ta place pendant que le jeu est ouvert, mais il peut aussi perdre.'; }

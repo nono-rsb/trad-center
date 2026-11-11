@@ -646,3 +646,8 @@ button.nw { border: 0; background: none; color: inherit; font: inherit; cursor: 
 .cv-ok { color: var(--up); font-weight: 700; }
 .pg-act { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 #card-zone.show { display: block; } .cc-bank { display: block; width: max-content; margin: 10px auto 0; text-decoration: none; }
+/* Impôts à payer */
+#tax-bar { position: sticky; top: 0; z-index: 90; display: block; width: 100%; border: 0; padding: calc(8px + env(safe-area-inset-top)) 14px 8px; text-align: center; font: inherit; font-size: 13px; color: #2a1b00; background: linear-gradient(90deg, #ffd560, #ffb347); cursor: pointer; }
+#tax-bar.blocked { color: #fff; background: linear-gradient(90deg, #c1121f, #ea3943); animation: taxpulse 1.6s ease-in-out infinite; }
+@keyframes taxpulse { 50% { filter: brightness(1.15); } }
+.tax-bills { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; } .tax-bills > div { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; padding: 6px 10px; border-radius: 10px; background: rgba(255,255,255,.06); } .tax-bills i { font-style: normal; font-weight: 700; }
