@@ -254,9 +254,9 @@
     const r = G.pendingRent(); S().lastRent = Date.now();
     if (r > 0) {
       const t = TC.Tax ? TC.Tax.on(r) : { net: r, tax: 0 };
-      S().cash += t.net; S().stats.rent += t.net; if (TC.Tax) TC.Tax.pay(t.tax);
-      log({ kind: 'rent', eur: t.net, asset: t.tax ? `brut ${TC.fmt.eur(r)}, impôt ${TC.Tax.pct(t.rate)}` : undefined }); G.save(); emit('rent', t.net);
-      return t.net;
+      S().cash += r; S().stats.rent += r; if (TC.Tax && t.tax) TC.Tax.owe(t.tax, 'loyers'); // impôt à payer soi-même
+      log({ kind: 'rent', eur: r, asset: t.tax ? `impôt à payer : ${TC.fmt.eur(t.tax)}` : undefined }); G.save(); emit('rent', r);
+      return r;
     }
     return r;
   };
