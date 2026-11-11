@@ -6,7 +6,8 @@
   const G = TC.Game, S = () => G.state;
   const ST = TC.Style = {};
   ST.SLOTS = {
-    face:   { label: 'Visage',    icon: '😎' },
+    body:   { label: 'Avatar',    icon: '🧑' },
+    face:   { label: 'Emoji',     icon: '😎' },
     hat:    { label: 'Tête',      icon: '🧢' },
     eyes:   { label: 'Lunettes',  icon: '🕶️' },
     neck:   { label: 'Cou',       icon: '🔗' },
@@ -55,6 +56,7 @@
     const it = k => look[k] && ST.byId[look[k]];
     const fr = it('frame'), out = it('outfit');
     const plusOk = fr && fr.plus ? ST.isPlus(p) : true;
+    if (look.av && TC.Avatar) return `<span class="av av-${size} av-art ${fr && plusOk ? 'fr-' + fr.fr : ''}">${TC.Avatar.svg(look.av, look)}</span>`;
     const parts = [];
     if (it('hat')) parts.push(`<i class="av-hat">${it('hat').e}</i>`);
     if (it('eyes')) parts.push(`<i class="av-eyes">${it('eyes').e}</i>`);
@@ -115,12 +117,13 @@
   };
 
   /* ---------- Cabine d'essayage ---------- */
-  let tab = 'hat';
+  let tab = 'body';
   ST.open = function (slot) {
     if (slot) tab = slot;
+    const prevCard = document.querySelector('#modal.open .modal-card.wide'), keepTop = prevCard ? prevCard.scrollTop : 0;
     const me = ST.mine(), plus = ST.isPlus(me), p = S().plus || {};
-    const items = tab === 'face' ? null : ST.ITEMS.filter(i => i.slot === tab);
-    const grid = tab === 'face'
+    const items = tab === 'face' || tab === 'body' ? null : ST.ITEMS.filter(i => i.slot === tab);
+    const grid = tab === 'body' ? (TC.Avatar ? TC.Avatar.editor(st().look.av, st().look) : '') : tab === 'face'
       ? `<div class="avatars">${ST.FACES.map(f => `<button class="avatar big ${me.avatar === f ? 'on' : ''}" data-face="${f}">${f}</button>`).join('')}</div><p class="hint">Le visage est gratuit.</p>`
       : `<div class="st-grid">${items.map(i => {
           const own = i.plus ? plus : !!st().owned[i.id], worn = st().look[i.slot] === i.id;
@@ -137,13 +140,20 @@
       <div class="seg st-tabs">${Object.entries(ST.SLOTS).map(([k, v]) => `<button data-stab="${k}" class="${k === tab ? 'active' : ''}">${v.icon}<span>${v.label}</span></button>`).join('')}</div>
       ${grid}
       <p class="hint">Articles cosmétiques (non revendables), payés avec l'argent du jeu et visibles par tes amis dans les classements.</p>`, { cls: 'wide' });
-    md.el.querySelector('.modal-card').addEventListener('click', async e => {
+    const card = md.el.querySelector('.modal-card'); if (keepTop) card.scrollTop = keepTop;
+    const setAv = v => { st().look.av = v; G.save(true); after(); ST.open(); };
+    card.addEventListener('change', e => { const k = e.target.dataset && e.target.dataset.avcolor; if (k) setAv(Object.assign({}, st().look.av || TC.Avatar.random(), { [k]: e.target.value })); });
+    card.addEventListener('click', async e => {
       const b = e.target.closest('button, input'); if (!b) return;
+      if (b.dataset.avcat) { TC.Avatar.setCat(b.dataset.avcat); return ST.open(); }
+      if (b.dataset.avk) return setAv(Object.assign({}, st().look.av || {}, { [b.dataset.avk]: b.dataset.avv }));
+      if (b.dataset.avrand !== undefined) return setAv(TC.Avatar.random());
+      if (b.dataset.avemoji !== undefined) return setAv(null);
       if (b.dataset.stab) { tab = b.dataset.stab; return ST.open(); }
       if (b.dataset.buy) { ST.buy(b.dataset.buy); return ST.open(); }
       if (b.dataset.eq) { ST.equip(b.dataset.eq); return ST.open(); }
       if (b.dataset.face) {
-        S().face = b.dataset.face;
+        S().face = b.dataset.face; st().look.av = null;
         if (TC.Net && TC.Net.profile) { try { await TC.Net.setAvatar(b.dataset.face); } catch (er) { } }
         G.save(true); after(); return ST.open();
       }
