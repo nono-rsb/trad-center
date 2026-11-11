@@ -1,32 +1,27 @@
 {
-  "id": "paiement-main-2026-11-11",
-  "emoji": "✋",
-  "title": "Paie avec ta main",
+  "id": "carte-drop-2026-11-11",
+  "emoji": "💳",
+  "title": "Ta carte t'accompagne partout",
   "items": [
     {
+      "icon": "💳",
+      "title": "Dès l'écran Trad Drop",
+      "text": "Ta carte s'affiche avant même de choisir Recevoir ou Envoyer."
+    },
+    {
       "icon": "✋",
-      "title": "La carte dans ta main",
-      "text": "Payer avec ma carte : montre ta main à la caméra, ta carte 3D apparaît dedans et suit tous tes mouvements."
+      "title": "Dans ta main pendant la recherche",
+      "text": "En « Envoyer », la caméra s'ouvre et ta carte est déjà dans ta main pendant que tu vises le QR de ton ami."
     },
     {
       "icon": "📲",
-      "title": "Pose-la sur son téléphone",
-      "text": "Amène ta main sur l'écran de ton ami (en « Recevoir ») : la carte se pose, voyants, bip, payé !"
-    },
-    {
-      "icon": "🔒",
-      "title": "Tout reste sur ton téléphone",
-      "text": "La détection de la main tourne dans ton téléphone : aucune image de la caméra n'est envoyée sur internet."
-    },
-    {
-      "icon": "🔐",
-      "title": "Toujours protégé par Face ID",
-      "text": "Active-le dans Trad Banque → Sécurité."
+      "title": "Puis tu la poses sur son téléphone",
+      "text": "Choisis le montant, « Payer avec ma carte », pose-la sur son écran : bip, payé !"
     }
   ],
   "button": "Compris 👍",
   "push": {
-    "title": "✋ Paie avec ta main",
-    "body": "Montre ta main à la caméra : ta carte apparaît dedans. Pose-la sur le téléphone de ton ami, bip, payé !"
+    "title": "💳 Ta carte dans ta main, dès le début",
+    "body": "Dans Trad Drop, ta carte apparaît dans ta main dès que tu cherches ton ami avec la caméra."
   }
 }

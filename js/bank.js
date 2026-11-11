@@ -88,7 +88,8 @@
       return `<h2 class="bk-h">📲 Trad Drop</h2>
         <div class="bk-panel"><div class="bk-amtin"><input id="bk-damt" type="number" inputmode="decimal" min="1" step="0.01" placeholder="0,00" value="${drop.amt || ''}"><span>€</span></div><small class="muted">Disponible : ${fmt.eur(S().cash)}</small>
           <input id="bk-dmsg" maxlength="120" placeholder="Message (facultatif)" class="bk-msg" value="${esc(drop.msg || '')}"></div>
-        <div class="bk-cam" id="bk-cam">${drop.cam === false ? '<p>📷 Caméra refusée : autorise-la dans les réglages, ou utilise les bips, le choc ou le code.</p>' : ''}<i class="bk-cam-frame"></i></div>
+        ${drop.cam === false ? '<div class="bk-cam"><p>📷 Caméra refusée : autorise-la dans les réglages, ou utilise les bips, le choc ou le code.</p></div>'
+          : `<div class="bk-ar seek" id="bk-ar"><i class="bk-cam-frame"></i><i class="bk-arshadow" id="bk-arshadow"></i><div class="bk-arcard" id="bk-paycard"></div><div class="bk-arhint" id="bk-paymsg">📷 Vise le QR code de ton ami</div></div>`}
         <p class="bk-center bk-big">${drop.status || 'Vise le QR code sur l\'écran de ton ami'}</p>
         <div class="bk-sens"><span class="${drop.cam ? 'on' : ''}">📷 Caméra</span><span class="${drop.mic ? 'on' : ''}">🎙️ Bips</span><span class="${drop.bump ? 'on' : ''}">🤜🤛 Choc</span></div>
         <p class="hint bk-center">Ton ami doit être sur « Recevoir ». Approche ton téléphone de son écran : c'est reconnu tout seul.</p>
@@ -119,11 +120,12 @@
     if (drop && drop.mode === 'send' && drop.target) {
       const t = drop.target;
       return `<h2 class="bk-h">📲 Trad Drop</h2><div class="bk-found pop">${TC.Style ? TC.Style.avatar(t, 'xl') : ''}<b>${esc(t.pseudo || '?')}</b><small>✨ trouvé ${drop.via || 'à proximité'}</small></div>
+        <div class="bk-dcard" data-face></div>
         <div class="bk-panel"><div class="bk-amtin"><input id="bk-damt" type="number" inputmode="decimal" min="1" step="0.01" placeholder="0,00" value="${drop.amt || ''}"><span>€</span></div><small class="muted">Disponible : ${fmt.eur(S().cash)}</small>
         <input id="bk-dmsg" maxlength="120" placeholder="Message (facultatif)" class="bk-msg" value="${esc(drop.msg || '')}"></div>
         <button class="btn btn-gold btn-xl bk-full" id="bk-dpay">💳 Payer avec ma carte</button><button class="btn bk-full" id="bk-dsend">Envoyer sans la carte</button><button class="btn btn-ghost bk-full" id="bk-dstop">Annuler</button>`;
     }
-    return `<h2 class="bk-h">📲 Trad Drop</h2><p class="bk-center">Envoie de l'argent en approchant deux téléphones, iPhone ou Android.</p>
+    return `<h2 class="bk-h">📲 Trad Drop</h2><div class="bk-dcard" data-face></div><p class="bk-center">Envoie de l'argent en approchant deux téléphones, iPhone ou Android.</p>
       <div class="bk-drop2"><button class="bk-dbig" id="bk-drecv">📥<b>Recevoir</b><small>Mon téléphone attend l'argent</small></button>
         <button class="bk-dbig" id="bk-dseek">📤<b>Envoyer</b><small>Je scanne son écran</small></button></div>
       <p class="hint">Le téléphone qui reçoit affiche un QR code (et émet des petits bips) ; celui qui envoie le vise avec sa caméra. Vous pouvez aussi cogner doucement les deux téléphones. Si vous n'êtes pas encore amis, vous le devenez automatiquement.</p>`;
@@ -144,16 +146,17 @@
     drop.bump = await bumpOk; render();
   }
   async function stopDrop(silent) {
-    TC.Sonic.stop(); TC.Bump.stop(); TC.Tap.stop(); awake(false);
+    TC.Sonic.stop(); TC.Bump.stop(); TC.Tap.stop(); arStop(); awake(false);
     if (drop && drop.mode === 'recv') { try { await N.db().collection('users').doc(me()).update({ drop: null }); } catch (e) { } }
     drop = null; if (!silent) render();
   }
   async function startSeek() {
     TC.Sonic.ctx(); awake(true);
     const bumpOk = TC.Bump.start(onSenderBump);
-    drop = { mode: 'seek' }; render();
-    const onQR = txt => { const m = /TRADDROP:(\d{4})/.exec(txt || ''); if (m && drop && drop.mode === 'seek' && !drop.busy) { drop.busy = true; findCode(m[1], 'en scannant 📷').catch(() => { if (drop) drop.busy = false; }); } };
+    drop = { mode: 'seek' }; ar = { qr: null, pose: null, max: 0, close: 0, seen: 0, start: Date.now() }; render();
+    const onQR = (txt, pts) => { if (pts && /^TRADDROP:\d{4}$/.test(txt || '')) { ar.qr = pts; ar.seen = Date.now(); } const m = /TRADDROP:(\d{4})/.exec(txt || ''); if (m && drop && drop.mode === 'seek' && !drop.busy) { drop.busy = true; findCode(m[1], 'en scannant 📷').catch(() => { if (drop) drop.busy = false; }); } };
     try { await TC.QR.scan(camEl(), onQR); drop.cam = true; } catch (e) { drop.cam = false; }
+    if (drop && drop.cam) { render(); arStart(); handOn(); } // ta carte est déjà là, dans ta main, pendant que tu cherches ton ami
     try { await TC.Sonic.listen(code => { if (drop && drop.mode === 'seek' && !drop.busy) findCode(code, 'par les bips 🔊').catch(() => { }); }); drop.mic = true; } catch (e) { drop.mic = false; }
     drop.bump = await bumpOk; keepInputs(); render();
   }
@@ -174,7 +177,7 @@
     } catch (e) { if (drop) { drop.status = 'Recherche impossible, réessaie'; render(); } }
   }
   function found(target, code, via) {
-    keepInputs(); TC.Sonic.stopListen(); TC.QR.stop(); TC.Bump.stop();
+    keepInputs(); TC.Sonic.stopListen(); TC.QR.stop(); TC.Bump.stop(); arStop();
     drop = Object.assign({}, drop, { mode: 'send', target, code, via });
     TC.haptic([30, 40, 30]); TC.sound('ach'); render();
   }
@@ -215,16 +218,17 @@
       drop.ar = true;
     } catch (e) { drop.ar = false; }
     render(); if (drop.ar) arStart();
-    if (drop.ar && TC.Hand) { // main dans la caméra : la carte se tient dans la main
-      ar.handLoading = true;
-      TC.Hand.start(camEl(), h => { ar.hand = h; ar.handSeen = Date.now(); }).then(ok => { ar.handOk = ok; ar.handLoading = false; }).catch(e => { ar.handLoading = false; ar.handOk = false; console.warn('main', e); });
-    }
+    if (drop.ar) handOn();
     drop.motion = await TC.Tap.start(lv => {
       const c = $('#bk-paycard'); if (!c || drop.paying || drop.ar) return;
       c.style.transform = `translateY(${(-lv * 70).toFixed(1)}px) translateZ(${(-lv * 140).toFixed(1)}px) rotateX(${(lv * 38).toFixed(1)}deg)`;
     }, () => payTap());
     if (drop && drop.mode === 'pay' && drop.motion === false) render();
     mountPayCard();
+  }
+  function handOn() { // main dans la caméra : la carte se tient dans la main
+    if (!TC.Hand) return; ar.handLoading = true;
+    TC.Hand.start(camEl(), h => { ar.hand = h; ar.handSeen = Date.now(); }).then(ok => { ar.handOk = ok; ar.handLoading = false; }).catch(e => { ar.handLoading = false; ar.handOk = false; console.warn('main', e); });
   }
   function mountPayCard() { const box = $('#bk-paycard'); if (box && TC.Card && !box.firstChild) box.appendChild(TC.Card.face()); }
   // boucle d'animation : la carte suit le QR code vu par la caméra, puis s'y pose quand on est assez près
@@ -235,7 +239,8 @@
   function arStart() {
     arStop();
     const frame = () => {
-      arRaf = 0; if (!drop || drop.mode !== 'pay' || !drop.ar) return;
+      arRaf = 0; if (!drop || !((drop.mode === 'pay' && drop.ar) || (drop.mode === 'seek' && drop.cam))) return;
+      const paying = drop.mode === 'pay', who = drop.target ? drop.target.pseudo || 'ton ami' : 'ton ami';
       const box = $('#bk-ar'), card = $('#bk-paycard'), sh = $('#bk-arshadow'), v = camVideo; if (!box || !card) return;
       const W = box.clientWidth, H = box.clientHeight, now = Date.now();
       let tg;
@@ -257,9 +262,9 @@
         // la main cache souvent le QR en arrivant dessus : on garde sa dernière position 1,5 s
         if (ar.last && now - ar.seen < 1500) over = Math.hypot(cx - ar.last.cx, cy - ar.last.cy) < ar.last.qw * 0.6;
         ar.over = over ? (ar.over || 0) + 1 : 0;
-        const pm = $('#bk-paymsg'); if (pm && !drop.paying) pm.textContent = over ? '✨ Pose-la…' : ar.last && now - ar.seen < 1500 ? '✋ Tu tiens ta carte : pose-la sur son téléphone' : '✋ Tu tiens ta carte ! Vise son téléphone';
+        const pm = $('#bk-paymsg'); if (pm && !drop.paying) pm.textContent = !paying ? (ar.last && now - ar.seen < 1500 ? '🔎 QR repéré, connexion…' : '✋ Tu tiens ta carte ! Vise le QR de ton ami') : over ? '✨ Pose-la…' : ar.last && now - ar.seen < 1500 ? '✋ Tu tiens ta carte : pose-la sur son téléphone' : '✋ Tu tiens ta carte ! Vise son téléphone';
         box.classList.add('hand');
-        if (ar.over >= 3 && !drop.paying && now - ar.start > 800) return arLand();
+        if (paying && ar.over >= 3 && !drop.paying && now - ar.start > 800) return arLand();
       } else if (qrFresh) {
         const s = Math.max(W / ar.qr.vw, H / ar.qr.vh), ox = (ar.qr.vw * s - W) / 2, oy = (ar.qr.vh * s - H) / 2;
         const P = k => ({ x: ar.qr[k].x * s - ox, y: ar.qr[k].y * s - oy });
@@ -267,13 +272,13 @@
         const cx = (tl.x + tr.x + br.x + bl.x) / 4, cy = (tl.y + tr.y + br.y + bl.y) / 4, qw = Math.hypot(tr.x - tl.x, tr.y - tl.y);
         const rel = qw / W; ar.max = Math.max(ar.max, rel); ar.close = rel > 0.42 ? ar.close + 1 : 0; ar.last = { cx, cy, qw };
         tg = { w: Math.max(W * 0.28, Math.min(W * 0.95, qw * 1.6)), x: cx, y: cy - qw * 0.28, rot: Math.atan2(tr.y - tl.y, tr.x - tl.x) * 180 / Math.PI, tilt: 30, sh: 1 };
-        const pm = $('#bk-paymsg'); if (pm && !drop.paying) pm.textContent = rel > 0.3 ? '👇 Encore un peu…' : '📱 Téléphone trouvé : approche-toi';
-        if (ar.close >= 2 && !drop.paying && now - ar.start > 1200) return arLand();
+        const pm = $('#bk-paymsg'); if (pm && !drop.paying) pm.textContent = !paying ? '🔎 QR repéré, connexion…' : rel > 0.3 ? '👇 Encore un peu…' : '📱 Téléphone trouvé : approche-toi';
+        if (paying && ar.close >= 2 && !drop.paying && now - ar.start > 1200) return arLand();
       } else {
-        if (ar.max > 0.3 && ar.seen && now - ar.seen > 300 && !drop.paying && now - ar.start > 1200) return arLand(); // trop près pour voir le QR : on est collés
+        if (paying && ar.max > 0.3 && ar.seen && now - ar.seen > 300 && !drop.paying && now - ar.start > 1200) return arLand(); // trop près pour voir le QR : on est collés
         tg = { w: W * 0.6, x: W / 2, y: H * 0.72, rot: 0, tilt: 14, sh: 0 };
         box.classList.remove('hand');
-        const pm = $('#bk-paymsg'); if (pm && !drop.paying) pm.textContent = ar.handLoading ? '⏳ Activation de la détection de la main…' : ar.handOk ? `✋ Montre ta main, ou vise l'écran de ${drop.target.pseudo || 'ton ami'}` : `📷 Vise l'écran de ${drop.target.pseudo || 'ton ami'}`;
+        const pm = $('#bk-paymsg'); if (pm && !drop.paying) pm.textContent = ar.handLoading ? '⏳ Activation de la détection de la main…' : ar.handOk ? `✋ Montre ta main pour tenir ta carte, et vise l'écran de ${who}` : `📷 Vise l'écran de ${who}`;
       }
       const p = ar.pose || (ar.pose = Object.assign({}, tg)), k = 0.28;
       ['w', 'x', 'y', 'rot', 'tilt', 'sh'].forEach(f => { p[f] += (tg[f] - p[f]) * k; });
@@ -393,7 +398,8 @@
       <nav class="bk-nav">${NAV.map(([k, i, l]) => `<button data-tab="${k}" class="${B.tab === k ? 'on' : ''}"><i>${i}</i><span>${l}</span></button>`).join('')}</nav>`;
     if (B.tab === 'home' && TC.Card) TC.Card.mountInto($('#bk-card'));
     if (B.tab === 'home' && TC.Pass) TC.Pass.block($('#bk-pk'));
-    if (drop && drop.mode === 'pay') mountPayCard();
+    if (drop && (drop.mode === 'pay' || drop.mode === 'seek')) mountPayCard();
+    document.querySelectorAll('[data-face]').forEach(b => { if (TC.Card && !b.firstChild) b.appendChild(TC.Card.face()); });
         const camBox = $('#bk-cam'); if (camBox && camVideo && drop && drop.cam) camBox.prepend(camVideo);
     const arBox = $('#bk-ar'); if (arBox && camVideo) arBox.prepend(camVideo);
     if (scroll) { const c = $('.bk-chat'); if (c) c.scrollTop = c.scrollHeight; }
