@@ -1,32 +1,32 @@
 {
-  "id": "faceid-2026-11-11",
-  "emoji": "🔐",
-  "title": "Ta carte bouge et Face ID protège tes paiements",
+  "id": "bot-investisseur-2026-11-11",
+  "emoji": "💎",
+  "title": "Le bot passe en mode Investisseur",
   "items": [
     {
-      "icon": "💳",
-      "title": "Carte 3D vivante",
-      "text": "Dans Trad Banque et le Portefeuille, ta carte suit les mouvements de ton téléphone, avec le reflet qui bouge. Touche l'écran une fois pour l'activer."
-    },
-    {
-      "icon": "🔐",
-      "title": "Payer avec Face ID",
-      "text": "Trad Banque → Sécurité → Activer. Chaque paiement, virement ou achat Trad Occaz te demandera Face ID (ou ton empreinte sur Android)."
+      "icon": "💎",
+      "title": "Nouveau mode Investisseur",
+      "text": "Ton bot répartit ton argent sur les grandes bourses mondiales, l'or, le Bitcoin et l'Ethereum, comme les gestionnaires prudents."
     },
     {
       "icon": "🛡️",
-      "title": "Ton visage reste sur ton téléphone",
-      "text": "Le jeu ne voit jamais ton visage ni ton empreinte : ton téléphone dit seulement « c'est bien lui »."
+      "title": "Il se protège des krachs",
+      "text": "Quand un marché passe sous sa moyenne des 50 derniers jours, le bot le met de côté en cash, puis revient quand ça remonte."
     },
     {
-      "icon": "🏷️",
-      "title": "Trad Occaz",
-      "text": "Achète, négocie et revends des articles d'occasion. Portefeuille → Trad Occaz."
+      "icon": "📊",
+      "title": "Ses vraies chances, testées",
+      "text": "Bouton « Tester sur 1 an de vrais cours » : tu vois combien il aurait gagné, sa pire baisse et ses chances de finir gagnant sur 1 semaine, 1 mois, 3 mois."
+    },
+    {
+      "icon": "🔐",
+      "title": "Et toujours Face ID",
+      "text": "Protège tes paiements dans Trad Banque → Sécurité."
     }
   ],
   "button": "Compris 👍",
   "push": {
-    "title": "🔐 Face ID pour tes paiements",
-    "body": "Ta carte bouge avec ton téléphone, et tu peux protéger tes paiements avec Face ID dans Trad Banque."
+    "title": "💎 Ton bot devient Investisseur",
+    "body": "Nouveau mode diversifié qui se protège des krachs, avec ses vraies chances de gain testées sur 1 an de cours."
   }
 }

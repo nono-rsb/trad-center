@@ -698,3 +698,7 @@ body.gated #sh-chip { display: none; }
 #banned .nbox { text-align: left; margin: 10px 0; }
 .pk-row { display: flex; align-items: center; gap: 10px; } .pk-row > div { flex: 1; min-width: 0; } .pk-row b { display: block; font-size: 14px; } .pk-row small { display: block; font-size: 12px; color: var(--muted); } .pk-ic { font-size: 26px; }
 #pk-set { margin: 8px 0; padding: 10px 12px; border-radius: 14px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); }
+.bot-inv { margin: 8px 0; } .bot-inv > p { font-size: 13px; line-height: 1.45; }
+.bot-bt { margin-top: 8px; padding: 10px 12px; border-radius: 14px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); }
+.bot-bt p { margin: 6px 0; font-size: 13px; } .bot-bt .bot-curve { margin: 6px 0; }
+.bot-bt-g { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 6px; } .bot-bt-g small { display: block; color: var(--muted); font-size: 11px; } .bot-bt-g b { font-family: var(--mono); font-size: 15px; }
