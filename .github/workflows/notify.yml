@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write # pour publier les questions des joueurs sur la branche qa-inbox (lue par Claude)
 
 concurrency:
   group: notify
@@ -44,3 +44,13 @@ jobs:
         with:
           path: scripts/state.json
           key: notify-state-${{ github.run_id }}
+      - name: Questions des joueurs → branche qa-inbox (lue par Claude)
+        if: always() && hashFiles('scripts/qa-inbox.json') != ''
+        run: |
+          cp scripts/qa-inbox.json "$RUNNER_TEMP/questions.json"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git fetch -q origin qa-inbox 2>/dev/null; then git checkout -q -B qa-inbox origin/qa-inbox; else git checkout -q --orphan qa-inbox && git rm -rq --cached . && git clean -fdq -e scripts; fi
+          cp "$RUNNER_TEMP/questions.json" questions.json
+          git add questions.json
+          git diff --cached --quiet || { git commit -qm "Questions des joueurs (anonymes)" && git push -q origin qa-inbox; }

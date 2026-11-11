@@ -51,7 +51,7 @@
     const draw = () => {
       const list = st();
       const md = TC.modal(`<h2>❓ Questions</h2><div class="qa">
-        <p class="hint">Pose une question sur le jeu, signale un bug ou propose une idée. C'est <b>Claude</b> (l'IA qui aide le créateur) ou le créateur lui-même qui te répond, ici et en notification. Les idées justes sont ajoutées au jeu.</p>
+        <p class="hint">Pose une question sur le jeu, signale un bug ou propose une idée. C'est <b>Claude</b> (l'IA qui aide le créateur) ou le créateur lui-même qui te répond, ici et en notification. Les idées justes sont ajoutées au jeu.<br>🔒 Ta question est transmise sans ton pseudo : n'y mets pas d'infos personnelles (e-mail, téléphone…).</p>
         <div class="seg qa-kinds">${Object.entries(KINDS).map(([k, [i, l]]) => `<button data-qk="${k}" class="${k === kind ? 'active' : ''}">${i} ${l}</button>`).join('')}</div>
         <textarea id="qa-text" maxlength="300" placeholder="${kind === 'idee' ? 'Ton idée ou la modification que tu voudrais…' : kind === 'bug' ? 'Qu\'est-ce qui ne marche pas ? Sur quel écran ?' : 'Ta question…'}"></textarea>
         <button class="btn btn-gold btn-xl" id="qa-send">Envoyer</button>
