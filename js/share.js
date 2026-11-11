@@ -38,6 +38,28 @@
       md.el.querySelector('#pf-ok').onclick = () => { done = true; md.close(); resolve(data); };
     });
   }
+  // suivi des demandes : appelé quand le créateur valide (ok) ou refuse (no)
+  SH.decided = function (claimId, ok) {
+    const m = (S().myClaims || []).find(x => x.id === claimId); if (!m) return;
+    m.status = ok ? 'ok' : 'no';
+    if (!ok && S().claimDay) delete S().claimDay[m.kind]; // refusée : on peut renvoyer une capture tout de suite
+    G.save(true); SH.chip();
+  };
+  const ST = { wait: '⏳ en attente', ok: '✅ payée', no: '❌ refusée' };
+  SH.myClaimsHtml = () => { const L = (S().myClaims || []).slice(0, 6); return L.length ? `<div class="sh-mine"><b>Mes demandes</b>${L.map(m => { const r = SH.REWARDS[m.kind] || {}; return `<div class="${m.status}"><span>${r.e || ''} ${r.label || m.kind} · ${new Date(m.at).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' })}</span><b>${fmt.eur(m.eur, true)} ${ST[m.status] || ''}</b></div>`; }).join('')}${L.some(m => m.status === 'no') ? '<small>Refusée ? Tu peux renvoyer une meilleure capture (on doit voir le jeu et ton nom).</small>' : ''}</div>` : ''; };
+  // encart pour l'onglet Amis
+  SH.block = () => !SH.claimOpen() || !N || !N.user ? '' : `<div class="panel sh-panel"><h3>📣 Gagne de l'argent en partageant <small>jusqu'à dimanche</small></h3>
+    <div class="sh-claims">${Object.entries(SH.REWARDS).map(([k, r]) => `<button class="btn btn-sm" data-claim="${k}">${r.e} ${r.label} : <b>+${fmt.eur(r.eur, true)}</b></button>`).join('')}</div>
+    <small class="muted">Poste le jeu, fais une capture d'écran, puis touche le bouton. Le créateur vérifie et te paie.</small>${SH.myClaimsHtml()}</div>`;
+  // petit bouton toujours visible jusqu'à dimanche
+  SH.chip = function () {
+    let c = document.getElementById('sh-chip');
+    if (!SH.claimOpen() || !N || !N.user || document.body.classList.contains('gated')) { if (c) c.remove(); return; }
+    if (!c) { c = document.createElement('button'); c.id = 'sh-chip'; c.onclick = () => SH.popup(true); document.body.appendChild(c); }
+    const wait = (S().myClaims || []).filter(m => m.status === 'wait').length;
+    c.innerHTML = wait ? `⏳ ${wait} demande${wait > 1 ? 's' : ''} en attente` : '📣 Story Snap = <b>400 €</b>';
+  };
+  document.addEventListener('click', e => { const b = e.target.closest('[data-claim]'); if (b && !b.closest('.modal')) SH.claim(b.dataset.claim); });
   SH.CLAIM_END = Date.parse('2026-11-15T23:59:59+01:00'); // offre valable jusqu'à dimanche 15 novembre au soir
   SH.claimOpen = () => Date.now() <= SH.CLAIM_END;
   SH.claim = async function (kind) {
@@ -54,7 +76,9 @@
     const list = (N.profile.shareClaims || []).filter(x => Date.now() - x.at < 14 * 86400000).slice(-19).concat(c);
     try { await N.db().collection('users').doc(N.user.uid).update({ shareClaims: list, updatedAt: Date.now() }); N.profile.shareClaims = list; }
     catch (e) { return TC.toast(N.errMsg(e), 'bad'); }
-    day[kind] = today(); G.save(true);
+    day[kind] = today();
+    (S().myClaims || (S().myClaims = [])).unshift({ id: c.id, kind, eur: r.eur, at: c.at, status: 'wait' }); S().myClaims.length = Math.min(S().myClaims.length, 20);
+    G.save(true); SH.chip();
     N.notifyPlayer(TC.ADMIN_UID, 'claim', { label: r.label, eur: r.eur });
     TC.sound('ach'); TC.toast(`📣 Demande envoyée : ${fmt.eur(r.eur)} dès que le créateur a vérifié ta ${r.label.toLowerCase()} !`, 'ok', 6000);
   };
@@ -84,7 +108,7 @@
       ${!done && n != null ? `<p class="muted">Plus que <b>${SH.GOAL - n}</b> joueur${SH.GOAL - n > 1 ? 's' : ''} !</p>` : ''}
       <p class="sh-bonus">🤝 Et toi, tu gagnes <b>+${fmt.eur((N && N.REF_BONUS) || 20)}</b> pour chaque ami qui s'inscrit avec ton lien.</p>
       ${SH.claimOpen() ? `<div class="sh-claims"><b>📣 Gagne de l'argent en partageant</b><small class="sh-end">⏳ Jusqu'à <b>dimanche 15 novembre</b> au soir</small>${Object.entries(SH.REWARDS).map(([k, r]) => `<button class="btn btn-sm" data-claim="${k}">${r.e} ${r.label} : <b>+${fmt.eur(r.eur, true)}</b></button>`).join('')}
-        <small class="muted">Poste le jeu, puis touche le bouton correspondant. Le créateur vérifie et te verse l'argent.</small></div>` : ''}
+        <small class="muted">Poste le jeu, puis touche le bouton correspondant. Le créateur vérifie et te verse l'argent.</small>${SH.myClaimsHtml()}</div>` : ''}
       <div class="modal-actions"><button class="btn btn-ghost" data-close>Plus tard</button><button class="btn btn-gold btn-xl" id="sh-go">📤 Partager le jeu</button></div></div>`);
     md.el.querySelectorAll('[data-claim]').forEach(b => b.onclick = () => { md.close(); SH.claim(b.dataset.claim); });
     md.el.querySelector('#sh-go').onclick = async () => { if (await SH.share()) { md.close(); S().shareCount = (S().shareCount || 0) + 1; G.save(); } };
@@ -98,5 +122,7 @@
   const fromPush = new URLSearchParams(location.search).get('share'); // ouvert depuis la notification
   if (N && N.on) N.on(t => { if (t === 'linked') { if (fromPush) { S().sharePop = today(); setTimeout(() => SH.popup(true), 1500); } else setTimeout(maybe, 25000); } });
   setInterval(maybe, 30 * 60000);
+  if (N && N.on) N.on(t => { if (t === 'linked' || t === 'change') SH.chip(); });
+  setInterval(() => SH.chip(), 60000);
   document.addEventListener('click', e => { if (e.target.closest('[data-sharepop]')) SH.popup(true); });
 })();
