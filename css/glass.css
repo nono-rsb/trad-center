@@ -651,3 +651,14 @@ button.nw { border: 0; background: none; color: inherit; font: inherit; cursor: 
 #tax-bar.blocked { color: #fff; background: linear-gradient(90deg, #c1121f, #ea3943); animation: taxpulse 1.6s ease-in-out infinite; }
 @keyframes taxpulse { 50% { filter: brightness(1.15); } }
 .tax-bills { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; } .tax-bills > div { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; padding: 6px 10px; border-radius: 10px; background: rgba(255,255,255,.06); } .tax-bills i { font-style: normal; font-weight: 700; }
+/* Ma résidence */
+.home-p h3 small { font-weight: 600; color: var(--muted); font-size: 13px; margin-left: 6px; }
+.homes { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; }
+.home { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 4px; border-radius: 16px; border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.05); color: var(--text); font: inherit; cursor: pointer; }
+.home span { font-size: 30px; } .home b { font-size: 12px; text-align: center; } .home small { font-size: 11px; color: var(--muted); } .home i { font-style: normal; font-size: 10.5px; color: var(--up); }
+.home.own { border-color: var(--accent); background: rgba(240,185,11,.14); cursor: default; } .home.own small { color: var(--accent2); font-weight: 700; }
+/* Objectif 100 joueurs */
+.sh-bar { position: relative; height: 26px; border-radius: 13px; background: rgba(255,255,255,.1); overflow: hidden; margin: 12px 0 6px; }
+.sh-bar i { position: absolute; inset: 0 auto 0 0; background: linear-gradient(90deg, var(--accent), #ff5fa2); }
+.sh-bar span { position: relative; display: block; line-height: 26px; font-weight: 800; font-size: 13px; }
+.sh-bonus { font-size: 13px; }

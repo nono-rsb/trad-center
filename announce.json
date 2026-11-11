@@ -1,27 +1,28 @@
 {
-  "id": "maj-2026-11-11-impots-drop",
-  "emoji": "🏛️",
-  "title": "Nouveau : tu paies tes impôts toi-même",
+  "id": "maj-2026-11-11-residences",
+  "emoji": "🔑",
+  "title": "Nouveau : achète ta résidence",
   "items": [
     {
-      "icon": "🏛️",
-      "title": "Impôts à payer",
-      "text": "Les recettes des commerces et les loyers arrivent en entier, mais l'impôt est à payer sous 3 jours (bandeau jaune en haut → Payer)."
+      "icon": "🔑",
+      "title": "Ta résidence sur la carte",
+      "text": "Onglet Ville → Ma résidence : de la tente au manoir, jusqu'à la tour du milliardaire. C'est elle qu'on voit sur la carte 3D."
     },
     {
-      "icon": "⛔",
-      "title": "Sinon : compte bloqué",
-      "text": "Impôt non payé à temps : +10 % et plus aucun achat, pari ou virement tant que ce n'est pas réglé. Revendre reste possible."
+      "icon": "🏯",
+      "title": "Nouveau : le manoir",
+      "text": "Tourelles, toits d'ardoise, perron… L'ancienne résidence est reprise à 70 % quand tu changes."
     },
     {
-      "icon": "📲",
-      "title": "Trad Drop par QR code",
-      "text": "Dans Trad Banque → Drop : ton ami affiche un QR code, tu le vises avec ta caméra, c'est envoyé ✅"
+      "icon": "🚶",
+      "title": "Les joueurs en 3D",
+      "text": "Chaque joueur se promène maintenant devant sa résidence, avec son avatar."
     }
   ],
-  "button": "OK 👍",
+  "button": "Voir la ville 🗺️",
   "push": {
-    "title": "🏛️ Les impôts arrivent : paie-les à temps !",
-    "body": "Tu as 3 jours pour payer l'impôt sur tes commerces et loyers, sinon ton compte est bloqué. Et le Trad Drop marche maintenant par QR code 📲"
-  }
+    "title": "🔑 Achète ta résidence dans Trad City !",
+    "body": "Tente, villa, manoir, palais… ta résidence apparaît en 3D sur la carte, et toi devant !"
+  },
+  "tab": "city"
 }

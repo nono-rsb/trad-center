@@ -90,7 +90,7 @@
   ['buy', 'open', 'bet', 'buyItem', 'takeForTransfer'].forEach(k => { const f = G[k]; if (!f) return; G[k] = function () { const m = X.guard(); if (m) return { ok: false, msg: m }; return f.apply(this, arguments); }; });
   // et des autres dépenses (modules chargés après celui-ci)
   function wrapLater() {
-    const toast = [['City', 'buy'], ['City', 'takeover'], ['Chest', 'open'], ['Style', 'buy'], ['Style', 'subscribe'], ['Bot', 'unlock']];
+    const toast = [['City', 'buy'], ['City', 'buyHome'], ['City', 'takeover'], ['Chest', 'open'], ['Style', 'buy'], ['Style', 'subscribe'], ['Bot', 'unlock']];
     const thr = [['Clan', 'create'], ['Clan', 'give'], ['PlusGift', 'sponsor'], ['PlusGift', 'giveWeek']];
     toast.forEach(([m, k]) => { const o = TC[m]; if (!o || !o[k] || o[k].__tax) return; const f = o[k]; o[k] = function () { if (X.guard()) return; return f.apply(this, arguments); }; o[k].__tax = 1; });
     thr.forEach(([m, k]) => { const o = TC[m]; if (!o || !o[k] || o[k].__tax) return; const f = o[k]; o[k] = function () { const msg = X.guard(); if (msg) return Promise.reject(new Error(msg)); return f.apply(this, arguments); }; o[k].__tax = 1; });

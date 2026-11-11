@@ -34,6 +34,37 @@
     [0, '⛺', 'Tente'], [100, '🛖', 'Cabane'], [1000, '🏠', 'Maison'], [1e4, '🏡', 'Villa'],
     [1e5, '🏢', 'Immeuble'], [1e6, '🏬', 'Tour'], [1e7, '🏙️', 'Gratte-ciel'], [1e8, '🏰', 'Palais'], [1e9, '🗼', 'Tour du milliardaire'],
   ];
+  // Résidences à acheter : c'est elles qu'on voit sur la carte (b = modèle 3D)
+  C.HOMES = [
+    { id: 'tente', e: '⛺', name: 'Tente', price: 0, b: 0 },
+    { id: 'cabane', e: '🛖', name: 'Cabane en bois', price: 300, b: 1 },
+    { id: 'maison', e: '🏠', name: 'Maison', price: 5000, b: 2 },
+    { id: 'villa', e: '🏡', name: 'Villa avec piscine', price: 60000, b: 3 },
+    { id: 'manoir', e: '🏯', name: 'Manoir', price: 400000, b: 'manor' },
+    { id: 'immeuble', e: '🏢', name: 'Immeuble', price: 1.5e6, b: 4 },
+    { id: 'tour', e: '🏬', name: 'Tour', price: 8e6, b: 5 },
+    { id: 'gratteciel', e: '🏙️', name: 'Gratte-ciel', price: 40e6, b: 6 },
+    { id: 'palais', e: '🏰', name: 'Palais doré', price: 200e6, b: 7 },
+    { id: 'goat', e: '🗼', name: 'Tour du milliardaire', price: 1e9, b: 8 },
+  ];
+  C.homeById = {}; C.HOMES.forEach(h => { C.homeById[h.id] = h; });
+  C.TRADE_IN = 0.7; // l'ancienne résidence est reprise à 70 %
+  C.myHome = () => C.homeById[S().home] || C.HOMES[0];
+  C.home = p => p && p.me ? C.myHome() : C.homeById[p && p.city && p.city.home] || C.HOMES[0];
+  const interiorTier = h => h.b === 'manor' ? 5 : h.b;
+  C.homeCost = id => Math.round((C.homeById[id].price - C.myHome().price * C.TRADE_IN) * 100) / 100; // négatif : on te rend la différence
+  C.buyHome = async function (id) {
+    const h = C.homeById[id], cur = C.myHome(); if (!h || h === cur) return;
+    const cost = C.homeCost(id);
+    if (S().cash < cost) return TC.toast(`Il te faut ${fmt.eur(cost)} de cash`, 'bad');
+    if (!(await TC.confirm(`${h.e} ${esc(h.name)}`, `Prix : <b>${fmt.eur(h.price)}</b>${cur.price ? `<br>Reprise de ta ${esc(cur.name.toLowerCase())} : −${fmt.eur(cur.price * C.TRADE_IN)}` : ''}<br><br>${cost >= 0 ? `À payer : <b>${fmt.eur(cost)}</b>` : `On te rend : <b>${fmt.eur(-cost)}</b>`}. Ta nouvelle résidence apparaît tout de suite sur la carte.`, cost >= 0 ? 'Acheter 🔑' : 'Déménager 🔑', 'btn-gold'))) return;
+    S().cash -= cost; S().home = id; if (cost > 0) S().stats.spent = (S().stats.spent || 0) + cost;
+    S().log.unshift({ t: Date.now(), kind: cost >= 0 ? 'item' : 'itemsell', asset: `${h.e} Résidence : ${h.name}`, eur: Math.abs(cost) });
+    G.save(true); if (N && N.flush) N.flush();
+    TC.sound('kaching'); TC.confetti(160); TC.haptic && TC.haptic([30, 40, 30]);
+    TC.toast(`🔑 Bienvenue dans ton ${esc(h.name.toLowerCase())} !`, 'ok', 5000);
+    after();
+  };
   C.tier = nw => { let t = C.TIERS[0], i = 0; C.TIERS.forEach((x, k) => { if ((nw || 0) >= x[0]) { t = x; i = k; } }); return { e: t[1], name: t[2], i }; };
 
   function st() { const c = S().city || (S().city = { biz: {}, last: Date.now(), earned: 0 }); c.biz = c.biz || {}; return c; }
@@ -48,7 +79,7 @@
 
   // les commerces comptent dans le patrimoine
   const baseNW = G.netWorth;
-  G.netWorth = () => baseNW() + (S().city ? C.value() : 0);
+  G.netWorth = () => baseNW() + (S().city ? C.value() : 0) + (S().home && C.homeById[S().home] ? C.homeById[S().home].price * C.TRADE_IN : 0);
 
   function log(e) { S().log.unshift(Object.assign({ t: Date.now() }, e)); if (S().log.length > 300) S().log.length = 300; }
 
@@ -92,7 +123,7 @@
   C.pub = () => {
     const o = {}, at = {}; Object.entries(st().biz).forEach(([id, x]) => { o[id] = x.lvl; at[id] = x.at || 0; });
     const own = [...new Set(S().owned.slice().sort((a, b) => b.price - a.price).map(x => x.item))].slice(0, 16);
-    return { biz: o, at, own };
+    return { biz: o, at, own, home: S().home || 'tente' };
   };
 
   /* ---------- Rachat du commerce d'un autre joueur ----------
@@ -279,7 +310,7 @@
     { id: 'parc',   e: '🌳', name: 'Parc', go: 'parc' },
   ];
   function lotHtml(p, i) {
-    const t = C.tier(p.nw);
+    const t = Object.assign({ i: typeof C.home(p).b === 'number' ? C.home(p).b : 5 }, C.home(p));
     const biz = Object.entries((p.city && p.city.biz) || {}).filter(([id]) => C.byId[id]).sort((a, b) => C.byId[b[0]].price - C.byId[a[0]].price);
     const friend = !p.me && N && (N.friends || []).some(f => f.uid === p.uid);
     const mayor = p.uid === C.mayorUid();
@@ -313,6 +344,13 @@
     </div>`;
   }
 
+  function homeHtml() {
+    const cur = C.myHome();
+    return `<div class="panel home-p"><h3>🔑 Ma résidence <small>${cur.e} ${esc(cur.name)}</small></h3>
+      <p class="muted">C'est ta résidence qu'on voit sur la carte. En changeant, l'ancienne est reprise à 70 %.</p>
+      <div class="homes">${C.HOMES.map(h => { const own = h === cur, cost = C.homeCost(h.id);
+        return `<button class="home ${own ? 'own' : ''}" ${own ? 'disabled' : `data-home="${h.id}"`}><span>${h.e}</span><b>${esc(h.name)}</b><small>${own ? '✓ chez toi' : h.price ? fmt.eur(h.price, true) : 'gratuit'}</small>${own ? '' : cost >= 0 ? `<i class="${S().cash >= cost ? '' : 'down'}">à payer ${fmt.eur(cost, true)}</i>` : `<i>on te rend ${fmt.eur(-cost, true)}</i>`}</button>`; }).join('')}</div></div>`;
+  }
   function bizHtml() {
     const c = st(), ph = C.perHour(), pend = C.pending();
     const cards = C.BIZ.map(b => {
@@ -341,7 +379,7 @@
     const players = r.map((p, i) => {
       const top = p.topItem && TC.shopById[p.topItem];
       const isCar = top && top.type === 'car';
-      return { uid: p.uid, pseudo: p.pseudo || '?', tier: C.tier(p.nw).i, biz: (p.city && p.city.biz) || {}, me: !!p.me, mayor: p.uid === C.mayorUid(), tag: p.clanTag || null,
+      return { uid: p.uid, pseudo: p.pseudo || '?', tier: C.home(p).b, avatar: p.me ? (TC.Style ? TC.Style.mine().avatar : p.avatar) : p.avatar, biz: (p.city && p.city.biz) || {}, me: !!p.me, mayor: p.uid === C.mayorUid(), tag: p.clanTag || null,
         friend: !p.me && N && (N.friends || []).some(f => f.uid === p.uid), plus: TC.Style ? TC.Style.isPlus(p) : false,
         car: isCar ? { color: parseInt(String(top.grad && top.grad[0] || '#d00000').replace('#', ''), 16) } : null };
     });
@@ -351,7 +389,7 @@
     const r = roster(); const guest = !N || !N.enabled || !N.user || !N.profile;
     const inn = TC.City3D && TC.City3D.insideOf && TC.City3D.insideOf();
     if (inn) return `<div class="city3d" id="city3d-host"><div class="c3-load">🏠 On ouvre la porte…</div>
-      <div class="c3-top"><b>🏠 ${inn.me ? 'Chez toi' : 'Chez ' + esc(inn.pseudo)}</b><span>${esc(C.tier(inn.nw).name)}</span></div>
+      <div class="c3-top"><b>🏠 ${inn.me ? 'Chez toi' : 'Chez ' + esc(inn.pseudo)}</b><span>${esc(inn.homeName || '')}</span></div>
       <div class="c3-hud"><button data-c3="out">⬅️ Ville</button></div>
       <div class="c3-help">☝️ Glisse pour faire le tour · 🤏 pince pour zoomer</div></div>`;
     return `<div class="city3d" id="city3d-host"><div class="c3-load">🏗️ Construction de Trad City…</div>
@@ -371,7 +409,7 @@
     const root = $('#tab-city'); if (!root) return;
     const use3d = !view2d && TC.City3D && TC.City3D.supported() && !TC.City3D.failed;
     const v3 = TC.City3D, why = v3 && (!v3.supported() ? 'WebGL désactivé sur ce navigateur' : v3.failed ? v3.error || 'erreur inconnue' : null);
-    root.innerHTML = (TC.Mayor ? TC.Mayor.banner() : '') + voteBar() + (use3d ? map3dHtml() : (why ? `<div class="nbox c3-err">⚠️ La 3D n'a pas pu s'afficher sur cet appareil : <b>${esc(why)}</b>. Voici la carte en 2D. <button class="btn btn-sm" data-c3="retry">🔄 Réessayer la 3D</button></div>` : '') + mapHtml().replace('<div class="city-sky">', '<div class="city-sky">' + (v3 && v3.supported() && !v3.failed ? '<button class="c3-back" data-c3="3d">🧊 Vue 3D</button>' : ''))) + bizHtml();
+    root.innerHTML = (TC.Mayor ? TC.Mayor.banner() : '') + voteBar() + (use3d ? map3dHtml() : (why ? `<div class="nbox c3-err">⚠️ La 3D n'a pas pu s'afficher sur cet appareil : <b>${esc(why)}</b>. Voici la carte en 2D. <button class="btn btn-sm" data-c3="retry">🔄 Réessayer la 3D</button></div>` : '') + mapHtml().replace('<div class="city-sky">', '<div class="city-sky">' + (v3 && v3.supported() && !v3.failed ? '<button class="c3-back" data-c3="3d">🧊 Vue 3D</button>' : ''))) + homeHtml() + bizHtml();
     if (use3d) {
       TC.City3D.load().then(ok => {
         const host = $('#city3d-host'); if (!host) return;
@@ -404,7 +442,7 @@
   /* ---------- Fiche d'un terrain ---------- */
   function lotModal(uid) {
     const p = roster().find(x => x.uid === uid); if (!p) return;
-    const i = roster().indexOf(p), t = C.tier(p.nw), isMayor = p.uid === C.mayorUid(), voted = C.myVote() === p.uid;
+    const i = roster().indexOf(p), t = C.home(p), isMayor = p.uid === C.mayorUid(), voted = C.myVote() === p.uid;
     const can3d = TC.City3D && TC.City3D.ready && !TC.City3D.failed && $('#city3d-host');
     const biz = Object.entries((p.city && p.city.biz) || {}).filter(([id]) => C.byId[id]).sort((a, b) => C.byId[b[0]].price - C.byId[a[0]].price);
     const top = p.topItem && TC.shopById[p.topItem];
@@ -462,7 +500,7 @@
   C.visit = function (p) {
     if (!TC.City3D || !TC.City3D.ready) return;
     const own = p.me ? [...new Set(S().owned.slice().sort((a, b) => b.price - a.price).map(x => x.item))].slice(0, 16) : ((p.city && p.city.own) || (p.topItem ? [p.topItem] : []));
-    TC.City3D.enter({ uid: p.uid, pseudo: p.pseudo || '?', avatar: p.avatar || (TC.Style && TC.Style.mine().avatar), tier: C.tier(p.nw).i, nw: p.nw || 0, own, me: !!p.me });
+    TC.City3D.enter({ uid: p.uid, pseudo: p.pseudo || '?', avatar: p.avatar || (TC.Style && TC.Style.mine().avatar), tier: interiorTier(C.home(p)), homeName: C.home(p).name, nw: p.nw || 0, own, me: !!p.me });
     C.render(); window.scrollTo({ top: 0, behavior: 'smooth' });
   };
   function landmark(id) {
@@ -477,6 +515,7 @@
     const t = e.target;
     const lot = t.closest('[data-lot]'); if (lot) return lotModal(lot.dataset.lot);
     const land = t.closest('[data-land]'); if (land) return landmark(land.dataset.land);
+    const hm = t.closest('[data-home]'); if (hm) return C.buyHome(hm.dataset.home);
     const b = t.closest('[data-biz]'); if (b) return C.buy(b.dataset.biz);
     const s = t.closest('[data-bizsell]'); if (s) return C.sell(s.dataset.bizsell);
     if (t.closest('#city-collect')) { C.collect(); after(); }
