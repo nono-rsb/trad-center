@@ -64,6 +64,19 @@
   let lastTier = null;
   K.update = function () {
     if (!el) return;
+    const t = fill(el), idx = K.TIERS.indexOf(t);
+    if (lastTier != null && idx > lastTier) { TC.sound('kaching'); TC.confetti(220); TC.toast(`${t.icon} Nouvelle carte ${t.name} débloquée !`, 'ok', 6000); }
+    lastTier = idx; S().cardTier = Math.max(S().cardTier || 0, idx);
+  };
+  // face avant seule, sans manipulation (paiement sans contact de Trad Banque)
+  K.face = function () {
+    const z = build(); fill(z);
+    const st = z.querySelector('.cc-stage').cloneNode(true); // copie sans les gestes (tourner, retourner)
+    const c = st.querySelector('#cc'); c.style.transform = ''; c.classList.add('cc-static');
+    st.querySelectorAll('[id]').forEach(x => x.removeAttribute('id'));
+    return st;
+  };
+  function fill(el) {
     const nw = G.netWorth(), t = K.tier(nw), n = next(t);
     const card = el.querySelector('#cc');
     K.TIERS.forEach(x => card.classList.toggle('t-' + x.id, x === t));
@@ -76,10 +89,8 @@
     el.querySelector('#cc-nw').textContent = fmt.eur(nw);
     el.querySelector('#cc-next').innerHTML = n ? `<small>Prochaine carte : ${n.icon} ${n.name} à ${fmt.eur(n.min, true)}</small><div class="cc-bar"><i style="width:${Math.min(100, Math.max(0, (nw - t.min) / (n.min - t.min) * 100)).toFixed(1)}%"></i></div>`
       : '<small>🐐 Niveau ultime atteint : tu n\'as pas fini le jeu, mais tu es le GOAT.</small>';
-    const idx = K.TIERS.indexOf(t);
-    if (lastTier != null && idx > lastTier) { TC.sound('kaching'); TC.confetti(220); TC.toast(`${t.icon} Nouvelle carte ${t.name} débloquée !`, 'ok', 6000); }
-    lastTier = idx; S().cardTier = Math.max(S().cardTier || 0, idx);
-  };
+    return t;
+  }
   // dans une autre page (appli Trad Banque) : la carte se place où on veut
   K.mountInto = function (box) { if (!el) { el = build(); lastTier = S().cardTier != null ? S().cardTier : null; } el.classList.add('show'); box.appendChild(el); K.update(); };
   function mount() {

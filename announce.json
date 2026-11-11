@@ -1,32 +1,32 @@
 {
-  "id": "musique-2026-11-11",
-  "emoji": "🎵",
-  "title": "Trad Center a sa musique",
+  "id": "paiement-carte-2026-11-11",
+  "emoji": "💳",
+  "title": "Paie avec ta carte, comme en magasin",
   "items": [
     {
-      "icon": "🎷",
-      "title": "Une petite musique lounge",
-      "text": "Piano jazzy, basse douce et quelques notes de vibraphone : une ambiance de salle des marchés détendue, composée pour le jeu."
+      "icon": "💳",
+      "title": "Paiement sans contact",
+      "text": "Trad Banque → Drop → Envoyer : choisis le montant et touche « Payer avec ma carte ». Ta carte s'affiche en grand."
     },
     {
-      "icon": "🔈",
-      "title": "Volume tout doux",
-      "text": "Elle reste en fond, sans couvrir les sons du jeu. Elle s'arrête quand tu quittes l'appli."
+      "icon": "📲",
+      "title": "La carte suit ton geste",
+      "text": "Avance ton téléphone vers celui de ton ami : la carte avance avec toi. Arrête-toi contre son téléphone et c'est payé."
     },
     {
-      "icon": "⚙️",
-      "title": "C'est toi qui choisis",
-      "text": "Paramètres ⚙️ → Musique de fond : coupe-la ou règle son volume."
+      "icon": "🟢",
+      "title": "Bip, c'est payé !",
+      "text": "Les 4 voyants de la borne s'allument, bip, « PAIEMENT ACCEPTÉ ». Ton ami entend le bip aussi en recevant l'argent."
     },
     {
-      "icon": "📣",
-      "title": "Le partage paie toujours",
-      "text": "Story Snap publique 400 €, privée 200 €, WhatsApp 200 € : jusqu'à dimanche soir."
+      "icon": "🎵",
+      "title": "Et la musique",
+      "text": "Une petite musique lounge accompagne le jeu : Paramètres ⚙️ pour la couper ou régler le volume."
     }
   ],
   "button": "Compris 👍",
   "push": {
-    "title": "🎵 Trad Center a sa musique",
-    "body": "Une petite musique lounge accompagne maintenant tes trades. Tu peux la couper ou baisser le volume dans les Paramètres."
+    "title": "💳 Paie avec ta carte dans Trad Banque",
+    "body": "Avance ton téléphone vers celui d'un ami : bip, paiement accepté ! Nouveau dans Trad Drop."
   }
 }
