@@ -213,6 +213,8 @@ async function main() {
         else if (m.kind === 'santa') msg = { title: `🎅 ${from} t'a offert un cadeau de Noël !`, body: `${eur(m.eur || 25)} t'attendent dans Trad Center. Joyeux Noël !`, tag: 'santa', url: '?tab=social' };
         else if (m.kind === 'referral') msg = { title: `🎁 +20 € ! ${from} a rejoint Trad Center grâce à toi`, body: 'Ouvre l\'appli pour encaisser ta prime de parrainage.', tag: 'referral', url: '?tab=social' };
         else if (m.kind === 'gift' && u.uid === TC.ADMIN_UID) msg = { title: `🎁 Cadeau du créateur : +${eur(m.eur || 0)} !`, body: 'Ouvre Trad Center pour le recevoir.', tag: 'gift', url: './' };
+        else if (m.kind === 'clanreq') msg = { title: `✋ ${from} veut rejoindre ton clan [${String(m.tag || '').slice(0, 5)}]`, body: 'Accepte sa demande dans l\'onglet Amis.', tag: 'clan', url: '?tab=social' };
+        else if (m.kind === 'clanok') msg = { title: `🛡️ Bienvenue dans le clan [${String(m.tag || '').slice(0, 5)}] !`, body: `${from} a accepté ta demande. Ouvre le jeu pour entrer dans le clan.`, tag: 'clan', url: '?tab=social' };
         else if (m.kind === 'takeover') msg = { title: `🤝 ${from} a racheté ton ${String(m.biz || 'commerce').slice(0, 40)}`, body: `+${eur(m.eur || 0)} pour toi ! Ouvre Trad City pour encaisser… ou racheter un autre commerce.`, tag: 'takeover', url: '?tab=city' };
       else if (m.kind === 'accept') msg = { title: `🤝 ${from} a accepté votre demande d'ami`, body: 'Vous pouvez maintenant vous envoyer de l\'argent et des cryptos.', tag: 'friend', url: '?tab=social' };
         else continue;

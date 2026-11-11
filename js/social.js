@@ -37,7 +37,7 @@
       <button class="btn btn-gold btn-xl" data-soc="pseudo">Valider</button><p class="hint">3 à 16 caractères : lettres, chiffres, _</p>
       <button class="btn btn-ghost btn-sm" data-soc="logout">Se déconnecter</button></div>`;
     if (!N.profile) return `<div class="panel empty big">Chargement du profil…</div>`;
-    return profileCard() + inviteBlock() + friendsBlock() + boardBlock() + historyBlock();
+    return profileCard() + (TC.Clan ? TC.Clan.block() : '') + inviteBlock() + friendsBlock() + boardBlock() + historyBlock();
   }
 
   function authForm() {
@@ -111,7 +111,7 @@
     rows = rows.slice().sort((a, b) => (b.nw || 0) - (a.nw || 0));
     const medal = i => ['🥇', '🥈', '🥉'][i] || (i + 1);
     return `<div class="panel"><div class="board-head"><h3>🏆 Classement</h3>${boardSeg()}</div>
-      ${!friendsScope && !N.board ? '<div class="empty">Chargement…</div>' : `<div class="board">${rows.map((r, i) => `<div class="brow ${r.uid === N.user.uid ? 'me' : ''}"><span class="pos">${medal(i)}</span>${TC.Style.avatar(r, 's')}<b>${esc(r.pseudo || '')}${TC.Style.badge(r)}${N.xmasChamp && N.xmasChamp === r.uid ? ' <span class="champ" title="Champion de Noël">🏆🎄</span>' : ''}</b><small>${esc(r.rank || '')}</small><span class="bnw">${fmt.eur(r.nw || 0, true)}</span></div>`).join('')}</div>`}</div>`;
+      ${!friendsScope && !N.board ? '<div class="empty">Chargement…</div>' : `<div class="board">${rows.map((r, i) => `<div class="brow ${r.uid === N.user.uid ? 'me' : ''}"><span class="pos">${medal(i)}</span>${TC.Style.avatar(r, 's')}<b>${TC.Clan ? TC.Clan.badge(r) : ''}${esc(r.pseudo || '')}${TC.Style.badge(r)}${N.xmasChamp && N.xmasChamp === r.uid ? ' <span class="champ" title="Champion de Noël">🏆🎄</span>' : ''}</b><small>${esc(r.rank || '')}</small><span class="bnw">${fmt.eur(r.nw || 0, true)}</span></div>`).join('')}</div>`}</div>`;
   }
 
   function boardSeg() {

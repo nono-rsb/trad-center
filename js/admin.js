@@ -14,13 +14,25 @@
   /* ---------- Liste des bannis (tous les joueurs la lisent) ---------- */
   A.loadBans = async function () {
     if (!N.db() || !N.user) return;
-    try { const s = await banRef().get(); A.bans = (s.exists && s.data().users) || {}; } catch (e) { }
+    try { const s = await banRef().get(); A.bans = (s.exists && s.data().users) || {}; A.allow = (s.exists && s.data().allow) || {}; } catch (e) { }
     A.enforce();
   };
   A.isBanned = uid => !!(uid && A.bans[uid]);
   A.enforce = function () {
     const me = N.user && N.user.uid;
     const lock = $('#banned');
+    const dup = me && N.profile && N.profile.dupOf && N.profile.dupOf.length && !A.allowed(me) && !A.isBanned(me) && !A.isAdmin();
+    if (dup) {
+      if (lock) return;
+      const el = document.createElement('div'); el.id = 'banned';
+      el.innerHTML = `<div class="bn-in"><div class="big-emoji">👥</div><h1>Double compte détecté</h1>
+        <p>Un autre compte${A.dupNames && A.dupNames.length ? ` (<b>${A.dupNames.map(esc).join(', ')}</b>)` : ''} a déjà joué sur cet appareil. Un seul compte par joueur est autorisé : ce nouveau compte est bloqué.</p>
+        <p class="muted">Compte perdu, frère ou sœur sur le même téléphone ? Contacte le créateur du jeu : il peut débloquer ce compte.</p>
+        <button class="btn" id="bn-out">Se déconnecter</button></div>`;
+      document.body.appendChild(el);
+      el.querySelector('#bn-out').onclick = () => N.signOut();
+      return;
+    }
     if (me && A.isBanned(me) && !A.isAdmin()) {
       if (lock) return;
       const el = document.createElement('div'); el.id = 'banned';
@@ -32,7 +44,31 @@
       el.querySelector('#bn-out').onclick = () => N.signOut();
     } else if (lock) lock.remove();
   };
-  N.on(t => { if (t === 'linked') { A.loadBans(); A.checkGifts(); } });
+  /* ---------- Doubles comptes ----------
+   * Chaque appareil a un identifiant (tradcenter.device), noté dans le profil (devs).
+   * Si un AUTRE compte, créé avant, a déjà joué sur cet appareil, le compte le plus récent est bloqué
+   * automatiquement (dupOf dans son profil). Le créateur peut l'autoriser (compte perdu, frère/sœur…)
+   * ou le bloquer définitivement depuis le mode créateur. */
+  const devId = () => { let d = null; try { d = localStorage.getItem('tradcenter.device'); if (!d) { d = Math.random().toString(36).slice(2, 12); localStorage.setItem('tradcenter.device', d); } } catch (e) { } return d || 'nodevice'; };
+  A.allowed = uid => !!(A.allow && A.allow[uid]);
+  A.checkDup = async function () {
+    if (!N.user || !N.profile || !N.db() || A.isAdmin()) return;
+    const uid = N.user.uid, dev = devId();
+    try {
+      const ref = N.db().collection('users').doc(uid);
+      const devs = N.profile.devs || [];
+      if (!devs.includes(dev)) { const nd = devs.concat(dev).slice(-8); await ref.update({ devs: nd, updatedAt: Date.now() }); N.profile.devs = nd; }
+      if (A.allowed(uid)) { if (N.profile.dupOf) { await ref.update({ dupOf: null }); N.profile.dupOf = null; } return A.enforce(); }
+      const snap = await N.db().collection('users').where('devs', 'array-contains', dev).get();
+      const mine = N.profile.createdAt || 0;
+      const older = snap.docs.filter(d => d.id !== uid && d.id !== TC.ADMIN_UID && !d.data().bot && (d.data().createdAt || 0) < mine).map(d => ({ uid: d.id, pseudo: N.prof(d.id, d.data()).pseudo }));
+      const dup = older.length ? older.map(o => o.uid) : null;
+      if (JSON.stringify(dup) !== JSON.stringify(N.profile.dupOf || null)) { await ref.update({ dupOf: dup, updatedAt: Date.now() }); N.profile.dupOf = dup; }
+      A.dupNames = older.map(o => o.pseudo);
+    } catch (e) { console.warn('doublon', e); }
+    A.enforce();
+  };
+  N.on(t => { if (t === 'linked') { A.loadBans().then(A.checkDup); A.checkGifts(); } });
   setInterval(() => { A.loadBans(); A.checkGifts(); }, 2 * 60000);
 
   /* ---------- Cadeaux du créateur (ex. rendre l'argent d'un compte perdu) ----------
@@ -105,7 +141,7 @@
         const fl = flags(u), ban = A.isBanned(u.uid);
         return `<button class="adm-row ${ban ? 'ban' : ''}" data-u="${u.uid}">${TC.Style ? TC.Style.avatar(u, 's') : ''}<b>${esc(u.pseudo || '?')}${TC.Style ? TC.Style.badge(u) : ''}</b>
           <span class="adm-nw">${fmt.eur(u.nw || 0, true)}</span><small>${u.updatedAt ? 'vu ' + fmt.time(u.updatedAt) : ''}${u.playMs ? ' · ⏱️ ' + TC.Play.fmt(u.playMs) : ''}</small>
-          ${ban ? '<i class="adm-tag ban">BLOQUÉ</i>' : ''}${fl.map(x => `<i class="adm-tag">${esc(x)}</i>`).join('')}</button>`;
+          ${ban ? '<i class="adm-tag ban">BLOQUÉ</i>' : ''}${u.dupOf && u.dupOf.length && !A.allowed(u.uid) ? '<i class="adm-tag ban">👥 DOUBLE COMPTE</i>' : ''}${fl.map(x => `<i class="adm-tag">${esc(x)}</i>`).join('')}</button>`;
       }).join('');
     };
     md.el.querySelector('#adm-q').oninput = e => { filter = e.target.value; render(); };
@@ -122,6 +158,8 @@
     const ban = A.bans[uid];
     let html = `<div class="adm-actions">${ban ? `<span class="adm-tag ban">BLOQUÉ le ${fmt.time(ban.at)}${ban.reason ? ' : ' + esc(ban.reason) : ''}</span><button class="btn btn-buy" id="adm-unban">Débloquer</button>`
       : `<input id="adm-reason" placeholder="Raison (facultatif)"><button class="btn btn-sell" id="adm-ban" ${uid === TC.ADMIN_UID ? 'disabled' : ''}>⛔ Bloquer</button>`}<button class="btn btn-ghost" id="adm-back">← Liste</button></div>
+      ${u.dupOf && u.dupOf.length ? `<div class="nbox ${A.allowed(uid) ? 'ok' : 'warn'}">👥 Double compte : cet appareil a déjà servi à ${u.dupOf.map(x => { const o = users.find(y => y.uid === x); return '<b>' + esc(o ? o.pseudo : x) + '</b>'; }).join(', ')}. ${A.allowed(uid) ? 'Tu l\'as autorisé.' : 'Ce compte est bloqué automatiquement.'}
+        <button class="btn btn-sm ${A.allowed(uid) ? 'btn-ghost' : 'btn-buy'}" id="adm-allow">${A.allowed(uid) ? 'Retirer l\'autorisation' : '✅ Autoriser ce compte'}</button></div>` : ''}
       <div class="adm-gift"><b>🎁 Donner de l'argent</b> <small>(ne te coûte rien ; il le reçoit à sa prochaine ouverture du jeu)</small>
         <div class="adm-actions"><input id="adm-geur" type="number" min="1" step="1" placeholder="Montant en €" inputmode="decimal"><input id="adm-gmsg" placeholder="Message (facultatif)" maxlength="120"><button class="btn btn-gold" id="adm-gift">Envoyer</button></div></div>`;
     if (err) html += `<div class="nbox warn">Impossible de lire sa partie (${esc(N.errMsg(err))}). As-tu publié les nouvelles règles Firebase ?</div>`;
@@ -163,6 +201,13 @@
       A.player(uid);
     };
     box.querySelector('#adm-back').onclick = () => A.open();
+    const al = box.querySelector('#adm-allow');
+    if (al) al.onclick = async () => {
+      const on = !A.allowed(uid);
+      try { await banRef().set({ allow: { [uid]: on ? { at: Date.now(), pseudo: u.pseudo || '' } : firebase.firestore.FieldValue.delete() } }, { merge: true }); if (on) (A.allow || (A.allow = {}))[uid] = true; else delete A.allow[uid]; TC.toast(on ? '✅ Compte autorisé : il pourra jouer à sa prochaine ouverture du jeu' : 'Autorisation retirée', 'ok', 6000); }
+      catch (e) { TC.toast('Erreur : ' + N.errMsg(e), 'bad'); }
+      A.player(uid);
+    };
     box.querySelector('#adm-gift').onclick = async e => {
       const eur = +box.querySelector('#adm-geur').value, msg = box.querySelector('#adm-gmsg').value;
       if (!(eur > 0)) return TC.toast('Entre un montant', 'bad');

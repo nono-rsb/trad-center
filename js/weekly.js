@@ -80,7 +80,7 @@
       <div class="board" id="wk-board"><div class="empty">Chargement…</div></div>`;
     try {
       const rows = await W.board(c.field, 15000); const b = el.querySelector('#wk-board'); if (!b) return;
-      b.innerHTML = rows.length ? rows.map((r, i) => `<div class="brow ${r.uid === N.user.uid ? 'me' : ''}"><span class="pos">${['🥇', '🥈', '🥉'][i] || i + 1}</span>${TC.Style.avatar(r, 's')}<b>${esc(r.pseudo || '')}${TC.Style.badge(r)}</b><small>${i === 0 ? '+' + fmt.eur(W.PRIZE) + ' si ça tient' : ''}</small><span class="bnw ${r.gain >= 0 ? 'up' : 'down'}">${r.gain >= 0 ? '+' : ''}${fmt.eur(r.gain, true)}</span></div>`).join('') : '<div class="empty">Personne n\'a encore joué cette semaine : fonce !</div>';
+      b.innerHTML = rows.length ? rows.map((r, i) => `<div class="brow ${r.uid === N.user.uid ? 'me' : ''}"><span class="pos">${['🥇', '🥈', '🥉'][i] || i + 1}</span>${TC.Style.avatar(r, 's')}<b>${TC.Clan ? TC.Clan.badge(r) : ''}${esc(r.pseudo || '')}${TC.Style.badge(r)}</b><small>${i === 0 ? '+' + fmt.eur(W.PRIZE) + ' si ça tient' : ''}</small><span class="bnw ${r.gain >= 0 ? 'up' : 'down'}">${r.gain >= 0 ? '+' : ''}${fmt.eur(r.gain, true)}</span></div>`).join('') : '<div class="empty">Personne n\'a encore joué cette semaine : fonce !</div>';
     } catch (e) { const b = el.querySelector('#wk-board'); if (b) b.innerHTML = '<div class="empty">Classement indisponible</div>'; }
   };
 

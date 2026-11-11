@@ -341,7 +341,7 @@
     const players = r.map((p, i) => {
       const top = p.topItem && TC.shopById[p.topItem];
       const isCar = top && top.type === 'car';
-      return { uid: p.uid, pseudo: p.pseudo || '?', tier: C.tier(p.nw).i, biz: (p.city && p.city.biz) || {}, me: !!p.me, mayor: p.uid === C.mayorUid(),
+      return { uid: p.uid, pseudo: p.pseudo || '?', tier: C.tier(p.nw).i, biz: (p.city && p.city.biz) || {}, me: !!p.me, mayor: p.uid === C.mayorUid(), tag: p.clanTag || null,
         friend: !p.me && N && (N.friends || []).some(f => f.uid === p.uid), plus: TC.Style ? TC.Style.isPlus(p) : false,
         car: isCar ? { color: parseInt(String(top.grad && top.grad[0] || '#d00000').replace('#', ''), 16) } : null };
     });
@@ -412,7 +412,7 @@
     const asked = N && (N.outgoing || []).some(r => r.to === p.uid);
     const md = TC.modal(`<div class="lot-card"><div class="lot-big">${t.e}</div>
         ${TC.Style ? TC.Style.avatar(p, 'xl') : ''}
-        <h2>${p.me ? 'Ton terrain' : esc(p.pseudo || '?')} ${TC.Style ? TC.Style.badge(p) : ''}</h2>
+        <h2>${TC.Clan ? TC.Clan.badge(p) : ''}${p.me ? 'Ton terrain' : esc(p.pseudo || '?')} ${TC.Style ? TC.Style.badge(p) : ''}</h2>
         <p class="muted">${isMayor ? '👑 Maire de Trad City · ' : ''}${esc(t.name)} · n°${i + 1} de la ville</p>
         ${can3d ? `<button class="btn btn-gold btn-xl lot-visit" data-visit="${esc(p.uid)}">🏠 ${p.me ? 'Entrer chez moi' : 'Visiter sa maison'}</button>` : ''}
         <div class="kv"><span>Patrimoine</span><b>${fmt.eur(p.nw || 0)}</b><span>Rang</span><b>${esc(p.rank || G.rank(p.nw || 0).r[1])}</b>
