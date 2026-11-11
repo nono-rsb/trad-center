@@ -177,6 +177,89 @@ async function main() {
     }
   } catch (e) { log('identité robot', e.message); }
 
+  // 🧑‍💻 Compte de Claude, l'assistant IA du créateur : un vrai compte joueur (pas un robot), vérifié à vie.
+  // Il accepte les demandes d'ami et ses réponses aux questions sont signées à son nom. L'uid est publié par Sentinelle
+  // (profil de confiance) pour que l'appli le reconnaisse : un joueur qui s'appellerait « Claude » ne peut pas l'imiter.
+  let claude = null;
+  try {
+    const capp = initializeApp(process.env.EMULATOR ? { ...TC.FIREBASE, projectId: process.env.EMULATOR } : TC.FIREBASE, 'claude');
+    const cauth = getAuth(capp), cdb = getFirestore(capp);
+    if (process.env.EMULATOR) { connectAuthEmulator(cauth, 'http://127.0.0.1:9099', { disableWarnings: true }); connectFirestoreEmulator(cdb, '127.0.0.1', 8080); }
+    const cEmail = 'claude@trad-center.firebaseapp.com', cPass = crypto.createHmac('sha256', pass).update('tradcenter-claude-v1').digest('base64url').slice(0, 32);
+    let cc; try { cc = await signInWithEmailAndPassword(cauth, cEmail, cPass); } catch (e) { cc = await createUserWithEmailAndPassword(cauth, cEmail, cPass); log('compte de Claude créé'); }
+    const cUid = cc.user.uid, cRef = doc(cdb, 'users', cUid), now1 = Date.now();
+    const look = { av: { sk: '#f2c9a5', head: 'ovale', eyes: 'normal', ec: '#3b2416', brows: 'fins', nose: 'petit', mouth: 'sourire', hair: 'raie', hc: '#3b2416', beard: 'aucune', cloth: 'colroule', cc: '#d97757', bg: '#f5ead8', extra: 'aucun' }, frame: 'fr_plus' };
+    const want = { plusUntil: 4102444800000, look, role: 'Assistant IA du créateur', avatar: '🧡' };
+    if (!(await getDoc(cRef)).exists()) {
+      for (const [n, k] of [['Claude', 'claude'], ['Claude_IA', 'claude_ia']]) {
+        const r = doc(cdb, 'usernames', k), t = await getDoc(r);
+        if (t.exists() && t.data().uid !== cUid) continue;
+        const b = writeBatch(cdb);
+        if (!t.exists()) b.set(r, { uid: cUid });
+        b.set(cRef, { pseudo: n, pseudoLower: k, nw: 10, rank: 'Fauché', items: 0, topItem: null, createdAt: now1, updatedAt: now1, ...want });
+        await b.commit(); log('profil de Claude publié :', n); break;
+      }
+    } else {
+      const c = (await getDoc(cRef)).data();
+      if (c.plusUntil !== want.plusUntil || c.role !== want.role) await updateDoc(cRef, { ...want, updatedAt: now1 });
+    }
+    if ((await getDoc(cRef)).exists()) {
+      claude = { uid: cUid, db: cdb, ref: cRef };
+      if (((await getDoc(meRef)).data() || {}).claudeUid !== cUid) await updateDoc(meRef, { claudeUid: cUid, updatedAt: Date.now() });
+      log('compte de Claude prêt');
+    }
+  } catch (e) { log('compte de Claude', e.code || e.message); }
+  // Claude accepte les demandes d'ami (et prévient le joueur par notification)
+  async function claudeFriends() {
+    if (!claude) return;
+    try {
+      const reqs = await getDocs(query(collection(claude.db, 'friendRequests'), where('to', '==', claude.uid)));
+      if (reqs.empty) return;
+      const b = writeBatch(claude.db), box = (((await getDoc(claude.ref)).data() || {}).outbox || []).filter(m => Date.now() - m.at < 24 * 3600000).slice(-20);
+      reqs.docs.forEach(d => {
+        const from = d.data().from; if (!from) return;
+        b.set(doc(claude.db, 'friendships', from < claude.uid ? from + '_' + claude.uid : claude.uid + '_' + from), { members: [from, claude.uid], createdAt: Date.now() });
+        b.delete(d.ref); box.push({ id: crypto.randomBytes(5).toString('hex'), to: from, kind: 'accept', at: Date.now() });
+      });
+      b.update(claude.ref, { outbox: box, updatedAt: Date.now() });
+      await b.commit(); log('Claude a accepté', reqs.size, 'demande(s) d\'ami');
+    } catch (e) { log('amis de Claude', e.code || e.message); }
+  }
+
+  // 🎲 Claude parie pour le fun avec les vrais cours : plus haut ou plus bas, 10 % de son argent, gain x2 (règles du jeu).
+  // Un pari à la fois, d'au moins 20 min, réglé au passage suivant du serveur avec le cours du moment. Hors concours.
+  const CLAUDE_PICKS = ['BTC', 'ETH', 'SOL', 'XRP', 'CAC40', 'SP500', 'NASDAQ', 'GOLD', 'TSLA', 'NVDA', 'AAPL', 'TTWO'];
+  async function claudeBets(px) {
+    if (!claude || !px) return;
+    try {
+      const cur = (await getDoc(claude.ref)).data() || {}, g = Object.assign({ cash: 10, bets: [], wins: 0, losses: 0, bonusDay: '' }, cur.cb || {});
+      const now = Date.now(), day = new Date().toLocaleDateString('fr-FR', { timeZone: 'Europe/Paris' });
+      let changed = false;
+      for (const b of g.bets.filter(b => !b.res && now >= b.end)) { // règlement
+        const p = px[b.a]; if (!p || !p.open || !p.eur) continue;
+        const up = p.eur > b.p0, win = p.eur !== b.p0 && (b.dir === 'up') === up;
+        b.p1 = p.eur; b.res = win ? 'win' : 'lose'; b.gain = win ? b.stake : -b.stake;
+        if (win) { g.cash += b.stake * 2; g.wins++; } else g.losses++;
+        changed = true; log('pari de Claude', b.a, b.res, b.gain);
+      }
+      if (g.cash < 1 && g.bonusDay !== day) { g.cash += 10; g.bonusDay = day; changed = true; } // bonus quotidien, comme tout le monde
+      if (!g.bets.some(b => !b.res) && g.cash >= 1) { // nouveau pari : l'actif qui bouge le plus, dans le sens de la dernière heure
+        const opts = CLAUDE_PICKS.map(id => ({ id, p: px[id] })).filter(x => x.p && x.p.open && x.p.eur && isFinite(x.p.h1)).sort((a, b) => Math.abs(b.p.h1) - Math.abs(a.p.h1)).slice(0, 4);
+        const o = opts[Math.floor(Math.random() * opts.length)];
+        if (o) {
+          const stake = Math.max(1, Math.round(g.cash * 0.1 * 100) / 100);
+          g.cash -= stake;
+          g.bets.push({ id: crypto.randomBytes(4).toString('hex'), a: o.id, dir: o.p.h1 >= 0 ? 'up' : 'down', stake, p0: o.p.eur, at: now, end: now + (+process.env.CLAUDE_BET_MS || 20 * 60000) });
+          changed = true; log('Claude parie', stake, '€ sur', o.id, o.p.h1 >= 0 ? 'hausse' : 'baisse');
+        }
+      }
+      if (!changed) return;
+      g.cash = Math.round(g.cash * 100) / 100; g.bets = g.bets.slice(-12);
+      const nw = Math.round((g.cash + g.bets.filter(b => !b.res).reduce((t, b) => t + b.stake, 0)) * 100) / 100;
+      await updateDoc(claude.ref, { cb: g, nw, updatedAt: Date.now() });
+    } catch (e) { log('paris de Claude', e.code || e.message); }
+  }
+
   const st = loadState(); st.fired = st.fired || {}; st.done = st.done || {}; st.alerts = st.alerts || {}; st.dead = st.dead || {};
   let lastPx = null, sentTotal = 0, verbose = true;
   // Profils gardés en mémoire : relecture complète toutes les 6 h, sinon seulement les profils modifiés (forfait gratuit)
@@ -201,6 +284,7 @@ async function main() {
   }
   async function tick(withPrices) {
     let sent = 0;
+    await claudeFriends();
     const users = await loadUsers();
     const pseudo = {}; users.forEach(u => { pseudo[u.uid] = u.pseudo; });
     const subs = [];
@@ -283,7 +367,7 @@ async function main() {
       st.weekly = st.weekly || {};
       if (!st.weekly[prev.id] && 7 * 86400000 - cur.left > 5 * 60000) { // au moins 5 min après lundi 0 h
         let bans = {}; try { const b = await getDoc(doc(db, 'admin', 'bans')); bans = (b.exists() && b.data().users) || {}; } catch (e) { }
-        const top = users.filter(u => !bans[u.uid] && u.uid !== TC.ADMIN_UID && typeof u[prev.field] === 'number' && u[prev.field] > 0).sort((a, b) => b[prev.field] - a[prev.field])[0];
+        const top = users.filter(u => !bans[u.uid] && u.uid !== TC.ADMIN_UID && (!claude || u.uid !== claude.uid) && typeof u[prev.field] === 'number' && u[prev.field] > 0).sort((a, b) => b[prev.field] - a[prev.field])[0];
         st.weekly[prev.id] = top ? top.uid : 'aucun';
         if (top) {
           log('champion de la semaine', prev.id, top.pseudo);
@@ -431,8 +515,10 @@ async function main() {
 
     // 2 et 3. Marchés et alertes (seulement si quelqu'un est abonné)
     const live = subs.filter(s => !s.dead);
+    if (withPrices && (live.length || claude)) { try { lastPx = process.env.MOCK_PRICES ? JSON.parse(process.env.MOCK_PRICES) : await prices(); log(Object.keys(lastPx).length, 'cours récupérés'); } catch (e) { log('cours', e.message); } }
+    if (claude && withPrices) await claudeBets(lastPx);
     if (live.length && withPrices) {
-      if (withPrices || !lastPx) { lastPx = process.env.MOCK_PRICES ? JSON.parse(process.env.MOCK_PRICES) : await prices(); log(Object.keys(lastPx).length, 'cours récupérés'); }
+      if (!lastPx) { lastPx = process.env.MOCK_PRICES ? JSON.parse(process.env.MOCK_PRICES) : await prices(); log(Object.keys(lastPx).length, 'cours récupérés'); }
       const px = lastPx;
       const events = marketEvents(px, st.fired);
       if (events.length) log('mouvements :', events.map(e => e.title).join(' | '));

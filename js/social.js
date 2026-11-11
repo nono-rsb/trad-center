@@ -37,7 +37,7 @@
       <button class="btn btn-gold btn-xl" data-soc="pseudo">Valider</button><p class="hint">3 à 16 caractères : lettres, chiffres, _</p>
       <button class="btn btn-ghost btn-sm" data-soc="logout">Se déconnecter</button></div>`;
     if (!N.profile) return `<div class="panel empty big">Chargement du profil…</div>`;
-    return profileCard() + (TC.Share && TC.Share.block ? TC.Share.block() : '') + (TC.Clan ? TC.Clan.block() : '') + inviteBlock() + friendsBlock() + boardBlock() + (TC.Admin && TC.Admin.botCard ? TC.Admin.botCard() : '') + historyBlock();
+    return profileCard() + (TC.Share && TC.Share.block ? TC.Share.block() : '') + (TC.Clan ? TC.Clan.block() : '') + inviteBlock() + friendsBlock() + boardBlock() + (TC.Admin && TC.Admin.claudeCard ? TC.Admin.claudeCard() : '') + (TC.Admin && TC.Admin.botCard ? TC.Admin.botCard() : '') + historyBlock();
   }
 
   function authForm() {

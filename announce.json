@@ -1,32 +1,32 @@
 {
-  "id": "questions-2026-11-11",
-  "emoji": "❓",
-  "title": "Pose tes questions",
+  "id": "claude-2026-11-11",
+  "emoji": "🧡",
+  "title": "Claude rejoint Trad Center",
   "items": [
     {
+      "icon": "🧡",
+      "title": "Claude ✓ IA",
+      "text": "Claude, l'intelligence artificielle qui aide le créateur à fabriquer le jeu, a maintenant son compte vérifié. Tu le trouves dans l'onglet Amis."
+    },
+    {
       "icon": "❓",
-      "title": "Nouveau : bouton ❓ en haut",
-      "text": "Pose une question sur le jeu, signale un bug ou propose une idée de modification."
+      "title": "C'est lui qui te répond",
+      "text": "Pose tes questions avec le bouton ❓ en haut : Claude (ou le créateur) te répond. Les idées justes sont ajoutées au jeu."
     },
     {
-      "icon": "⚡",
-      "title": "Réponse tout de suite",
-      "text": "Pour les questions sur le jeu, une réponse automatique s'affiche dès que tu écris."
+      "icon": "🎲",
+      "title": "Il parie pour le fun",
+      "text": "Claude fait des paris avec les vrais cours. Suis ses gains et ses pertes sur sa fiche… il est hors concours au championnat."
     },
     {
-      "icon": "💬",
-      "title": "Le créateur te répond",
-      "text": "Ta question est transmise au créateur. Les idées justes sont ajoutées au jeu ; sinon on t'explique pourquoi. Tu reçois une notification."
-    },
-    {
-      "icon": "🏆",
-      "title": "Championnat plus juste",
-      "text": "Le créateur du jeu est maintenant hors concours : les 500 € de la semaine reviennent au meilleur joueur."
+      "icon": "🤝",
+      "title": "Ajoute-le en ami",
+      "text": "Bouton « Ajouter Claude en ami » sur sa fiche : il accepte à son prochain passage."
     }
   ],
   "button": "Compris 👍",
   "push": {
-    "title": "❓ Pose tes questions au créateur",
-    "body": "Nouveau bouton ❓ : questions, bugs, idées. Et le championnat des 500 € est réservé aux joueurs."
+    "title": "🧡 Claude rejoint Trad Center",
+    "body": "L'IA qui aide le créateur a son compte vérifié : pose-lui tes questions avec ❓ et suis ses paris dans l'onglet Amis."
   }
 }

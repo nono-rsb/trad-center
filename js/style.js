@@ -80,7 +80,7 @@
     return `<span class="av av-${size} ${fr && plusOk ? 'fr-' + fr.fr : ''}" style="${out ? '--ring:' + out.ring : ''}"><span class="av-b">${esc(p.avatar || '👤')}</span>${parts.join('')}</span>`;
   };
   ST.badge = p => (p && isCreatorUid(p.uid) ? `<span class="vbadge cr cr-${esc(((p.look || {}).cb) || 'arcenciel')}" title="Créateur de Trad Center">✓</span><span class="crtag">CRÉATEUR</span>`
-    : ST.isPlus(p) ? '<span class="vbadge" title="Membre Trad Center+ (vérifié)">✓</span>' : '') + (p && p.bot ? '<span class="botbadge" title="Robot officiel du jeu">BOT</span>' : '');
+    : ST.isPlus(p) ? '<span class="vbadge" title="Membre Trad Center+ (vérifié)">✓</span>' + (p && p.uid && p.uid === TC.CLAUDE_UID ? '<span class="aitag" title="Claude, l\'assistant IA du créateur">IA</span>' : '') : '') + (p && p.bot ? '<span class="botbadge" title="Robot officiel du jeu">BOT</span>' : '');
 
   /* ---------- Achats ---------- */
   function spend(eur, label) { S().cash -= eur; if (TC.Weekly) TC.Weekly.flow(-eur); S().log.unshift({ t: Date.now(), kind: 'item', eur, asset: label }); G.save(true); }
