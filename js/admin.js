@@ -118,7 +118,7 @@
     A.enforce();
   };
   N.on(t => { if (t === 'linked') { A.loadBans().then(A.checkDup); A.checkGifts(); } });
-  setInterval(() => { A.loadBans(); A.checkGifts(); }, 2 * 60000);
+  setInterval(() => { if (!document.hidden) { A.loadBans(); A.checkGifts(); } }, 5 * 60000);
 
   /* ---------- Cadeaux du créateur (ex. rendre l'argent d'un compte perdu) ----------
    * Le créateur ajoute { id, to, eur, msg, at } dans admin/gifts ; le joueur concerné l'encaisse

@@ -179,11 +179,20 @@ async function main() {
 
   const st = loadState(); st.fired = st.fired || {}; st.done = st.done || {}; st.alerts = st.alerts || {}; st.dead = st.dead || {};
   let lastPx = null, sentTotal = 0, verbose = true;
-  // Profils gardés en mémoire : relecture complète toutes les 30 min, sinon seulement les profils modifiés
+  // Profils gardés en mémoire : relecture complète toutes les 6 h, sinon seulement les profils modifiés (forfait gratuit)
   const cache = new Map(); let fullAt = 0, since = 0;
+  // La liste des joueurs est gardée d'un passage à l'autre (sinon chaque passage relit tout le monde),
+  // chiffrée avec PUSH_SECRET : la mémoire des Actions d'un dépôt public peut être lue par d'autres workflows.
+  const ckey = crypto.createHash('sha256').update('tc-users-cache:' + (process.env.PUSH_SECRET || '')).digest();
+  const enc = o => { const iv = crypto.randomBytes(12), c = crypto.createCipheriv('aes-256-gcm', ckey, iv); const d = Buffer.concat([c.update(JSON.stringify(o)), c.final()]); return [iv, c.getAuthTag(), d].map(b => b.toString('base64')).join('.'); };
+  const dec = t => { const [iv, tag, d] = t.split('.').map(x => Buffer.from(x, 'base64')); const c = crypto.createDecipheriv('aes-256-gcm', ckey, iv); c.setAuthTag(tag); return JSON.parse(Buffer.concat([c.update(d), c.final()]).toString()); };
+  try {
+    if (st.uc && process.env.PUSH_SECRET) { const o = dec(st.uc); if (o && Date.now() - o.fullAt < 6 * 3600000) { o.users.forEach(u => cache.set(u.uid, u)); fullAt = o.fullAt; since = o.since; log('profils en mémoire :', cache.size); } }
+  } catch (e) { log('mémoire des profils illisible, relecture complète'); }
+  const keepUsers = () => { if (process.env.PUSH_SECRET && cache.size) st.uc = enc({ fullAt, since, users: [...cache.values()] }); };
   async function loadUsers() {
     const now = Date.now();
-    const docs = now - fullAt > 30 * 60000
+    const docs = now - fullAt > 6 * 3600000
       ? (fullAt = now, cache.clear(), (await getDocs(collection(db, 'users'))).docs)
       : (await getDocs(query(collection(db, 'users'), where('updatedAt', '>', since - 120000)))).docs;
     since = now;
@@ -431,7 +440,7 @@ async function main() {
     }
     prune(st.done, 3 * 86400000); prune(st.alerts, 30 * 86400000); prune(st.dead, 30 * 86400000); if (st.ann) prune(st.ann, 60 * 86400000);
     prune(st.done, 3 * 86400000); prune(st.alerts, 30 * 86400000); prune(st.dead, 30 * 86400000); if (st.ann) prune(st.ann, 60 * 86400000);
-    st.lastRun = Date.now(); saveState(st);
+    st.lastRun = Date.now(); keepUsers(); saveState(st);
     if (sent || verbose) log('passage terminé,', sent, 'notification(s) envoyée(s)');
     sentTotal += sent;
   }

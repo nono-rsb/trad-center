@@ -14,7 +14,8 @@
   async function tally() {
     try {
       const db = N.db(); if (!db || !N.user) return null;
-      const [y, n] = await Promise.all(['oui', 'non'].map(v => db.collection('users').where('teddyVote', '==', v).get().then(s => s.size)));
+      const q = v => db.collection('users').where('teddyVote', '==', v);
+      const [y, n] = await Promise.all(['oui', 'non'].map(v => q(v).count().get().then(s => s.data().count).catch(() => q(v).get().then(s => s.size))));
       return { y, n };
     } catch (e) { return null; }
   }

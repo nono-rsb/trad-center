@@ -251,5 +251,5 @@
   });
 
   N.on(t => { if (t === 'linked') CL.sync(); });
-  setInterval(() => CL.sync(), 3 * 60000);
+  setInterval(() => { if (!document.hidden) CL.sync(); }, 6 * 60000);
 })();
