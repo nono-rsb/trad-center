@@ -15,7 +15,21 @@
     wrist:  { label: 'Poignet',   icon: '⌚' },
     feet:   { label: 'Pieds',     icon: '👟' },
     frame:  { label: 'Cadre',     icon: '🖼️' },
+    creator: { label: 'Créateur', icon: '👑', creator: true },
   };
+  /* ---------- Créateur du jeu : badge vérifié multicolore + bonus (réservé au compte TC.ADMIN_UID) ---------- */
+  const isCreatorUid = uid => !!uid && uid === TC.ADMIN_UID;
+  ST.isCreator = () => !!(TC.Net && TC.Net.user && isCreatorUid(TC.Net.user.uid));
+  ST.CBADGES = [['arcenciel', '🌈 Arc-en-ciel'], ['or', '🥇 Or'], ['diamant', '💎 Diamant'], ['neon', '💜 Néon'], ['feu', '🔥 Feu'], ['galaxie', '🌌 Galaxie']];
+  ST.CREATOR_PERKS = [
+    ['✓', 'Badge vérifié multicolore', 'Animé, à côté de ton pseudo partout dans le jeu, avec la mention CRÉATEUR. Personne d\'autre ne peut l\'avoir.'],
+    ['👑', 'Halo du créateur', 'Cadre exclusif arc-en-ciel animé autour de ton avatar.'],
+    ['♾️', 'Trad Center+ à vie', 'Tous les avantages du vérifié, sans abonnement ni renouvellement.'],
+    ['🎁', 'Bonus quotidien ×3', 'Au lieu de ×1,5 pour les membres Trad Center+.'],
+    ['🛍️', 'Tout le style gratuit', 'Casquettes, lunettes, chaînes, tenues, cadres : tout est offert.'],
+    ['🤖', 'Bot de trading offert', 'La licence du bot est gratuite pour toi.'],
+    ['🏷️', 'Trad Occaz sans frais', 'Pas de Protection acheteurs sur tes achats d\'occasion.'],
+  ];
   ST.ITEMS = [
     { id: 'h_newera', slot: 'hat', brand: 'New Era', name: 'Casquette 59FIFTY', price: 45, e: '🧢' },
     { id: 'h_lacoste', slot: 'hat', brand: 'Lacoste', name: 'Bob', price: 70, e: '👒' },
@@ -41,21 +55,22 @@
     { id: 'fr_rainbow', slot: 'frame', brand: 'Cadre', name: 'Arc-en-ciel', price: 10000, e: '🌈', fr: 'rainbow' },
     { id: 'fr_diamond', slot: 'frame', brand: 'Cadre', name: 'Diamant', price: 50000, e: '💠', fr: 'diamond' },
     { id: 'fr_plus', slot: 'frame', brand: 'Trad Center+', name: 'Cadre vérifié', price: 0, e: '✓', fr: 'plus', plus: true },
+    { id: 'fr_creator', slot: 'frame', brand: 'Créateur', name: 'Halo du créateur', price: 0, e: '👑', fr: 'creator', creator: true },
   ];
   ST.byId = {}; ST.ITEMS.forEach(i => { ST.byId[i.id] = i; });
   ST.FACES = ['🦁', '🐺', '🦊', '🐯', '🦈', '🐋', '🐉', '🦅', '🐂', '🐎', '👑', '💎', '🚀', '🔥', '😎', '🤑', '🐸', '🐶', '🐱', '🦄', '🤠', '🥷', '🧑‍🚀', '🤖', '👽', '🐵', '🐼', '🐧'];
   ST.PLUS_PRICE = 999; ST.PLUS_DAYS = 30;
 
   function st() { const s = S().style || (S().style = { owned: {}, look: {} }); s.owned = s.owned || {}; s.look = s.look || {}; return s; }
-  ST.isPlus = p => !!(p && p.plusUntil && p.plusUntil > Date.now());
-  ST.mine = () => ({ avatar: (TC.Net && TC.Net.profile && TC.Net.profile.avatar) || S().face || '😎', look: st().look, plusUntil: (S().plus || {}).until || 0 });
+  ST.isPlus = p => !!(p && ((p.plusUntil && p.plusUntil > Date.now()) || isCreatorUid(p.uid)));
+  ST.mine = () => ({ uid: TC.Net && TC.Net.user ? TC.Net.user.uid : null, avatar: (TC.Net && TC.Net.profile && TC.Net.profile.avatar) || S().face || '😎', look: st().look, plusUntil: (S().plus || {}).until || 0 });
 
   /* ---------- Rendu d'un avatar (utilisé partout) ---------- */
   ST.avatar = function (p, size = 's') {
     p = p || {}; const look = p.look || {};
     const it = k => look[k] && ST.byId[look[k]];
     const fr = it('frame'), out = it('outfit');
-    const plusOk = fr && fr.plus ? ST.isPlus(p) : true;
+    const plusOk = fr && fr.creator ? isCreatorUid(p.uid) : fr && fr.plus ? ST.isPlus(p) : true;
     if (look.av && TC.Avatar) return `<span class="av av-${size} av-art ${fr && plusOk ? 'fr-' + fr.fr : ''}">${TC.Avatar.svg(look.av, look)}</span>`;
     const parts = [];
     if (it('hat')) parts.push(`<i class="av-hat">${it('hat').e}</i>`);
@@ -64,19 +79,21 @@
     if (size === 'xl') { if (it('wrist')) parts.push(`<i class="av-wrist ${it('wrist').gold ? 'gold' : ''}">${it('wrist').e}</i>`); if (it('feet')) parts.push(`<i class="av-feet ${it('feet').red ? 'red' : ''}">${it('feet').e}</i>`); }
     return `<span class="av av-${size} ${fr && plusOk ? 'fr-' + fr.fr : ''}" style="${out ? '--ring:' + out.ring : ''}"><span class="av-b">${esc(p.avatar || '👤')}</span>${parts.join('')}</span>`;
   };
-  ST.badge = p => (ST.isPlus(p) ? '<span class="vbadge" title="Membre Trad Center+ (vérifié)">✓</span>' : '') + (p && p.bot ? '<span class="botbadge" title="Robot officiel du jeu">BOT</span>' : '');
+  ST.badge = p => (p && isCreatorUid(p.uid) ? `<span class="vbadge cr cr-${esc(((p.look || {}).cb) || 'arcenciel')}" title="Créateur de Trad Center">✓</span><span class="crtag">CRÉATEUR</span>`
+    : ST.isPlus(p) ? '<span class="vbadge" title="Membre Trad Center+ (vérifié)">✓</span>' : '') + (p && p.bot ? '<span class="botbadge" title="Robot officiel du jeu">BOT</span>' : '');
 
   /* ---------- Achats ---------- */
   function spend(eur, label) { S().cash -= eur; if (TC.Weekly) TC.Weekly.flow(-eur); S().log.unshift({ t: Date.now(), kind: 'item', eur, asset: label }); G.save(true); }
   ST.buy = function (id) {
-    const i = ST.byId[id]; if (!i || i.plus || st().owned[id]) return;
+    const i = ST.byId[id]; if (!i || i.plus || i.creator || st().owned[id]) return;
+    if (ST.isCreator()) { st().owned[id] = Date.now(); st().look[i.slot] = id; G.save(true); TC.sound('kaching'); TC.toast(`👑 ${esc(i.brand)} ${esc(i.name)} offert au créateur et porté !`, 'ok'); return after(); }
     if (S().cash < i.price) return TC.toast(`Il te manque ${fmt.eur(i.price - S().cash)}`, 'bad');
     spend(i.price, `${i.brand} ${i.name}`); st().owned[id] = Date.now(); st().look[i.slot] = id; G.save(true);
     TC.sound('kaching'); TC.toast(`🛍️ ${esc(i.brand)} ${esc(i.name)} achetée et portée !`, 'ok'); after();
   };
   ST.equip = function (id) {
     const i = ST.byId[id]; if (!i) return;
-    if (i.plus ? !ST.isPlus(ST.mine()) : !st().owned[id]) return;
+    if (i.creator ? !ST.isCreator() : i.plus ? !ST.isPlus(ST.mine()) : !st().owned[id] && !ST.isCreator()) return;
     st().look[i.slot] = st().look[i.slot] === id ? null : id; G.save(true); after();
   };
   function after() { if (TC.App) TC.App.after(); if (TC.Net && TC.Net.queueSync) TC.Net.queueSync(); }
@@ -112,7 +129,7 @@
   const baseClaim = G.claimBonus;
   G.claimBonus = function () {
     const plus = ST.isPlus(ST.mine()), base = G.BONUS;
-    if (plus) G.BONUS = Math.round(base * 1.5);
+    if (plus) G.BONUS = Math.round(base * (ST.isCreator() ? 3 : 1.5));
     try { return baseClaim.apply(G, arguments); } finally { G.BONUS = base; }
   };
 
@@ -122,11 +139,17 @@
     if (slot) tab = slot;
     const prevCard = document.querySelector('#modal.open .modal-card.wide'), keepTop = prevCard ? prevCard.scrollTop : 0;
     const me = ST.mine(), plus = ST.isPlus(me), p = S().plus || {};
-    const items = tab === 'face' || tab === 'body' ? null : ST.ITEMS.filter(i => i.slot === tab);
-    const grid = tab === 'body' ? (TC.Avatar ? TC.Avatar.editor(st().look.av, st().look) : '') : tab === 'face'
+    if (tab === 'creator' && !ST.isCreator()) tab = 'body';
+    const items = tab === 'face' || tab === 'body' || tab === 'creator' ? null : ST.ITEMS.filter(i => i.slot === tab && (!i.creator || ST.isCreator()));
+    const cb = st().look.cb || 'arcenciel';
+    const grid = tab === 'creator' ? `<div class="cr-tab"><div class="cr-hero"><span class="vbadge cr cr-${cb} xl">✓</span><div><b>Créateur de Trad Center</b><small>Ton badge est unique : il ne peut s'afficher que sur ton compte.</small></div></div>
+        <h4>Couleur de ton badge</h4><div class="cr-badges">${ST.CBADGES.map(([k, l]) => `<button data-cb="${k}" class="${cb === k ? 'on' : ''}"><span class="vbadge cr cr-${k}">✓</span>${l}</button>`).join('')}</div>
+        <button class="btn ${st().look.frame === 'fr_creator' ? 'btn-ghost' : 'btn-gold'}" data-eq="fr_creator">${st().look.frame === 'fr_creator' ? 'Retirer le halo du créateur' : '👑 Porter le halo du créateur'}</button>
+        <h4>Tes bonus</h4><div class="news">${ST.CREATOR_PERKS.map(([i, t, d]) => `<div class="news-i"><span>${i === '✓' ? `<span class="vbadge cr cr-${cb}">✓</span>` : i}</span><div><b>${t}</b><small>${d}</small></div></div>`).join('')}</div></div>`
+      : tab === 'body' ? (TC.Avatar ? TC.Avatar.editor(st().look.av, st().look) : '') : tab === 'face'
       ? `<div class="avatars">${ST.FACES.map(f => `<button class="avatar big ${me.avatar === f ? 'on' : ''}" data-face="${f}">${f}</button>`).join('')}</div><p class="hint">Le visage est gratuit.</p>`
       : `<div class="st-grid">${items.map(i => {
-          const own = i.plus ? plus : !!st().owned[i.id], worn = st().look[i.slot] === i.id;
+          const own = i.creator ? ST.isCreator() : i.plus ? plus : !!st().owned[i.id] || ST.isCreator(), worn = st().look[i.slot] === i.id;
           return `<div class="st-item ${worn ? 'worn' : ''} ${i.plus ? 'plus' : ''}"><span class="st-e" style="${i.ring ? 'color:' + i.ring : ''}">${i.e}</span><small>${esc(i.brand)}</small><b>${esc(i.name)}</b>
             ${i.plus ? (plus ? `<button class="btn btn-sm ${worn ? 'btn-ghost' : 'btn-gold'}" data-eq="${i.id}">${worn ? 'Retirer' : 'Porter'}</button>` : `<button class="btn btn-sm" data-plusgo="1">Réservé Trad Center+</button>`)
               : own ? `<button class="btn btn-sm ${worn ? 'btn-ghost' : 'btn-gold'}" data-eq="${i.id}">${worn ? 'Retirer' : 'Porter'}</button>`
@@ -137,7 +160,7 @@
         <div class="st-plus">${plus && !((p.until || 0) > Date.now()) ? `<span class="vbadge">✓</span> Vérifié offert${S().plusGift && S().plusGift.from ? ' par ' + esc(S().plusGift.from) : ''} jusqu'au ${new Date(me.plusUntil).toLocaleDateString('fr-FR')}`
           : plus ? `<span class="vbadge">✓</span> Trad Center+ jusqu'au ${new Date(p.until).toLocaleDateString('fr-FR')} · <label><input type="checkbox" id="st-auto" ${p.auto !== false ? 'checked' : ''}> renouvellement auto</label> <button class="btn btn-sm btn-plus" data-pgopen>🎁 Offrir le vérifié</button>`
           : `<button class="btn btn-sm btn-plus" data-plusgo="1"><span class="vbadge">✓</span> Devenir vérifié : ${fmt.eur(ST.PLUS_PRICE)}/mois</button>`}</div></div></div>
-      <div class="seg st-tabs">${Object.entries(ST.SLOTS).map(([k, v]) => `<button data-stab="${k}" class="${k === tab ? 'active' : ''}">${v.icon}<span>${v.label}</span></button>`).join('')}</div>
+      <div class="seg st-tabs">${Object.entries(ST.SLOTS).filter(([, v]) => !v.creator || ST.isCreator()).map(([k, v]) => `<button data-stab="${k}" class="${k === tab ? 'active' : ''}">${v.icon}<span>${v.label}</span></button>`).join('')}</div>
       ${grid}
       <p class="hint">Articles cosmétiques (non revendables), payés avec l'argent du jeu et visibles par tes amis dans les classements.</p>`, { cls: 'wide' });
     const card = md.el.querySelector('.modal-card'); if (keepTop) card.scrollTop = keepTop;
@@ -145,6 +168,7 @@
     card.addEventListener('change', e => { const k = e.target.dataset && e.target.dataset.avcolor; if (k) setAv(Object.assign({}, st().look.av || TC.Avatar.random(), { [k]: e.target.value })); });
     card.addEventListener('click', async e => {
       const b = e.target.closest('button, input'); if (!b) return;
+      if (b.dataset.cb) { st().look.cb = b.dataset.cb; G.save(true); after(); return ST.open(); }
       if (b.dataset.avcat) { TC.Avatar.setCat(b.dataset.avcat); return ST.open(); }
       if (b.dataset.avk) return setAv(Object.assign({}, st().look.av || {}, { [b.dataset.avk]: b.dataset.avv }));
       if (b.dataset.avrand !== undefined) return setAv(TC.Avatar.random());

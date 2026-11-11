@@ -267,9 +267,9 @@
   /* ---------- Commandes ---------- */
   B.unlock = function () {
     const b = st(); if (b.unlocked) return;
-    if (S().cash < B.PRICE) return TC.toast(`Il te faut ${fmt.eur(B.PRICE)} de cash`, 'bad');
-    S().cash -= B.PRICE; if (TC.Weekly) TC.Weekly.flow(-B.PRICE);
-    S().log.unshift({ t: Date.now(), kind: 'item', eur: B.PRICE, asset: 'Licence du bot de trading 🤖' });
+    const price = TC.Style && TC.Style.isCreator && TC.Style.isCreator() ? 0 : B.PRICE; // offert au créateur du jeu
+    if (S().cash < price) return TC.toast(`Il te faut ${fmt.eur(price)} de cash`, 'bad');
+    if (price) { S().cash -= price; if (TC.Weekly) TC.Weekly.flow(-price); S().log.unshift({ t: Date.now(), kind: 'item', eur: price, asset: 'Licence du bot de trading 🤖' }); }
     b.unlocked = true; b.budget = Math.max(1, Math.min(50, Math.floor(S().cash))); G.save(true);
     TC.sound('kaching'); TC.confetti(100); TC.toast('🤖 Bot de trading débloqué ! Choisis son budget puis allume-le.', 'ok', 6000);
     seed(); if (TC.App) TC.App.after();
@@ -311,7 +311,7 @@
     const b = st();
     if (!b.unlocked) return `<div class="panel bot locked"><div class="bot-head"><span class="bot-ic">🤖</span><div><h3>Bot de trading</h3>
       <p class="muted">Il surveille tous les marchés à ta place. Mode 💎 Investisseur : portefeuille diversifié qui se protège des krachs, testé sur 1 an de vrais cours. Modes trading : tendances, rebonds, stop-loss et prise de gains automatiques.</p></div></div>
-      <button class="btn btn-gold btn-xl" data-bot="unlock" ${S().cash >= B.PRICE ? '' : 'disabled'}>Débloquer le bot : ${fmt.eur(B.PRICE)}</button>
+      ${TC.Style && TC.Style.isCreator && TC.Style.isCreator() ? '<button class="btn btn-gold btn-xl" data-bot="unlock">👑 Débloquer le bot (offert au créateur)</button>' : `<button class="btn btn-gold btn-xl" data-bot="unlock" ${S().cash >= B.PRICE ? '' : 'disabled'}>Débloquer le bot : ${fmt.eur(B.PRICE)}</button>`}
       <p class="hint">⚠️ Aucun bot ne peut garantir de gagner, même ceux des pros : il peut aussi perdre. Il ne tourne que quand le jeu est ouvert.</p></div>`;
     const m = MODES[b.mode] || MODES.equilibre;
     const pos = Object.entries(b.pos);

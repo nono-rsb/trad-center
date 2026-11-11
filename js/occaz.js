@@ -51,7 +51,7 @@
   const BY = {}; CAT.forEach(c => { BY[c.k] = c; });
   const CONDS = [['Neuf avec étiquette', 1.25], ['Neuf sans étiquette', 1.12], ['Très bon état', 1], ['Bon état', 0.82], ['Satisfaisant', 0.6]];
   const SHIP = { S: 2.99, M: 4.49, L: 7.99 };
-  const fee = p => r2(0.7 + p * 0.05); // protection acheteurs
+  const fee = p => TC.Style && TC.Style.isCreator && TC.Style.isCreator() ? 0 : r2(0.7 + p * 0.05); // protection acheteurs (offerte au créateur)
   const SIZES = { sneakers: ['40', '41', '42', '43', '44', '45'], mode: ['XS', 'S', 'M', 'L', 'XL'] };
   const HUE = { sneakers: 18, mode: 200, luxe: 38, montres: 260, tech: 215, jeux: 330, maison: 140 };
 
