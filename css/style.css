@@ -390,3 +390,5 @@ table.log td { font-size: 12px; padding: 6px 8px; }
 .inv-top { display: flex; gap: 14px; align-items: center; } .inv-top .big-emoji { font-size: 44px; } .inv-top h3 { margin: 0 0 4px; } .inv-top p { margin: 0; font-size: 13.5px; }
 .inv-link { display: flex; gap: 6px; margin-top: 12px; } .inv-link input { flex: 1; min-width: 0; background: var(--bg2); border: 1px solid var(--line); border-radius: 10px; padding: 9px 10px; color: var(--muted); font-family: var(--mono); font-size: 12px; }
 .inv-list { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 10px; font-size: 13px; }
+.mus-vol { display: flex; gap: 10px; align-items: center; padding: 4px 0 8px; font-size: 15px; }
+.mus-vol input { flex: 1; accent-color: var(--accent); }

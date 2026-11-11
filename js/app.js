@@ -295,6 +295,9 @@
       <button class="btn" id="b-install2">📲 Installer sur l'écran d'accueil</button>
       <h4>Son et vibrations</h4>
       <button class="btn" id="b-sound2">${S().sound ? '🔊 Activés — couper' : '🔇 Coupés — activer'}</button>
+      <h4>🎵 Musique de fond</h4>
+      <label class="tgl"><input type="checkbox" id="s-music" ${S().music !== false ? 'checked' : ''}><span>Petite musique lounge pendant que tu joues</span></label>
+      <label class="mus-vol">🔈<input type="range" id="s-musvol" min="5" max="100" step="5" value="${TC.Music ? TC.Music.vol() : 35}" aria-label="Volume de la musique">🔊</label>
       <h4>Sauvegarde</h4>
       <div class="modal-actions left"><button class="btn" id="b-export">📤 Exporter</button><button class="btn" id="b-import">📥 Importer</button></div>
       <h4>🔒 Confidentialité</h4>
@@ -332,6 +335,8 @@
     md.el.querySelector('#b-help2').onclick = () => help();
     md.el.querySelector('#b-notif2').onclick = () => TC.Notif.open();
     md.el.querySelector('#b-sound2').onclick = e => { S().sound = !S().sound; G.save(); UI.header(); e.target.textContent = S().sound ? '🔊 Activés — couper' : '🔇 Coupés — activer'; };
+    md.el.querySelector('#s-music').onchange = e => TC.Music.setOn(e.target.checked);
+    const mv = md.el.querySelector('#s-musvol'); mv.oninput = () => TC.Music.setVol(+mv.value); mv.onchange = () => G.save();
     md.el.querySelector('#b-reset').onclick = async () => {
       if (await TC.confirm('Tout effacer ?', 'Votre argent, vos positions et vos biens seront perdus. Les succès sont conservés.', 'Recommencer', 'btn-sell')) { G.reset(true); location.reload(); }
     };

@@ -20,7 +20,7 @@
       v: 1, cash: G.START_CASH, holdings: {}, positions: [], bets: [], owned: [], log: [], nw: [],
       ach: {}, fav: ['BTC', 'ETH', 'CAC40', 'TSLA'], goal: 'huracan',
       stats: { trades: 0, liquidations: 0, betsWon: 0, betsLost: 0, bestTrade: 0, fees: 0, rent: 0, resets: 0, peak: G.START_CASH, spent: 0 },
-      created: Date.now(), lastRent: Date.now(), lastBonus: 0, sound: true, nextId: 1, seenIntro: false,
+      created: Date.now(), lastRent: Date.now(), lastBonus: 0, sound: true, music: true, nextId: 1, seenIntro: false,
     };
   }
   function load() {
@@ -53,7 +53,7 @@
     const old = G.state;
     G.state = fresh();
     G.state.seenIntro = true;
-    G.state.sound = old.sound;
+    G.state.sound = old.sound; G.state.music = old.music; G.state.musicVol = old.musicVol;
     if (keepAch) { G.state.ach = old.ach; G.state.stats.resets = (old.stats.resets || 0) + 1; }
     G.save(true); emit('reset');
   };

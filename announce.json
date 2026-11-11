@@ -1,22 +1,22 @@
 {
-  "id": "sentinelle-2026-11-11",
-  "emoji": "🤖",
-  "title": "Voici Sentinelle, le robot modérateur",
+  "id": "musique-2026-11-11",
+  "emoji": "🎵",
+  "title": "Trad Center a sa musique",
   "items": [
     {
-      "icon": "🛡️",
-      "title": "Sentinelle ✓ BOT",
-      "text": "Un nouveau compte officiel, certifié et marqué BOT, surveille le jeu jour et nuit. Tu le trouves dans l'onglet Amis."
+      "icon": "🎷",
+      "title": "Une petite musique lounge",
+      "text": "Piano jazzy, basse douce et quelques notes de vibraphone : une ambiance de salle des marchés détendue, composée pour le jeu."
     },
     {
-      "icon": "🚫",
-      "title": "Triche et doubles comptes",
-      "text": "Fortune qui explose sans raison, plusieurs comptes sur un téléphone : Sentinelle les repère et suspend les comptes."
+      "icon": "🔈",
+      "title": "Volume tout doux",
+      "text": "Elle reste en fond, sans couvrir les sons du jeu. Elle s'arrête quand tu quittes l'appli."
     },
     {
-      "icon": "🤬",
-      "title": "Pas d'insultes",
-      "text": "Pseudo, nom de clan ou discours insultant : compte suspendu jusqu'à correction."
+      "icon": "⚙️",
+      "title": "C'est toi qui choisis",
+      "text": "Paramètres ⚙️ → Musique de fond : coupe-la ou règle son volume."
     },
     {
       "icon": "📣",
@@ -26,7 +26,7 @@
   ],
   "button": "Compris 👍",
   "push": {
-    "title": "🤖 Sentinelle veille sur Trad Center",
-    "body": "Un robot modérateur certifié surveille maintenant le jeu : triche, doubles comptes et insultes sont suspendus. Joue fair-play !"
+    "title": "🎵 Trad Center a sa musique",
+    "body": "Une petite musique lounge accompagne maintenant tes trades. Tu peux la couper ou baisser le volume dans les Paramètres."
   }
 }
