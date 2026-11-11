@@ -56,3 +56,16 @@ body.bank-app::before, body.bank-app::after { display: none !important; }
 .bk-ask { display: flex; gap: 8px; } .bk-ask input { flex: 1; min-width: 0; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); border-radius: 999px; padding: 10px 14px; color: var(--text); font: inherit; }
 body.bank-app #card-zone { padding: 0; margin: 4px auto 0; }
 body.bank-app #toasts { bottom: calc(96px + env(safe-area-inset-bottom)); }
+/* Trad Drop : proximité */
+.bk-big { font-size: 17px; font-weight: 700; margin: 8px 0; }
+.bk-sens { display: flex; justify-content: center; gap: 8px; margin: 6px 0 12px; } .bk-sens span { font-size: 12px; padding: 5px 10px; border-radius: 999px; background: rgba(255,255,255,.06); color: var(--muted); } .bk-sens span.on { background: rgba(62,230,176,.16); color: var(--mint); }
+.bk-code.sm b { width: 40px; height: 50px; font-size: 26px; }
+.bk-radar.seek { width: 170px; height: 170px; } .bk-radar.seek span { font-size: 54px; }
+.bk-alt { display: flex; align-items: center; gap: 8px; justify-content: center; margin: 6px 0; } .bk-alt span { font-size: 12px; color: var(--muted); } .bk-alt #bk-dcode { width: 120px; font-size: 18px; padding: 8px; }
+.bk-found.pop { animation: pop .5s cubic-bezier(.2,1.6,.4,1); } @keyframes pop { from { transform: scale(.4); opacity: 0; } to { transform: none; opacity: 1; } }
+.bk-ok { position: fixed; inset: 0; z-index: 500; display: grid; place-items: center; background: rgba(4,20,14,.88); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); opacity: 0; transition: opacity .25s; }
+.bk-ok.in { opacity: 1; }
+.bk-ok-in { text-align: center; transform: scale(.7); transition: transform .45s cubic-bezier(.2,1.6,.4,1); } .bk-ok.in .bk-ok-in { transform: none; }
+.bk-ok svg { width: 150px; height: 150px; } .bk-ok circle { fill: #18c787; stroke: #3ee6b0; stroke-width: 4; } .bk-ok path { fill: none; stroke: #fff; stroke-width: 10; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 90; stroke-dashoffset: 90; animation: tick .45s .25s ease-out forwards; }
+@keyframes tick { to { stroke-dashoffset: 0; } }
+.bk-ok h2 { font-size: 32px; margin: 12px 0 4px; } .bk-ok p { font-size: 18px; margin: 0; }

@@ -1,33 +1,28 @@
 {
-  "id": "maj-2026-11-11-banque",
-  "emoji": "🏦",
-  "title": "Nouvelle appli : Trad Banque",
+  "id": "maj-2026-11-11-drop2",
+  "emoji": "📲",
+  "title": "Trad Drop : approche les téléphones !",
   "items": [
     {
-      "icon": "🏦",
-      "title": "Trad Banque",
-      "text": "Ta banque, en appli séparée : solde, carte 3D, relevé de compte. Portefeuille → « Ouvrir Trad Banque », puis ajoute-la à l'écran d'accueil."
-    },
-    {
       "icon": "📲",
-      "title": "Trad Drop",
-      "text": "Virement instantané entre deux téléphones : l'un affiche un code à 4 chiffres, l'autre le tape. Même entre inconnus."
+      "title": "Comme un AirDrop",
+      "text": "Dans Trad Banque → Drop : l'un touche « Recevoir », l'autre « Envoyer », puis approchez les deux téléphones. iPhone et Android."
     },
     {
-      "icon": "👩‍💼",
-      "title": "Ta conseillère Camille",
-      "text": "Bilan, prochaine carte, impôts, où placer ton argent : elle répond avec tes vrais chiffres."
+      "icon": "🤜🤛",
+      "title": "Ou cogne-les",
+      "text": "Un petit choc entre les deux téléphones suffit aussi à les relier."
     },
     {
-      "icon": "✓",
-      "title": "Offre le vérifié",
-      "text": "Abonnés Trad Center+ : offrez 1 semaine de badge à 3 amis par mois, ou parrainez un ami pour 100 €/mois."
+      "icon": "✅",
+      "title": "Coche verte et vibration",
+      "text": "Une grosse coche verte s'affiche des deux côtés quand l'argent est passé."
     }
   ],
-  "button": "Ouvrir Trad Banque 🏦",
+  "button": "Essayer 📲",
   "push": {
-    "title": "🏦 Nouvelle appli : Trad Banque !",
-    "body": "Virements instantanés avec Trad Drop, ta conseillère bancaire et ta carte 3D. Ouvre ton Portefeuille !"
+    "title": "📲 Trad Drop : approche les téléphones pour payer !",
+    "body": "Comme un AirDrop pour ton argent : rapproche deux téléphones (ou cogne-les) et c'est envoyé ✅"
   },
   "tab": "portfolio"
 }

@@ -1,5 +1,5 @@
 /* Trad Banque — l'appli bancaire de Trad Center (même compte, même argent que le jeu)
- * Accueil (carte 3D, solde), Virements entre amis, Trad Drop (virement instantané par code entre deux téléphones),
+ * Accueil (carte 3D, solde), Virements entre amis, Trad Drop (virement instantané en approchant deux téléphones),
  * Relevé de compte, Conseiller bancaire (réponses calculées à partir de ta vraie partie).
  */
 (function () {
@@ -62,46 +62,96 @@
     return `<h2 class="bk-h">📜 Relevé de compte</h2><div class="bk-panel">${ops.length ? ops.map(opRow).join('') : '<div class="empty">Aucune opération.</div>'}</div>`;
   }
 
-  /* ---------- Trad Drop : virement instantané entre deux téléphones ---------- */
-  let drop = null; // { mode: 'recv', code, until } ou { mode: 'send', target }
+  /* ---------- Trad Drop : virement instantané entre deux téléphones posés côte à côte ----------
+   * Recevoir : le téléphone émet son code en sons très aigus (TC.Sonic) et guette un choc (TC.Bump).
+   * Envoyer : on tape le montant, on approche les téléphones (le micro reconnaît le code) ou on les cogne
+   * doucement (les deux chocs au même instant sont associés), puis on confirme. Code à 4 chiffres en secours. */
+  let drop = null; // { mode: 'recv' | 'seek' | 'send', ... }
+  const fs = () => firebase.firestore.FieldValue.serverTimestamp();
+  const meAv = () => TC.Style ? TC.Style.avatar(Object.assign({}, N.profile, TC.Style.mine()), 'l') : '';
   function dropScreen() {
     if (drop && drop.mode === 'recv') {
       const left = Math.max(0, Math.ceil((drop.until - Date.now()) / 1000));
-      return `<h2 class="bk-h">📲 Trad Drop</h2><div class="bk-radar"><i></i><i></i><i></i><span>${TC.Style ? TC.Style.avatar(Object.assign({}, N.profile, TC.Style.mine()), 'l') : ''}</span></div>
-        <p class="bk-center">Donne ce code à la personne qui t'envoie de l'argent :</p>
-        <div class="bk-code">${drop.code.split('').map(c => `<b>${c}</b>`).join('')}</div>
-        <p class="bk-center muted">Valable encore <b id="bk-left">${left}</b> s · reste sur cet écran</p>
-        ${drop.got ? `<div class="bk-got">💸 Reçu <b>+${fmt.eur(drop.got.eur)}</b> de ${esc(drop.got.from)} !</div>` : ''}
+      return `<h2 class="bk-h">📲 Trad Drop</h2><div class="bk-radar"><i></i><i></i><i></i><span>${meAv()}</span></div>
+        <p class="bk-center bk-big">Approche ton téléphone de celui qui t'envoie l'argent</p>
+        <div class="bk-sens"><span class="${drop.sound ? 'on' : ''}">🔊 Signal ${drop.sound ? 'émis' : 'coupé'}</span><span class="${drop.bump ? 'on' : ''}">🤜🤛 Choc ${drop.bump ? 'prêt' : 'indispo'}</span></div>
+        <p class="bk-center muted">Code de secours</p><div class="bk-code sm">${drop.code.split('').map(c => `<b>${c}</b>`).join('')}</div>
+        <p class="bk-center muted">Valable encore <b id="bk-left">${left}</b> s · garde cet écran ouvert, volume monté</p>
         <button class="btn btn-ghost bk-full" id="bk-dstop">Arrêter</button>`;
+    }
+    if (drop && drop.mode === 'seek') {
+      return `<h2 class="bk-h">📲 Trad Drop</h2>
+        <div class="bk-panel"><div class="bk-amtin"><input id="bk-damt" type="number" inputmode="decimal" min="1" step="0.01" placeholder="0,00" value="${drop.amt || ''}"><span>€</span></div><small class="muted">Disponible : ${fmt.eur(S().cash)}</small>
+          <input id="bk-dmsg" maxlength="120" placeholder="Message (facultatif)" class="bk-msg" value="${esc(drop.msg || '')}"></div>
+        <div class="bk-radar seek"><i></i><i></i><i></i><span>📲</span></div>
+        <p class="bk-center bk-big">${drop.status || 'Approche ton téléphone de celui de ton ami…'}</p>
+        <div class="bk-sens"><span class="${drop.mic ? 'on' : ''}">🎙️ Écoute ${drop.mic ? 'active' : 'refusée'}</span><span class="${drop.bump ? 'on' : ''}">🤜🤛 Choc ${drop.bump ? 'prêt' : 'indispo'}</span></div>
+        <p class="hint bk-center">Ton ami doit être sur « Recevoir ». Approchez les téléphones (haut-parleur contre micro) ou cognez-les doucement.</p>
+        <div class="bk-alt"><span>ou tape son code</span><input id="bk-dcode" inputmode="numeric" maxlength="4" placeholder="• • • •"><button class="btn btn-sm" id="bk-dfind">OK</button></div>
+        <button class="btn btn-ghost bk-full" id="bk-dstop">Annuler</button>`;
     }
     if (drop && drop.mode === 'send' && drop.target) {
       const t = drop.target;
-      return `<h2 class="bk-h">📲 Trad Drop</h2><div class="bk-found">${TC.Style ? TC.Style.avatar(t, 'l') : ''}<b>${esc(t.pseudo || '?')}</b><small>trouvé à proximité ✨</small></div>
-        <div class="bk-panel"><div class="bk-amtin"><input id="bk-damt" type="number" inputmode="decimal" min="1" step="0.01" placeholder="0,00"><span>€</span></div><small class="muted">Disponible : ${fmt.eur(S().cash)}</small>
-        <input id="bk-dmsg" maxlength="120" placeholder="Message (facultatif)" class="bk-msg"></div>
-        <button class="btn btn-gold btn-xl bk-full" id="bk-dsend">📲 Envoyer instantanément</button><button class="btn btn-ghost bk-full" id="bk-dstop">Annuler</button>`;
+      return `<h2 class="bk-h">📲 Trad Drop</h2><div class="bk-found pop">${TC.Style ? TC.Style.avatar(t, 'xl') : ''}<b>${esc(t.pseudo || '?')}</b><small>✨ trouvé ${drop.via || 'à proximité'}</small></div>
+        <div class="bk-panel"><div class="bk-amtin"><input id="bk-damt" type="number" inputmode="decimal" min="1" step="0.01" placeholder="0,00" value="${drop.amt || ''}"><span>€</span></div><small class="muted">Disponible : ${fmt.eur(S().cash)}</small>
+        <input id="bk-dmsg" maxlength="120" placeholder="Message (facultatif)" class="bk-msg" value="${esc(drop.msg || '')}"></div>
+        <button class="btn btn-gold btn-xl bk-full" id="bk-dsend">Envoyer à ${esc(t.pseudo || '?')} ✓</button><button class="btn btn-ghost bk-full" id="bk-dstop">Annuler</button>`;
     }
-    return `<h2 class="bk-h">📲 Trad Drop</h2><p class="bk-center">Un virement instantané entre deux téléphones, comme un AirDrop pour ton argent.</p>
-      <div class="bk-drop2"><button class="bk-dbig" id="bk-drecv">📥<b>Recevoir</b><small>Affiche un code à 4 chiffres</small></button>
-        <div class="bk-dbig in"><span>📤</span><b>Envoyer</b><small>Tape le code de l'autre téléphone</small><input id="bk-dcode" inputmode="numeric" maxlength="4" placeholder="• • • •"><button class="btn btn-gold" id="bk-dfind">Chercher</button></div></div>
-      <p class="hint">Si vous n'êtes pas encore amis, vous le devenez automatiquement : il suffit que l'autre téléphone affiche son code.</p>`;
+    return `<h2 class="bk-h">📲 Trad Drop</h2><p class="bk-center">Envoie de l'argent en approchant deux téléphones, iPhone ou Android.</p>
+      <div class="bk-drop2"><button class="bk-dbig" id="bk-drecv">📥<b>Recevoir</b><small>Mon téléphone attend l'argent</small></button>
+        <button class="bk-dbig" id="bk-dseek">📤<b>Envoyer</b><small>J'approche mon téléphone du sien</small></button></div>
+      <p class="hint">Le téléphone qui reçoit émet un signal sonore très aigu ; celui qui envoie l'écoute au micro. Vous pouvez aussi cogner doucement les deux téléphones. Si vous n'êtes pas encore amis, vous le devenez automatiquement.</p>`;
   }
+  function keepInputs() { if (!drop) return; const a = $('#bk-damt'), m = $('#bk-dmsg'); if (a) drop.amt = a.value; if (m) drop.msg = m.value; }
   async function startRecv() {
+    TC.Sonic.ctx(); // à créer pendant le toucher (iPhone)
+    const bumpOk = TC.Bump.start(async () => { try { await N.db().collection('users').doc(me()).update({ bump: fs() }); } catch (e) { } });
     const code = String(Math.floor(1000 + Math.random() * 9000));
     drop = { mode: 'recv', code, until: Date.now() + 3 * 60000 };
     await N.db().collection('users').doc(me()).update({ drop: { code, until: drop.until }, updatedAt: Date.now() });
-    render();
+    try { TC.Sonic.play(code); drop.sound = true; } catch (e) { drop.sound = false; }
+    drop.bump = await bumpOk; render();
   }
-  async function stopDrop() {
+  async function stopDrop(silent) {
+    TC.Sonic.stop(); TC.Bump.stop();
     if (drop && drop.mode === 'recv') { try { await N.db().collection('users').doc(me()).update({ drop: null }); } catch (e) { } }
-    drop = null; render();
+    drop = null; if (!silent) render();
   }
-  async function findCode(code) {
+  async function startSeek() {
+    TC.Sonic.ctx();
+    const bumpOk = TC.Bump.start(onSenderBump);
+    drop = { mode: 'seek' }; render();
+    try { await TC.Sonic.listen(code => { if (drop && drop.mode === 'seek') findCode(code, 'par le son 🔊').catch(() => { }); }); drop.mic = true; } catch (e) { drop.mic = false; }
+    drop.bump = await bumpOk; keepInputs(); render();
+  }
+  // choc côté envoyeur : on cherche un téléphone en « Recevoir » qui a eu un choc au même instant
+  async function onSenderBump() {
+    if (!drop || drop.mode !== 'seek') return;
+    keepInputs(); drop.status = '🤜🤛 Choc détecté, recherche…'; render();
+    try {
+      const ref = N.db().collection('users').doc(me());
+      await ref.update({ bump: fs() }); await new Promise(r => setTimeout(r, 1600));
+      const mine = (await ref.get()).data().bump; if (!mine) return;
+      const t = mine.toMillis();
+      const s = await N.db().collection('users').where('drop.until', '>', Date.now()).get();
+      const hits = s.docs.filter(d => d.id !== me() && d.data().bump && Math.abs(d.data().bump.toMillis() - t) < 2500)
+        .sort((a, b) => Math.abs(a.data().bump.toMillis() - t) - Math.abs(b.data().bump.toMillis() - t));
+      if (hits.length && drop && drop.mode === 'seek') { const d = hits[0]; return found(N.prof(d.id, d.data()), d.data().drop.code, 'par le choc 🤜🤛'); }
+      if (drop) { drop.status = 'Pas trouvé : approchez les téléphones et réessayez'; render(); }
+    } catch (e) { if (drop) { drop.status = 'Recherche impossible, réessaie'; render(); } }
+  }
+  function found(target, code, via) {
+    keepInputs(); TC.Sonic.stopListen(); TC.Bump.stop();
+    drop = Object.assign({}, drop, { mode: 'send', target, code, via });
+    TC.haptic([30, 40, 30]); TC.sound('ach'); render();
+  }
+  async function findCode(code, via) {
     if (!/^\d{4}$/.test(code)) throw new Error('Le code fait 4 chiffres.');
     const s = await N.db().collection('users').where('drop.code', '==', code).get();
     const hits = s.docs.filter(d => d.id !== me() && (d.data().drop || {}).until > Date.now()).map(d => N.prof(d.id, d.data()));
     if (!hits.length) throw new Error('Aucun téléphone avec ce code. Vérifie que l\'autre personne est bien sur « Recevoir ».');
-    drop = { mode: 'send', target: hits[0], code }; render();
+    if (!drop) drop = { mode: 'seek' };
+    found(hits[0], code, via || 'avec le code');
   }
   const waitFriend = (uid, ms) => new Promise(res => { const t0 = Date.now(); const iv = setInterval(() => { const f = (N.friends || []).find(x => x.uid === uid); if (f || Date.now() - t0 > ms) { clearInterval(iv); res(f || null); } }, 700); });
   async function dropSend(amount, msg) {
@@ -117,6 +167,15 @@
       if (!f) throw new Error('L\'autre téléphone n\'a pas répondu. Il doit rester sur l\'écran « Recevoir ».');
     }
     await N.send(f, 'cash', null, amount, msg || '📲 Trad Drop');
+  }
+  // grande coche verte animée (envoi réussi / argent reçu)
+  function okOverlay(title, sub) {
+    const el = document.createElement('div'); el.className = 'bk-ok';
+    el.innerHTML = `<div class="bk-ok-in"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="54"/><path d="M34 62 L53 80 L88 42"/></svg><h2>${title}</h2><p>${sub}</p></div>`;
+    document.body.appendChild(el); requestAnimationFrame(() => el.classList.add('in'));
+    TC.haptic([40, 50, 40, 50, 160]); TC.sound('kaching'); TC.confetti(140);
+    const close = () => { el.classList.remove('in'); setTimeout(() => el.remove(), 300); };
+    el.onclick = close; setTimeout(close, 3200);
   }
   // côté réception : accepter tout seul les demandes faites avec notre code
   function autoAccept() {
@@ -149,7 +208,7 @@
       case 'revenus': return `Revenus passifs : commerces <b>${fmt.eur(ph)}/h</b>, loyers <b>${fmt.eur(rent)}/h</b>, soit environ <b>${fmt.eur((ph + rent) * 24)}</b> par jour avant impôt. Pense à encaisser : la caisse des commerces est plafonnée à 24 h et les loyers à 48 h.`;
       case 'risque': return 'Règles d\'or : ne mets jamais tout sur un seul actif, utilise un stop-loss, évite le levier élevé (x10 = une baisse de 10 % efface tout), et ne parie pas plus de 5 % de ton argent d\'un coup.';
       case 'bot': { const b = s.bot; return b && b.unlocked ? `Ton bot est ${b.on ? '<b>allumé</b>' : 'en pause'}, avec un budget de ${fmt.eur(b.budget)} et un résultat de <b>${fmt.eur(b.pnl || 0)}</b>. Pour limiter les risques, active la pause automatique sur perte du jour (Réglages avancés).` : 'Tu n\'as pas encore le bot de trading (100 € dans Portefeuille). Il trade à ta place pendant que le jeu est ouvert, mais il peut aussi perdre.'; }
-      case 'virement': return 'Pour un virement : onglet 💸 Virement, choisis un ami et un montant. Pour un ami à côté de toi, le 📲 Trad Drop est plus rapide : il affiche un code, tu le tapes, c\'est envoyé.';
+      case 'virement': return 'Pour un virement : onglet 💸 Virement, choisis un ami et un montant. Pour un ami à côté de toi, utilise le 📲 Trad Drop : il touche « Recevoir », tu touches « Envoyer », puis approchez les téléphones (ou cognez-les doucement) : coche verte, c\'est envoyé.';
       default: return 'Je peux t\'aider sur : ton bilan, ta carte, où placer ton argent, tes impôts, tes revenus, les risques, le bot ou les virements. Choisis un sujet ci-dessous 👇';
     }
   }
@@ -175,6 +234,7 @@
   const NAV = [['home', '🏠', 'Accueil'], ['send', '💸', 'Virement'], ['drop', '📲', 'Drop'], ['history', '📜', 'Relevé'], ['advisor', '💬', 'Conseiller']];
   function render() {
     const r = root(); if (!r) return;
+    keepInputs();
     if (!N.ready) { r.innerHTML = '<div class="bk-login"><div class="bk-logo">🏦</div><p>Connexion…</p></div>'; return; }
     if (!N.user || !N.profile) { r.innerHTML = login(); bindLogin(); return; }
     const scroll = B.tab === 'advisor';
@@ -192,7 +252,7 @@
 
   document.addEventListener('click', async e => {
     const t = e.target;
-    const nav = t.closest('[data-tab]'); if (nav) { B.tab = nav.dataset.tab; if (B.tab !== 'drop' && drop && drop.mode === 'send') drop = null; render(); window.scrollTo(0, 0); return; }
+    const nav = t.closest('[data-tab]'); if (nav) { B.tab = nav.dataset.tab; if (B.tab !== 'drop' && drop) await stopDrop(true); render(); window.scrollTo(0, 0); return; }
     const go = t.closest('[data-go]'); if (go) { B.tab = go.dataset.go; render(); window.scrollTo(0, 0); return; }
     const ben = t.closest('[data-ben]'); if (ben) { B.to = ben.dataset.ben; render(); return; }
     const qa = t.closest('[data-amt]'); if (qa) { $('#bk-amt').value = qa.dataset.amt; return; }
@@ -208,12 +268,13 @@
     });
     if (b.id === 'bk-add') return busy(async () => { const r = await N.addFriend($('#bk-addp').value); TC.toast(r === 'accepted' ? '🤝 Bénéficiaire ajouté' : '✉️ Demande envoyée : il apparaîtra dès qu\'il aura accepté', 'ok', 6000); });
     if (b.id === 'bk-drecv') return busy(startRecv);
-    if (b.id === 'bk-dstop') return busy(stopDrop);
+    if (b.id === 'bk-dseek') return busy(startSeek);
+    if (b.id === 'bk-dstop') return busy(() => stopDrop());
     if (b.id === 'bk-dfind') return busy(() => findCode($('#bk-dcode').value.trim()));
     if (b.id === 'bk-dsend') return busy(async () => {
       const amt = +$('#bk-damt').value; const who = drop.target.pseudo;
       b.textContent = '📲 Envoi…'; await dropSend(amt, $('#bk-dmsg').value);
-      TC.sound('kaching'); TC.confetti(140); TC.toast(`📲 ${fmt.eur(amt)} envoyés à ${esc(who)} !`, 'ok', 6000); drop = null; B.tab = 'home'; render();
+      okOverlay('Envoyé !', `<b>${fmt.eur(amt)}</b> à ${esc(who)}`); await stopDrop(true); B.tab = 'home'; render();
     });
     if (b.id === 'bk-qgo') { const q = $('#bk-q').value.trim(); if (q) ask(guess(q), q); }
   });
@@ -223,9 +284,8 @@
   N.on((type, d) => {
     if (type === 'askSave') d.res('cloud'); // la banque garde toujours la partie du compte
     if (type === 'received') {
-      TC.sound('kaching'); TC.confetti(120);
-      TC.toast(`📥 Virement reçu : <b>+${fmt.eur(d.eur)}</b> de ${esc(d.fromPseudo)}`, 'ok', 7000);
-      if (drop && drop.mode === 'recv') drop.got = { eur: d.eur, from: d.fromPseudo };
+      if (drop && drop.mode === 'recv') { drop.got = { eur: d.eur, from: d.fromPseudo }; okOverlay('Reçu !', `<b>+${fmt.eur(d.eur)}</b> de ${esc(d.fromPseudo)}`); stopDrop(true); }
+      else { TC.sound('kaching'); TC.confetti(120); TC.toast(`📥 Virement reçu : <b>+${fmt.eur(d.eur)}</b> de ${esc(d.fromPseudo)}`, 'ok', 7000); }
     }
     autoAccept();
     if (type === 'change' || type === 'linked' || type === 'received' || type === 'synced') { const typing = document.activeElement && document.activeElement.tagName === 'INPUT'; if (!typing && !document.querySelector('.cc.drag')) render(); }
