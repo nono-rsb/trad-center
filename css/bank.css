@@ -80,3 +80,5 @@ body.bank-app #toasts { bottom: calc(96px + env(safe-area-inset-bottom)); }
 .bk-cam-frame { position: absolute; inset: 14%; border: 3px solid var(--mint); border-radius: 18px; box-shadow: 0 0 0 999px rgba(0,0,0,.25); animation: frame 1.6s ease-in-out infinite; }
 @keyframes frame { 50% { inset: 17%; } }
 body.bank-app #tax-bar { position: relative; }
+.bk-install { width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px 14px; margin-bottom: 12px; border-radius: 18px; border: 1px solid rgba(62,230,176,.45); background: linear-gradient(135deg, rgba(62,230,176,.18), rgba(62,230,176,.04)); color: var(--text); text-align: left; font: inherit; cursor: pointer; }
+.bk-install img { width: 46px; height: 46px; border-radius: 12px; } .bk-install div { flex: 1; } .bk-install b { display: block; font-size: 14px; } .bk-install small { color: var(--muted); font-size: 12px; } .bk-install span { font-size: 24px; }

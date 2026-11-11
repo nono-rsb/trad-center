@@ -43,6 +43,7 @@
       <div class="bk-quick"><button data-go="send">💸<span>Virement</span></button><button data-go="drop">📲<span>Trad Drop</span></button><button data-go="history">📜<span>Relevé</span></button><button data-go="advisor">💬<span>Conseiller</span></button></div>
       <div class="bk-panel"><h3>7 derniers jours</h3><div class="bk-flow"><div><small>Entrées</small><b class="in">+${fmt.eur(tin)}</b></div><div><small>Sorties</small><b class="out">−${fmt.eur(tout)}</b></div></div></div>
       <div class="bk-panel"><h3>Dernières opérations <button class="bk-link" data-go="history">Tout voir</button></h3>${ops.length ? ops.map(opRow).join('') : '<div class="empty">Aucune opération pour l\'instant.</div>'}</div>
+      ${TC.BankInstall && !TC.BankInstall.installed() ? '<button class="bk-install" data-bankinstall><img src="icons/bank-180.png" alt=""><div><b>Mets Trad Banque sur ton écran d\'accueil</b><small>Une vraie appli, à côté du jeu</small></div><span>📲</span></button>' : ''}
       <a class="btn bk-game" href="./">🎮 Retour au jeu Trad Center</a>`;
   }
   function send() {
