@@ -1,0 +1,71 @@
+/* Trad Occaz — appli d'achat-revente d'occasion (thème clair crème et corail) */
+body.occaz-app { --oz: #fff7f0; --oz2: #ffffff; --coral: #e9505c; --coral2: #ff8a5c; --ink: #2a2230; --text: #2a2230; --muted: #7a6f7e; --line: #f0e3da;
+  background: var(--oz); color: var(--ink); padding: 0 0 calc(84px + env(safe-area-inset-bottom)); }
+body.occaz-app::before, body.occaz-app::after { display: none !important; }
+body.occaz-app .btn { background: #fff; color: var(--ink); border: 1px solid var(--line); box-shadow: none; }
+body.occaz-app .btn-gold { background: linear-gradient(135deg, var(--coral2), var(--coral)); color: #fff; border: 0; }
+body.occaz-app .btn-ghost { background: transparent; }
+body.occaz-app .modal-card { background: #fff; color: var(--ink); border: 1px solid var(--line); }
+body.occaz-app .modal-card .hint, body.occaz-app .hint { color: var(--muted); }
+body.occaz-app .inp input { color: var(--ink); background: #fff; border-color: var(--line); }
+body.occaz-app .inp { background: #fff; border: 1px solid var(--line); }
+body.occaz-app #toasts { bottom: calc(92px + env(safe-area-inset-bottom)); }
+.in { color: #16a36b !important; } .out { color: var(--coral) !important; }
+.oz-top { position: sticky; top: 0; z-index: 30; display: flex; justify-content: space-between; align-items: center; padding: calc(10px + env(safe-area-inset-top)) 16px 10px; background: rgba(255,247,240,.94); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); }
+.oz-top b { font-size: 19px; color: var(--coral); letter-spacing: .01em; }
+.oz-cash { font-family: var(--mono); font-weight: 700; font-size: 14px; padding: 5px 10px; border-radius: 999px; background: #fff; border: 1px solid var(--line); }
+.oz-main { max-width: 640px; margin: 0 auto; padding: 12px 14px; }
+.oz-h { font-size: 21px; margin: 4px 0 10px; }
+.oz-hero { padding: 14px; border-radius: 18px; background: linear-gradient(135deg, #ffe1d2, #ffd0d6); margin-bottom: 10px; } .oz-hero b { display: block; font-size: 16px; } .oz-hero small { color: #6b4a52; font-size: 12.5px; }
+.oz-search input { width: 100%; padding: 12px 16px; border-radius: 999px; border: 1px solid var(--line); background: #fff; font: inherit; color: var(--ink); margin-bottom: 8px; }
+.oz-cats { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 10px; scrollbar-width: none; } .oz-cats::-webkit-scrollbar { display: none; }
+.oz-cats button { flex: none; padding: 7px 12px; border-radius: 999px; border: 1px solid var(--line); background: #fff; color: var(--ink); font-weight: 600; font-size: 13px; cursor: pointer; }
+.oz-cats button.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+.oz-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; } @media (min-width: 560px) { .oz-grid { grid-template-columns: repeat(3, 1fr); } }
+.oz-tile { display: flex; flex-direction: column; text-align: left; padding: 0; border: 0; background: none; color: var(--ink); cursor: pointer; font: inherit; min-width: 0; }
+.oz-ph { position: relative; aspect-ratio: 4 / 5; border-radius: 14px; display: grid; place-items: center; overflow: hidden;
+  background: radial-gradient(circle at 30% 25%, hsl(var(--h) 80% 94%), hsl(var(--h) 45% 80%)); }
+.oz-ph span { font-size: clamp(54px, 16vw, 78px); filter: drop-shadow(0 8px 10px rgba(0,0,0,.18)); transform: rotate(-8deg); }
+.oz-ph i { position: absolute; left: 8px; bottom: 8px; font-style: normal; font-size: 10.5px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; padding: 3px 7px; border-radius: 6px; background: rgba(255,255,255,.85); color: #333; }
+.oz-ph.big { aspect-ratio: 1; border-radius: 0 0 22px 22px; margin: -12px -14px 12px; } .oz-ph.big span { font-size: 140px; }
+.oz-ph.sm { width: 56px; height: 56px; aspect-ratio: auto; flex: none; border-radius: 12px; } .oz-ph.sm span { font-size: 28px; } .oz-ph.sm i { display: none; }
+.oz-tinfo { padding: 6px 2px 0; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.oz-tinfo b { font-size: 15px; } .oz-tinfo span { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.oz-tinfo small { font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .oz-tinfo .oz-incl { color: #1b8f6a; font-weight: 600; }
+.oz-tinfo em { font-style: normal; font-size: 11.5px; color: var(--muted); }
+.oz-empty { text-align: center; color: var(--muted); padding: 30px 10px; } .oz-empty.sm { padding: 8px; font-size: 13px; text-align: left; }
+.oz-back { border: 0; background: none; color: var(--coral); font-weight: 700; font-size: 15px; padding: 4px 0 10px; cursor: pointer; position: relative; z-index: 2; }
+.oz-dpanel { background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 14px; margin-bottom: 12px; }
+.oz-dpanel h2 { margin: 0 0 4px; font-size: 26px; } .oz-dpanel h2 small { display: block; font-size: 13px; color: #1b8f6a; font-weight: 600; } .oz-dpanel h3 { margin: 6px 0 10px; font-size: 16px; }
+.oz-kv { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; font-size: 14px; } .oz-kv span { color: var(--muted); } .oz-kv b { text-align: right; }
+.oz-desc { font-size: 14px; line-height: 1.5; margin: 12px 0; padding: 10px 12px; background: var(--oz); border-radius: 12px; }
+.oz-seller, .oz-chead, .oz-prof { display: flex; align-items: center; gap: 10px; }
+.oz-av { width: 42px; height: 42px; flex: none; display: grid; place-items: center; border-radius: 50%; background: #ffe7dc; font-size: 22px; } .oz-av.big { width: auto; height: auto; background: none; }
+.oz-st { color: #f5a400; font-weight: 800; } .oz-new { color: var(--coral); font-weight: 700; }
+.oz-comp { display: flex; justify-content: space-between; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 14px; } .oz-comp small { color: var(--muted); } .oz-comp span { flex: 1; }
+.oz-actions { position: sticky; bottom: calc(80px + env(safe-area-inset-bottom)); display: flex; gap: 8px; padding: 10px 0; background: linear-gradient(transparent, var(--oz) 30%); }
+.oz-actions .btn { flex: 1; padding: 13px 8px; font-weight: 800; }
+.oz-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); } .oz-row:last-of-type { border-bottom: 0; }
+.oz-rinfo { flex: 1; min-width: 0; } .oz-rinfo b { display: block; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .oz-rinfo small { display: block; font-size: 12px; color: var(--muted); }
+.oz-row .btn-sm { flex: none; padding: 7px 10px; font-size: 12.5px; }
+.oz-sec { background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 12px 14px; margin-bottom: 12px; } .oz-sec h3 { margin: 0 0 6px; font-size: 15px; }
+.oz-sec.warn { border-color: #ffb199; background: #fff4ef; }
+.oz-prof { margin: 4px 0 12px; } .oz-prof b { font-size: 19px; }
+.oz-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; } .oz-stats div { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 10px; text-align: center; } .oz-stats small { display: block; color: var(--muted); font-size: 12px; } .oz-stats b { font-family: var(--mono); font-size: 17px; }
+.oz-crow { width: 100%; display: flex; align-items: center; gap: 10px; padding: 10px 4px; border: 0; border-bottom: 1px solid var(--line); background: none; color: var(--ink); text-align: left; cursor: pointer; font: inherit; }
+.oz-crow > div { flex: 1; min-width: 0; } .oz-crow b { display: block; font-size: 14px; } .oz-crow b small { color: var(--muted); font-weight: 500; } .oz-crow small { display: block; font-size: 12px; color: var(--muted); } .oz-crow p { margin: 2px 0 0; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.oz-crow.unread p { font-weight: 800; } .oz-crow > i { width: 10px; height: 10px; border-radius: 50%; background: var(--coral); }
+.oz-chead { padding-bottom: 10px; border-bottom: 1px solid var(--line); } .oz-chead small { display: block; color: var(--muted); font-size: 12px; }
+.oz-chat { display: flex; flex-direction: column; gap: 8px; padding: 12px 0; min-height: 30vh; }
+.ozm p { margin: 0; max-width: 78%; padding: 10px 13px; border-radius: 18px; border-bottom-left-radius: 6px; background: #fff; border: 1px solid var(--line); font-size: 14px; }
+.ozm.me { display: flex; justify-content: flex-end; } .ozm.me p { background: linear-gradient(135deg, var(--coral2), var(--coral)); color: #fff; border: 0; border-radius: 18px; border-bottom-right-radius: 6px; }
+.oz-off { display: block; font-size: 18px; font-family: var(--mono); }
+.oz-center { text-align: center; }
+.oz-sum { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.oz-qoff { display: flex; gap: 6px; margin-bottom: 8px; } .oz-qoff button { flex: 1; padding: 8px 4px; border-radius: 12px; border: 1px solid var(--line); background: #fff; font-weight: 800; cursor: pointer; color: var(--ink); } .oz-qoff small { display: block; font-weight: 500; color: var(--muted); font-size: 11px; }
+.oz-nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; display: flex; padding: 6px 6px calc(6px + env(safe-area-inset-bottom)); background: rgba(255,255,255,.96); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-top: 1px solid var(--line); }
+.oz-nav button { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 5px 0; border: 0; background: none; color: var(--muted); cursor: pointer; }
+.oz-nav button.on { color: var(--coral); } .oz-nav i { position: relative; font-style: normal; font-size: 21px; } .oz-nav span { font-size: 10.5px; font-weight: 700; }
+.oz-nav em { position: absolute; top: -4px; right: -10px; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 9px; background: var(--coral); color: #fff; font-style: normal; font-size: 10.5px; font-weight: 800; display: grid; place-items: center; }
+.oz-login { max-width: 420px; margin: 0 auto; padding: calc(60px + env(safe-area-inset-top)) 20px; text-align: center; display: flex; flex-direction: column; gap: 12px; } .oz-logo { font-size: 64px; }
+.oz-game { display: block; text-align: center; text-decoration: none; }

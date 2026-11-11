@@ -1,32 +1,37 @@
 {
-  "id": "paiement-carte-2026-11-11",
-  "emoji": "💳",
-  "title": "Paie avec ta carte, comme en magasin",
+  "id": "occaz-2026-11-11",
+  "emoji": "🏷️",
+  "title": "Nouvelle appli : Trad Occaz",
   "items": [
     {
-      "icon": "💳",
-      "title": "Paiement sans contact",
-      "text": "Trad Banque → Drop → Envoyer : choisis le montant et touche « Payer avec ma carte ». Ta carte s'affiche en grand."
+      "icon": "🏷️",
+      "title": "Achète, revends, deviens pro",
+      "text": "Sneakers, fringues, luxe, montres, tech, jeux… Trouve les bonnes affaires et revends-les plus cher. Portefeuille → 🏷️ Trad Occaz."
     },
     {
-      "icon": "📲",
-      "title": "La carte suit ton geste",
-      "text": "Avance ton téléphone vers celui de ton ami : la carte avance avec toi. Arrête-toi contre son téléphone et c'est payé."
+      "icon": "💬",
+      "title": "Négocie comme un vrai",
+      "text": "Fais des offres aux vendeurs. Les acheteurs robots vont essayer de te faire baisser tes prix : accepte, refuse ou contre-propose."
     },
     {
-      "icon": "🟢",
-      "title": "Bip, c'est payé !",
-      "text": "Les 4 voyants de la borne s'allument, bip, « PAIEMENT ACCEPTÉ ». Ton ami entend le bip aussi en recevant l'argent."
+      "icon": "📦",
+      "title": "Envoie tes colis",
+      "text": "Vendu ? Envoie le colis vite pour un avis 5★. L'argent arrive à la livraison."
     },
     {
-      "icon": "🎵",
-      "title": "Et la musique",
-      "text": "Une petite musique lounge accompagne le jeu : Paramètres ⚙️ pour la couper ou régler le volume."
+      "icon": "⚠️",
+      "title": "Attention aux arnaques",
+      "text": "Une Rolex à prix cassé par un nouveau membre ? Méfiance : contrefaçon possible. Ouvre un litige dans l'heure pour être remboursé."
+    },
+    {
+      "icon": "⭐",
+      "title": "Ou garde-le pour toi",
+      "text": "Ce que tu achètes peut aller dans ta collection perso."
     }
   ],
   "button": "Compris 👍",
   "push": {
-    "title": "💳 Paie avec ta carte dans Trad Banque",
-    "body": "Avance ton téléphone vers celui d'un ami : bip, paiement accepté ! Nouveau dans Trad Drop."
+    "title": "🏷️ Nouvelle appli : Trad Occaz",
+    "body": "Achète des articles d'occasion, négocie et revends-les plus cher. Attention aux arnaques ! Portefeuille → Trad Occaz."
   }
 }
