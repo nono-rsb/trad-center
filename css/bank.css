@@ -82,3 +82,22 @@ body.bank-app #toasts { bottom: calc(96px + env(safe-area-inset-bottom)); }
 body.bank-app #tax-bar { position: relative; }
 .bk-install { width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px 14px; margin-bottom: 12px; border-radius: 18px; border: 1px solid rgba(62,230,176,.45); background: linear-gradient(135deg, rgba(62,230,176,.18), rgba(62,230,176,.04)); color: var(--text); text-align: left; font: inherit; cursor: pointer; }
 .bk-install img { width: 46px; height: 46px; border-radius: 12px; } .bk-install div { flex: 1; } .bk-install b { display: block; font-size: 14px; } .bk-install small { color: var(--muted); font-size: 12px; } .bk-install span { font-size: 24px; }
+/* Paiement sans contact : borne + carte qui avance */
+.bk-term { width: min(80vw, 300px); margin: 4px auto 0; padding: 12px 14px 14px; border-radius: 22px 22px 14px 14px; background: linear-gradient(180deg, #1c2733, #10171f); border: 1px solid rgba(255,255,255,.12); box-shadow: 0 12px 30px rgba(0,0,0,.45); }
+.bk-leds { display: flex; justify-content: center; gap: 12px; margin-bottom: 10px; }
+.bk-leds i { width: 30px; height: 8px; border-radius: 4px; background: #33404d; transition: background .1s, box-shadow .1s; }
+.bk-term.reading .bk-leds i { animation: led .65s steps(1) forwards; } .bk-term.reading .bk-leds i:nth-child(2) { animation-delay: .16s; } .bk-term.reading .bk-leds i:nth-child(3) { animation-delay: .32s; } .bk-term.reading .bk-leds i:nth-child(4) { animation-delay: .48s; }
+@keyframes led { to { background: #3ee66b; box-shadow: 0 0 10px #3ee66b; } }
+.bk-term.ok .bk-leds i { background: #3ee66b; box-shadow: 0 0 10px #3ee66b; animation: none; }
+.bk-term.ko .bk-leds i { background: #ff4d5e; box-shadow: 0 0 10px #ff4d5e; animation: none; }
+.bk-lcd { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px; border-radius: 10px; background: #b9d7a6; color: #13240f; font-family: var(--mono); box-shadow: inset 0 2px 6px rgba(0,0,0,.35); }
+.bk-lcd small { font-size: 11px; opacity: .75; } .bk-lcd b { font-size: 26px; } .bk-lcd span { font-size: 13px; font-weight: 700; }
+.bk-term.ok .bk-lcd { background: #9fe6a0; } .bk-term.ko .bk-lcd { background: #f2b3b3; color: #3b0b0b; }
+.bk-paystage { position: relative; perspective: 700px; width: min(78vw, 320px); margin: 26px auto 8px; }
+.bk-paycard { position: relative; z-index: 1; transition: transform .12s linear; transform-origin: 50% 0; cursor: pointer; }
+.bk-paycard .cc { cursor: pointer; animation: payfloat 2.6s ease-in-out infinite; }
+.bk-paycard.tapped { transition: transform .25s cubic-bezier(.2,1.4,.4,1); transform: translateY(-46px) translateZ(-120px) rotateX(32deg); }
+.bk-paycard.tapped .cc { animation: none; box-shadow: 0 0 0 3px #3ee66b, 0 0 30px rgba(62,230,107,.6); border-radius: 18px; }
+@keyframes payfloat { 50% { transform: translateY(-6px) rotateX(6deg); } }
+.bk-waves { position: absolute; left: 50%; top: -30px; transform: translateX(-50%) rotate(-90deg); font-size: 26px; font-weight: 900; color: var(--mint); letter-spacing: -.1em; animation: waves 1.2s ease-in-out infinite; pointer-events: none; }
+@keyframes waves { 50% { opacity: .3; } }

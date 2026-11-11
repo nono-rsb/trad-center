@@ -93,12 +93,22 @@
         <div class="bk-alt"><span>ou tape son code</span><input id="bk-dcode" inputmode="numeric" maxlength="4" placeholder="• • • •"><button class="btn btn-sm" id="bk-dfind">OK</button></div>
         <button class="btn btn-ghost bk-full" id="bk-dstop">Annuler</button>`;
     }
+    if (drop && drop.mode === 'pay' && drop.target) {
+      const t = drop.target;
+      return `<h2 class="bk-h">💳 Paiement sans contact</h2>
+        <div class="bk-term" id="bk-term"><div class="bk-leds"><i></i><i></i><i></i><i></i></div>
+          <div class="bk-lcd"><small>Trad Drop · ${esc(t.pseudo || '?')}</small><b>${fmt.eur(+drop.amt)}</b><span id="bk-lcdmsg">Présentez votre carte</span></div></div>
+        <div class="bk-paystage"><div class="bk-paycard" id="bk-paycard"></div><span class="bk-waves">)))</span></div>
+        <p class="bk-center bk-big" id="bk-paymsg">${drop.motion === false ? 'Touche ta carte pour payer' : `Avance ton téléphone vers celui de ${esc(t.pseudo || '?')}`}</p>
+        <p class="hint bk-center">${drop.motion === false ? 'Capteurs de mouvement indisponibles sur ce téléphone.' : 'La carte avance avec toi. Arrête-toi contre l\'autre téléphone : bip, c\'est payé. Tu peux aussi toucher la carte.'}</p>
+        <button class="btn btn-ghost bk-full" id="bk-dback">Annuler</button>`;
+    }
     if (drop && drop.mode === 'send' && drop.target) {
       const t = drop.target;
       return `<h2 class="bk-h">📲 Trad Drop</h2><div class="bk-found pop">${TC.Style ? TC.Style.avatar(t, 'xl') : ''}<b>${esc(t.pseudo || '?')}</b><small>✨ trouvé ${drop.via || 'à proximité'}</small></div>
         <div class="bk-panel"><div class="bk-amtin"><input id="bk-damt" type="number" inputmode="decimal" min="1" step="0.01" placeholder="0,00" value="${drop.amt || ''}"><span>€</span></div><small class="muted">Disponible : ${fmt.eur(S().cash)}</small>
         <input id="bk-dmsg" maxlength="120" placeholder="Message (facultatif)" class="bk-msg" value="${esc(drop.msg || '')}"></div>
-        <button class="btn btn-gold btn-xl bk-full" id="bk-dsend">Envoyer à ${esc(t.pseudo || '?')} ✓</button><button class="btn btn-ghost bk-full" id="bk-dstop">Annuler</button>`;
+        <button class="btn btn-gold btn-xl bk-full" id="bk-dpay">💳 Payer avec ma carte</button><button class="btn bk-full" id="bk-dsend">Envoyer sans la carte</button><button class="btn btn-ghost bk-full" id="bk-dstop">Annuler</button>`;
     }
     return `<h2 class="bk-h">📲 Trad Drop</h2><p class="bk-center">Envoie de l'argent en approchant deux téléphones, iPhone ou Android.</p>
       <div class="bk-drop2"><button class="bk-dbig" id="bk-drecv">📥<b>Recevoir</b><small>Mon téléphone attend l'argent</small></button>
@@ -121,7 +131,7 @@
     drop.bump = await bumpOk; render();
   }
   async function stopDrop(silent) {
-    TC.Sonic.stop(); TC.Bump.stop(); awake(false);
+    TC.Sonic.stop(); TC.Bump.stop(); TC.Tap.stop(); awake(false);
     if (drop && drop.mode === 'recv') { try { await N.db().collection('users').doc(me()).update({ drop: null }); } catch (e) { } }
     drop = null; if (!silent) render();
   }
@@ -177,6 +187,44 @@
       if (!f) throw new Error('L\'autre téléphone n\'a pas répondu. Il doit rester sur l\'écran « Recevoir ».');
     }
     await N.send(f, 'cash', null, amount, msg || '📲 Trad Drop');
+  }
+  /* ---------- Paiement sans contact : la carte suit le geste, la « borne » s'allume et bipe ---------- */
+  async function startPay() {
+    keepInputs();
+    const amt = +drop.amt;
+    if (!(amt > 0)) throw new Error('Entre un montant.');
+    if (amt > S().cash) throw new Error('Solde insuffisant.');
+    drop.mode = 'pay'; drop.paying = false; render();
+    drop.motion = await TC.Tap.start(lv => {
+      const c = $('#bk-paycard'); if (!c || drop.paying) return;
+      c.style.transform = `translateY(${(-lv * 70).toFixed(1)}px) translateZ(${(-lv * 140).toFixed(1)}px) rotateX(${(lv * 38).toFixed(1)}deg)`;
+    }, () => payTap());
+    if (drop && drop.mode === 'pay' && drop.motion === false) render();
+    mountPayCard();
+  }
+  function mountPayCard() { const box = $('#bk-paycard'); if (box && TC.Card && !box.firstChild) box.appendChild(TC.Card.face()); }
+  async function payTap() {
+    if (!drop || drop.mode !== 'pay' || drop.paying) return;
+    drop.paying = true; TC.Tap.stop();
+    const term = $('#bk-term'), card = $('#bk-paycard'), msg = $('#bk-lcdmsg'), pm = $('#bk-paymsg');
+    if (card) { card.style.transform = ''; card.classList.add('tapped'); }
+    if (term) term.classList.add('reading'); if (msg) msg.textContent = 'Lecture…'; if (pm) pm.textContent = '📶 Carte détectée';
+    TC.haptic([25]);
+    await new Promise(r => setTimeout(r, 650)); // les 4 voyants s'allument un par un
+    TC.sound('bip'); TC.haptic([60]);
+    if (msg) msg.textContent = 'Paiement en cours…';
+    const amt = +drop.amt, who = drop.target.pseudo;
+    try {
+      await dropSend(amt, drop.msg);
+      if (term) term.classList.add('ok'); if (msg) msg.textContent = 'PAIEMENT ACCEPTÉ ✓';
+      await new Promise(r => setTimeout(r, 900));
+      okOverlay('Payé !', `<b>${fmt.eur(amt)}</b> à ${esc(who)}`); await stopDrop(true); B.tab = 'home'; render();
+    } catch (x) {
+      TC.sound('bipko'); if (term) { term.classList.remove('reading'); term.classList.add('ko'); } if (msg) msg.textContent = 'REFUSÉ';
+      TC.toast(x.userMsg || x.message || N.errMsg(x), 'bad', 6000);
+      await new Promise(r => setTimeout(r, 1600));
+      if (drop) { drop.mode = 'send'; drop.paying = false; render(); }
+    }
   }
   // grande coche verte animée (envoi réussi / argent reçu)
   function okOverlay(title, sub) {
@@ -254,7 +302,8 @@
     r.innerHTML = `<header class="bk-top"><b>🏦 Trad Banque</b><span>${TC.Style ? TC.Style.avatar(Object.assign({}, N.profile, TC.Style.mine()), 's') : ''}</span></header><main class="bk-main">${body}</main>
       <nav class="bk-nav">${NAV.map(([k, i, l]) => `<button data-tab="${k}" class="${B.tab === k ? 'on' : ''}"><i>${i}</i><span>${l}</span></button>`).join('')}</nav>`;
     if (B.tab === 'home' && TC.Card) TC.Card.mountInto($('#bk-card'));
-    const camBox = $('#bk-cam'); if (camBox && camVideo && drop && drop.cam) camBox.prepend(camVideo);
+    if (drop && drop.mode === 'pay') mountPayCard();
+        const camBox = $('#bk-cam'); if (camBox && camVideo && drop && drop.cam) camBox.prepend(camVideo);
     if (scroll) { const c = $('.bk-chat'); if (c) c.scrollTop = c.scrollHeight; }
   }
   function bindLogin() {
@@ -265,7 +314,8 @@
 
   document.addEventListener('click', async e => {
     const t = e.target;
-    const nav = t.closest('[data-tab]'); if (nav) { B.tab = nav.dataset.tab; if (B.tab !== 'drop' && drop) await stopDrop(true); render(); window.scrollTo(0, 0); return; }
+    if (t.closest('#bk-paycard')) return payTap();
+        const nav = t.closest('[data-tab]'); if (nav) { B.tab = nav.dataset.tab; if (B.tab !== 'drop' && drop) await stopDrop(true); render(); window.scrollTo(0, 0); return; }
     const go = t.closest('[data-go]'); if (go) { B.tab = go.dataset.go; render(); window.scrollTo(0, 0); return; }
     const ben = t.closest('[data-ben]'); if (ben) { B.to = ben.dataset.ben; render(); return; }
     const qa = t.closest('[data-amt]'); if (qa) { $('#bk-amt').value = qa.dataset.amt; return; }
@@ -283,7 +333,9 @@
     if (b.id === 'bk-drecv') return busy(startRecv);
     if (b.id === 'bk-dseek') return busy(startSeek);
     if (b.id === 'bk-dstop') return busy(() => stopDrop());
-    if (b.id === 'bk-dfind') return busy(() => findCode($('#bk-dcode').value.trim()));
+    if (b.id === 'bk-dpay') return busy(startPay);
+    if (b.id === 'bk-dback') { TC.Tap.stop(); if (drop) { drop.mode = 'send'; drop.paying = false; } render(); return; }
+        if (b.id === 'bk-dfind') return busy(() => findCode($('#bk-dcode').value.trim()));
     if (b.id === 'bk-dsend') return busy(async () => {
       const amt = +$('#bk-damt').value; const who = drop.target.pseudo;
       b.textContent = '📲 Envoi…'; await dropSend(amt, $('#bk-dmsg').value);
@@ -297,11 +349,11 @@
   N.on((type, d) => {
     if (type === 'askSave') d.res('cloud'); // la banque garde toujours la partie du compte
     if (type === 'received') {
-      if (drop && drop.mode === 'recv') { drop.got = { eur: d.eur, from: d.fromPseudo }; okOverlay('Reçu !', `<b>+${fmt.eur(d.eur)}</b> de ${esc(d.fromPseudo)}`); stopDrop(true); }
+      if (drop && drop.mode === 'recv') { TC.sound('bip'); drop.got = { eur: d.eur, from: d.fromPseudo }; okOverlay('Reçu !', `<b>+${fmt.eur(d.eur)}</b> de ${esc(d.fromPseudo)}`); stopDrop(true); }
       else { TC.sound('kaching'); TC.confetti(120); TC.toast(`📥 Virement reçu : <b>+${fmt.eur(d.eur)}</b> de ${esc(d.fromPseudo)}`, 'ok', 7000); }
     }
     autoAccept();
-    if (type === 'change' || type === 'linked' || type === 'received' || type === 'synced') { const typing = document.activeElement && document.activeElement.tagName === 'INPUT'; if (!typing && !document.querySelector('.cc.drag')) render(); }
+    if (type === 'change' || type === 'linked' || type === 'received' || type === 'synced') { const typing = document.activeElement && document.activeElement.tagName === 'INPUT'; if (!typing && !document.querySelector('.cc.drag') && !(drop && drop.mode === 'pay')) render(); }
   });
   setInterval(() => {
     if (drop && drop.mode === 'recv') { const el = $('#bk-left'); const left = Math.max(0, Math.ceil((drop.until - Date.now()) / 1000)); if (el) el.textContent = left; if (!left) stopDrop(); autoAccept(); }

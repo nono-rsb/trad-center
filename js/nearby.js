@@ -129,4 +129,34 @@
     return ok;
   };
   BU.stop = () => { onBump = null; window.removeEventListener('devicemotion', motion); };
+
+  /* ---------- Paiement sans contact : avancer le téléphone puis s'arrêter contre l'autre ----------
+   * onMove(0..1) : intensité du mouvement (la carte avance à l'écran) ; onTap() : contact détecté
+   * (le téléphone a été poussé puis s'est arrêté net, ou a touché quelque chose). */
+  const TP = TC.Tap = {};
+  let tMove = null, tTap = null, grav = null, lvl = 0, phase = 'idle', peak = 0, t0 = 0, lastStrong = 0;
+  function tmotion(e) {
+    let x, y, z;
+    const a = e.acceleration;
+    if (a && a.x != null) { x = a.x || 0; y = a.y || 0; z = a.z || 0; }
+    else { // sans « acceleration » : on retire la gravité estimée (filtre passe-bas)
+      const g = e.accelerationIncludingGravity || {}; const v = [g.x || 0, g.y || 0, g.z || 0];
+      grav = grav ? grav.map((k, i) => k * 0.9 + v[i] * 0.1) : v; [x, y, z] = v.map((k, i) => k - grav[i]);
+    }
+    const m = Math.hypot(x, y, z), now = Date.now();
+    lvl = lvl * 0.75 + Math.min(1, m / 9) * 0.25; if (tMove) tMove(lvl);
+    if (m > 2.5) lastStrong = now;
+    if (phase === 'idle') { if (m > 4) { phase = 'move'; peak = m; t0 = now; } return; }
+    peak = Math.max(peak, m);
+    if (m > 14 || (peak >= 4.5 && now - lastStrong > 200 && now - t0 > 150)) { const cb = tTap; TP.stop(); if (cb) cb(); return; }
+    if (now - t0 > 2500) phase = 'idle';
+  }
+  TP.start = async function (onMove, onTap) {
+    TP.stop(); tMove = onMove; tTap = onTap; phase = 'idle'; lvl = 0; grav = null;
+    let ok = !!window.DeviceMotionEvent;
+    try { if (ok && typeof DeviceMotionEvent.requestPermission === 'function') ok = (await DeviceMotionEvent.requestPermission()) === 'granted'; } catch (e) { ok = false; }
+    window.addEventListener('devicemotion', tmotion);
+    return ok;
+  };
+  TP.stop = () => { tMove = tTap = null; window.removeEventListener('devicemotion', tmotion); };
 })();
