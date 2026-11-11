@@ -278,7 +278,7 @@
         if (paying && ar.max > 0.3 && ar.seen && now - ar.seen > 300 && !drop.paying && now - ar.start > 1200) return arLand(); // trop près pour voir le QR : on est collés
         tg = { w: W * 0.6, x: W / 2, y: H * 0.72, rot: 0, tilt: 14, sh: 0 };
         box.classList.remove('hand');
-        const pm = $('#bk-paymsg'); if (pm && !drop.paying) pm.textContent = ar.handLoading ? '⏳ Activation de la détection de la main…' : ar.handOk ? `✋ Montre ta main pour tenir ta carte, et vise l'écran de ${who}` : `📷 Vise l'écran de ${who}`;
+        const pm = $('#bk-paymsg'); if (pm && !drop.paying) pm.textContent = ar.handLoading ? '⏳ Activation de la détection de la main…' : TC.Hand && TC.Hand.state === 'error' ? `⚠️ Détection de la main indisponible ici · vise l'écran de ${who}` : ar.handOk ? `✋ Montre ta main pour tenir ta carte, et vise l'écran de ${who}` : `📷 Vise l'écran de ${who}`;
       }
       const p = ar.pose || (ar.pose = Object.assign({}, tg)), k = 0.28;
       ['w', 'x', 'y', 'rot', 'tilt', 'sh'].forEach(f => { p[f] += (tg[f] - p[f]) * k; });
@@ -402,6 +402,7 @@
     document.querySelectorAll('[data-face]').forEach(b => { if (TC.Card && !b.firstChild) b.appendChild(TC.Card.face()); });
         const camBox = $('#bk-cam'); if (camBox && camVideo && drop && drop.cam) camBox.prepend(camVideo);
     const arBox = $('#bk-ar'); if (arBox && camVideo) arBox.prepend(camVideo);
+    if (camVideo && camVideo.srcObject && camVideo.paused) camVideo.play().catch(() => { }); // iPhone met la vidéo en pause quand on la déplace
     if (scroll) { const c = $('.bk-chat'); if (c) c.scrollTop = c.scrollHeight; }
   }
   function bindLogin() {
