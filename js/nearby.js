@@ -22,16 +22,19 @@
     let n = 0;
     scanT = setInterval(() => {
       const vw = video.videoWidth, vh = video.videoHeight; if (!vw) return;
-      let r;
+      let r, map;
       if (n++ % 2 === 0) { // centre de l'image (là où on vise), en bonne résolution
         const side = Math.min(vw, vh) * 0.8, sx = (vw - side) / 2, sy = (vh - side) / 2, w = 520;
         cv.width = w; cv.height = w; g.drawImage(video, sx, sy, side, side, 0, 0, w, w);
         r = window.jsQR(g.getImageData(0, 0, w, w).data, w, w, { inversionAttempts: 'dontInvert' });
+        map = pt => ({ x: sx + pt.x * side / w, y: sy + pt.y * side / w });
       } else { // image entière
         const w = 640, h = Math.round(vh / vw * w); cv.width = w; cv.height = h; g.drawImage(video, 0, 0, w, h);
         r = window.jsQR(g.getImageData(0, 0, w, h).data, w, h, { inversionAttempts: 'dontInvert' });
+        map = pt => ({ x: pt.x * vw / w, y: pt.y * vh / h });
       }
-      if (r && r.data) onText(r.data);
+      // position du QR code dans l'image de la caméra (coins en pixels vidéo) : sert à poser la carte dessus
+      if (r && r.data) { const L = r.location; onText(r.data, { tl: map(L.topLeftCorner), tr: map(L.topRightCorner), br: map(L.bottomRightCorner), bl: map(L.bottomLeftCorner), vw, vh }); }
     }, 120);
   };
   QR.stop = () => { clearInterval(scanT); scanT = null; if (cam) cam.getTracks().forEach(t => t.stop()); cam = null; };

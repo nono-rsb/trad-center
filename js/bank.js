@@ -77,6 +77,7 @@
       const left = Math.max(0, Math.ceil((drop.until - Date.now()) / 1000));
       return `<h2 class="bk-h">📲 Trad Drop</h2>
         <p class="bk-center bk-big">Montre cet écran à la personne qui t'envoie l'argent</p>
+        <div class="bk-term rx" id="bk-rxterm"><div class="bk-leds"><i></i><i></i><i></i><i></i></div><div class="bk-lcd"><small>Trad Terminal</small><span id="bk-rxmsg">En attente du paiement…</span></div></div>
         <div class="bk-qr">${TC.QR.svg('TRADDROP:' + drop.code)}<span class="bk-qr-av">${meAv()}</span></div>
         <div class="bk-sens"><span class="on">📷 QR prêt</span><span class="${drop.sound ? 'on' : ''}">🔊 Bips ${drop.sound ? 'émis' : 'coupés'}</span><span class="${drop.bump ? 'on' : ''}">🤜🤛 Choc ${drop.bump ? 'prêt' : 'indispo'}</span></div>
         <p class="bk-center muted">Code de secours</p><div class="bk-code sm">${drop.code.split('').map(c => `<b>${c}</b>`).join('')}</div>
@@ -93,6 +94,17 @@
         <p class="hint bk-center">Ton ami doit être sur « Recevoir ». Approche ton téléphone de son écran : c'est reconnu tout seul.</p>
         <div class="bk-alt"><span>ou tape son code</span><input id="bk-dcode" inputmode="numeric" maxlength="4" placeholder="• • • •"><button class="btn btn-sm" id="bk-dfind">OK</button></div>
         <button class="btn btn-ghost bk-full" id="bk-dstop">Annuler</button>`;
+    }
+    if (drop && drop.mode === 'pay' && drop.target && drop.ar) {
+      const t = drop.target;
+      return `<h2 class="bk-h">💳 Paiement sans contact</h2>
+        <div class="bk-ar" id="bk-ar">
+          <div class="bk-term ar" id="bk-term"><div class="bk-leds"><i></i><i></i><i></i><i></i></div>
+            <div class="bk-lcd"><small>${esc(t.pseudo || '?')}</small><b>${fmt.eur(+drop.amt)}</b><span id="bk-lcdmsg">Présentez votre carte</span></div></div>
+          <i class="bk-arshadow" id="bk-arshadow"></i><div class="bk-arcard" id="bk-paycard"></div>
+          <div class="bk-arhint" id="bk-paymsg">📷 Vise l'écran de ${esc(t.pseudo || '?')}</div></div>
+        <p class="hint bk-center">Ton ami reste sur « Recevoir ». Ta carte se place au-dessus de son téléphone : approche-toi, elle se pose dessus et c'est payé. Tu peux aussi toucher la carte.</p>
+        <button class="btn btn-ghost bk-full" id="bk-dback">Annuler</button>`;
     }
     if (drop && drop.mode === 'pay' && drop.target) {
       const t = drop.target;
@@ -196,20 +208,69 @@
     if (!(amt > 0)) throw new Error('Entre un montant.');
     if (amt > S().cash) throw new Error('Solde insuffisant.');
     await TC.Pass.check(); // Face ID / empreinte d'abord, puis on présente la carte (comme un vrai paiement mobile)
-    drop.mode = 'pay'; drop.paying = false; render();
+    drop.mode = 'pay'; drop.paying = false; drop.ar = false; ar = { qr: null, pose: null, max: 0, close: 0, seen: 0, start: Date.now() };
+    try { // réalité augmentée : la caméra filme le téléphone de l'autre, la carte se pose sur son QR code
+      const want = 'TRADDROP:' + drop.code;
+      await TC.QR.scan(camEl(), (txt, pts) => { if (txt === want && pts) { ar.qr = pts; ar.seen = Date.now(); } });
+      drop.ar = true;
+    } catch (e) { drop.ar = false; }
+    render(); if (drop.ar) arStart();
     drop.motion = await TC.Tap.start(lv => {
-      const c = $('#bk-paycard'); if (!c || drop.paying) return;
+      const c = $('#bk-paycard'); if (!c || drop.paying || drop.ar) return;
       c.style.transform = `translateY(${(-lv * 70).toFixed(1)}px) translateZ(${(-lv * 140).toFixed(1)}px) rotateX(${(lv * 38).toFixed(1)}deg)`;
     }, () => payTap());
     if (drop && drop.mode === 'pay' && drop.motion === false) render();
     mountPayCard();
   }
   function mountPayCard() { const box = $('#bk-paycard'); if (box && TC.Card && !box.firstChild) box.appendChild(TC.Card.face()); }
+  // boucle d'animation : la carte suit le QR code vu par la caméra, puis s'y pose quand on est assez près
+  let ar = {}, arRaf = 0;
+  function arStop() { cancelAnimationFrame(arRaf); arRaf = 0; }
+  function arStart() {
+    arStop();
+    const frame = () => {
+      arRaf = 0; if (!drop || drop.mode !== 'pay' || !drop.ar) return;
+      const box = $('#bk-ar'), card = $('#bk-paycard'), sh = $('#bk-arshadow'), v = camVideo; if (!box || !card) return;
+      const W = box.clientWidth, H = box.clientHeight, now = Date.now();
+      let tg;
+      if (ar.qr && now - ar.seen < 350 && v && v.videoWidth) {
+        const s = Math.max(W / ar.qr.vw, H / ar.qr.vh), ox = (ar.qr.vw * s - W) / 2, oy = (ar.qr.vh * s - H) / 2;
+        const P = k => ({ x: ar.qr[k].x * s - ox, y: ar.qr[k].y * s - oy });
+        const tl = P('tl'), tr = P('tr'), br = P('br'), bl = P('bl');
+        const cx = (tl.x + tr.x + br.x + bl.x) / 4, cy = (tl.y + tr.y + br.y + bl.y) / 4, qw = Math.hypot(tr.x - tl.x, tr.y - tl.y);
+        const rel = qw / W; ar.max = Math.max(ar.max, rel); ar.close = rel > 0.42 ? ar.close + 1 : 0; ar.last = { cx, cy, qw };
+        tg = { w: Math.max(W * 0.28, Math.min(W * 0.95, qw * 1.6)), x: cx, y: cy - qw * 0.28, rot: Math.atan2(tr.y - tl.y, tr.x - tl.x) * 180 / Math.PI, tilt: 30, sh: 1 };
+        const pm = $('#bk-paymsg'); if (pm && !drop.paying) pm.textContent = rel > 0.3 ? '👇 Encore un peu…' : '📱 Téléphone trouvé : approche-toi';
+        if (ar.close >= 2 && !drop.paying && now - ar.start > 1200) return arLand();
+      } else {
+        if (ar.max > 0.3 && ar.seen && now - ar.seen > 300 && !drop.paying && now - ar.start > 1200) return arLand(); // trop près pour voir le QR : on est collés
+        tg = { w: W * 0.6, x: W / 2, y: H * 0.72, rot: 0, tilt: 14, sh: 0 };
+      }
+      const p = ar.pose || (ar.pose = Object.assign({}, tg)), k = 0.28;
+      ['w', 'x', 'y', 'rot', 'tilt', 'sh'].forEach(f => { p[f] += (tg[f] - p[f]) * k; });
+      card.style.width = p.w + 'px';
+      card.style.transform = `translate(${(p.x - p.w / 2).toFixed(1)}px, ${(p.y - p.w * 0.315).toFixed(1)}px) rotate(${p.rot.toFixed(1)}deg) rotateX(${p.tilt.toFixed(1)}deg)`;
+      if (sh) { sh.style.opacity = (p.sh * 0.6).toFixed(2); sh.style.width = p.w * 0.9 + 'px'; sh.style.transform = `translate(${(p.x - p.w * 0.45).toFixed(1)}px, ${(p.y + p.w * 0.35).toFixed(1)}px)`; }
+      arRaf = requestAnimationFrame(frame);
+    };
+    mountPayCard(); arRaf = requestAnimationFrame(frame);
+  }
+  function arLand() { // la carte se pose sur le téléphone de l'autre
+    arStop(); const card = $('#bk-paycard'), L = ar.last, box = $('#bk-ar');
+    if (card && box) {
+      const W = box.clientWidth, w = L ? Math.min(W * 0.9, L.qw * 1.25) : W * 0.7, x = L ? L.cx : W / 2, y = L ? L.cy : box.clientHeight / 2;
+      card.classList.add('landing'); card.style.width = w + 'px';
+      card.style.transform = `translate(${(x - w / 2).toFixed(1)}px, ${(y - w * 0.315).toFixed(1)}px) rotate(0deg) rotateX(0deg)`;
+    }
+    setTimeout(payTap, 380);
+  }
   async function payTap() {
     if (!drop || drop.mode !== 'pay' || drop.paying) return;
     drop.paying = true; TC.Tap.stop();
     const term = $('#bk-term'), card = $('#bk-paycard'), msg = $('#bk-lcdmsg'), pm = $('#bk-paymsg');
-    if (card) { card.style.transform = ''; card.classList.add('tapped'); }
+    arStop(); if (!drop.ar) TC.QR.stop(); // en réalité augmentée, l'image de la caméra reste jusqu'à la fin
+    if (card && drop.ar) card.classList.add('landing', 'landed');
+    else if (card) { card.style.transform = ''; card.classList.add('tapped'); }
     if (term) term.classList.add('reading'); if (msg) msg.textContent = 'Lecture…'; if (pm) pm.textContent = '📶 Carte détectée';
     TC.haptic([25]);
     await new Promise(r => setTimeout(r, 650)); // les 4 voyants s'allument un par un
@@ -225,7 +286,7 @@
       TC.sound('bipko'); if (term) { term.classList.remove('reading'); term.classList.add('ko'); } if (msg) msg.textContent = 'REFUSÉ';
       TC.toast(x.userMsg || x.message || N.errMsg(x), 'bad', 6000);
       await new Promise(r => setTimeout(r, 1600));
-      if (drop) { drop.mode = 'send'; drop.paying = false; render(); }
+      TC.QR.stop(); if (drop) { drop.mode = 'send'; drop.paying = false; drop.ar = false; render(); }
     }
   }
   // grande coche verte animée (envoi réussi / argent reçu)
@@ -307,6 +368,7 @@
     if (B.tab === 'home' && TC.Pass) TC.Pass.block($('#bk-pk'));
     if (drop && drop.mode === 'pay') mountPayCard();
         const camBox = $('#bk-cam'); if (camBox && camVideo && drop && drop.cam) camBox.prepend(camVideo);
+    const arBox = $('#bk-ar'); if (arBox && camVideo) arBox.prepend(camVideo);
     if (scroll) { const c = $('.bk-chat'); if (c) c.scrollTop = c.scrollHeight; }
   }
   function bindLogin() {
@@ -338,7 +400,7 @@
     if (b.id === 'bk-dseek') return busy(startSeek);
     if (b.id === 'bk-dstop') return busy(() => stopDrop());
     if (b.id === 'bk-dpay') return busy(startPay);
-    if (b.id === 'bk-dback') { TC.Tap.stop(); if (drop) { drop.mode = 'send'; drop.paying = false; } render(); return; }
+    if (b.id === 'bk-dback') { TC.Tap.stop(); TC.QR.stop(); arStop(); if (drop) { drop.mode = 'send'; drop.paying = false; drop.ar = false; } render(); return; }
         if (b.id === 'bk-dfind') return busy(() => findCode($('#bk-dcode').value.trim()));
     if (b.id === 'bk-dsend') return busy(async () => {
       const amt = +$('#bk-damt').value; const who = drop.target.pseudo;
@@ -355,11 +417,16 @@
   N.on((type, d) => {
     if (type === 'askSave') d.res('cloud'); // la banque garde toujours la partie du compte
     if (type === 'received') {
-      if (drop && drop.mode === 'recv') { TC.sound('bip'); drop.got = { eur: d.eur, from: d.fromPseudo }; okOverlay('Reçu !', `<b>+${fmt.eur(d.eur)}</b> de ${esc(d.fromPseudo)}`); stopDrop(true); }
+      if (drop && drop.mode === 'recv') {
+        drop.got = { eur: d.eur, from: d.fromPseudo }; const term = $('#bk-rxterm'), m = $('#bk-rxmsg');
+        if (term) term.classList.add('reading'); if (m) m.textContent = 'Lecture de la carte…';
+        setTimeout(() => { TC.sound('bip'); if (term) term.classList.add('ok'); if (m) m.textContent = `+${fmt.eur(d.eur)} reçus ✓`; }, 650);
+        setTimeout(() => { okOverlay('Reçu !', `<b>+${fmt.eur(d.eur)}</b> de ${esc(d.fromPseudo)}`); stopDrop(true); }, 1500);
+      }
       else { TC.sound('kaching'); TC.confetti(120); TC.toast(`📥 Virement reçu : <b>+${fmt.eur(d.eur)}</b> de ${esc(d.fromPseudo)}`, 'ok', 7000); }
     }
     autoAccept();
-    if (type === 'change' || type === 'linked' || type === 'received' || type === 'synced') { const typing = document.activeElement && document.activeElement.tagName === 'INPUT'; if (!typing && !document.querySelector('.cc.drag') && !(drop && drop.mode === 'pay')) render(); }
+    if (type === 'change' || type === 'linked' || type === 'received' || type === 'synced') { const typing = document.activeElement && document.activeElement.tagName === 'INPUT'; if (!typing && !document.querySelector('.cc.drag') && !(drop && (drop.mode === 'pay' || drop.got))) render(); }
   });
   setInterval(() => {
     if (drop && drop.mode === 'recv') { const el = $('#bk-left'); const left = Math.max(0, Math.ceil((drop.until - Date.now()) / 1000)); if (el) el.textContent = left; if (!left) stopDrop(); autoAccept(); }
