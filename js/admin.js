@@ -84,7 +84,8 @@
       list.forEach(g => {
         if (!g || g.to !== N.user.uid || !g.id || seen[g.id]) return;
         seen[g.id] = Date.now();
-        if (g.refused) { TC.toast('📣 Ta demande de récompense de partage a été refusée par le créateur.', 'bad', 7000); return; }
+        if (g.claim && TC.Share && TC.Share.decided) TC.Share.decided(g.claim, !g.refused);
+        if (g.refused) { TC.toast('📣 Ta demande de récompense a été refusée. Tu peux renvoyer une meilleure capture (bouton 📣 en bas).', 'bad', 8000); return; }
         const eur = Math.max(0, Math.min(+g.eur || 0, 1e9)); if (!eur) return;
         S.cash += eur; if (TC.Weekly) TC.Weekly.flow(eur);
         S.log.unshift({ t: Date.now(), kind: 'bonus', eur, asset: 'Cadeau du créateur 🎁' });
