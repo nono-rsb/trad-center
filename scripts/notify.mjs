@@ -257,6 +257,56 @@ async function main() {
       }
     } catch (e) { log('hebdo', e.message); }
 
+    // 🤖 Modérateur automatique : repère triche, doubles comptes, propos interdits et demandes abusives.
+    // Il ne bloque personne : il fait un rapport au créateur (mode créateur) et le prévient par notification.
+    try {
+      st.mod = st.mod || { hist: {}, seen: {} };
+      const H = st.mod.hist, SEEN = st.mod.seen, now = Date.now(), day = new Date().toISOString().slice(0, 10);
+      const reports = [];
+      const eu = n => Math.round(n).toLocaleString('fr-FR').replace(/\s/g, ' ') + ' €';
+      const flag = (key, u, kind, detail) => { if (SEEN[key]) return; SEEN[key] = now; reports.push({ id: crypto.randomBytes(5).toString('hex'), at: now, uid: u.uid, pseudo: u.pseudo || '?', kind, detail }); };
+      const BAD = /\b(con+(nar+d?e?|ne)?s?|pute?s?|salope?s?|encul[ée]e?s?|ntm|fdp|pd|connasse|batard|bâtard|merde|nique|ta m[eè]re|enfoir[ée]e?s?|tg|ftg|sale (noir|arabe|juif|blanc)|nazi|hitler)\b/i;
+      const norm = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[0@]/g, 'o').replace(/[1!]/g, 'i').replace(/3/g, 'e').replace(/\$/g, 's');
+      const live = users.filter(u => !u.deleted);
+      const devOwners = {};
+      for (const u of live) {
+        const nw = +u.nw || 0;
+        // 1. fortune qui explose sans raison apparente (x10 en moins de 2 h, au-delà de 20 000 €)
+        const h = (H[u.uid] || []).filter(x => now - x[0] < 2 * 3600000); h.push([now, nw]); H[u.uid] = h.slice(-30);
+        const low = Math.min(...h.map(x => x[1]));
+        if (nw > 20000 && low > 0 && nw > low * 10) flag(`${u.uid}:fortune:${day}`, u, '💰 Fortune suspecte', `de ${eu(low)} à ${eu(nw)} en moins de 2 h`);
+        if (nw > 1e10) flag(`${u.uid}:enorme`, u, '💰 Fortune démesurée', `${Math.round(nw / 1e9)} milliards d'euros`);
+        // 2. gain de la semaine énorme
+        const wk = weekOf(now).field;
+        if (typeof u[wk] === 'number' && u[wk] > 1e6) flag(`${u.uid}:wk:${wk}`, u, '📈 Gain de semaine énorme', `+${eu(u[wk])} cette semaine`);
+        // 3. mots interdits (pseudo, clan, discours du maire)
+        const texts = [u.pseudo, u.clanDef && u.clanDef.name, u.clanDef && u.clanDef.tag, u.speech && u.speech.text].filter(Boolean);
+        // mots collés (« NiqueTaMere », « fils_de_p... ») : on compare aussi le texte sans espaces ni symboles
+      const GLUED = /(niquet(a|on|es)|tamere|tonpere|filsdepute|enculee?|salope|connasse|batard|enfoiree?|fdp|nazi|hitler|pedophile)/;
+      const bad = texts.find(t => BAD.test(norm(t)) || GLUED.test(norm(t).toLowerCase().replace(/[^a-z]/g, '')));
+        if (bad) flag(`${u.uid}:mot:${norm(bad).slice(0, 40)}`, u, '🤬 Propos interdits', `« ${String(bad).slice(0, 80)} »`);
+        // 4. demandes de récompense en rafale (plus de 3 du même type en 24 h)
+        const cl = (u.shareClaims || []).filter(c => now - c.at < 86400000);
+        const per = {}; cl.forEach(c => { per[c.kind] = (per[c.kind] || 0) + 1; });
+        Object.entries(per).forEach(([k, n]) => { if (n > 3) flag(`${u.uid}:claims:${k}:${day}`, u, '📣 Demandes abusives', `${n} demandes « ${k} » en 24 h`); });
+        // 5. appareils partagés (doubles comptes)
+        (u.devs || []).forEach(d => { (devOwners[d] || (devOwners[d] = [])).push(u); });
+      }
+      Object.values(devOwners).filter(l => l.length > 1).forEach(l => {
+        const ids = l.map(u => u.uid).sort().join('+');
+        flag(`dup:${ids}`, l[l.length - 1], '👥 Plusieurs comptes, même appareil', l.map(u => u.pseudo).join(', '));
+      });
+      Object.keys(H).forEach(k => { if (!H[k].length || now - H[k][H[k].length - 1][0] > 86400000) delete H[k]; });
+      Object.keys(SEEN).forEach(k => { if (now - SEEN[k] > 14 * 86400000) delete SEEN[k]; });
+      if (reports.length) {
+        const old = ((await getDoc(meRef)).data() || {}).modReports || [];
+        await updateDoc(meRef, { modReports: old.concat(reports).slice(-60), updatedAt: now });
+        log('modération :', reports.length, 'signalement(s)');
+        const admin = TC.ADMIN_UID;
+        for (const s of subs.filter(s => s.uid === admin && !s.dead)) await push(s, { title: `🤖 Modération : ${reports.length} signalement${reports.length > 1 ? 's' : ''}`, body: reports.slice(0, 3).map(r => `${r.kind} : ${r.pseudo}`).join(' · '), tag: 'mod', url: './' });
+      }
+    } catch (e) { log('modération', e.message); }
+
     // Objectif 100 joueurs : une notification par jour (vers 18 h, heure de Paris) pour inviter à partager
     try {
       const parisH = +new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Paris', hour: '2-digit', hourCycle: 'h23' }).format(new Date());

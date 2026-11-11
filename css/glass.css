@@ -686,3 +686,4 @@ body.gated #sh-chip { display: none; }
 .sh-panel h3 small { font-weight: 600; color: var(--accent2); font-size: 12px; margin-left: 6px; } .sh-panel .sh-claims { padding: 0; background: none; }
 .sh-mine { display: flex; flex-direction: column; gap: 4px; margin-top: 10px; } .sh-mine > div { display: flex; justify-content: space-between; gap: 8px; font-size: 12.5px; padding: 6px 10px; border-radius: 10px; background: rgba(255,255,255,.06); }
 .sh-mine > .ok b { color: var(--up); } .sh-mine > .no b { color: var(--down); } .sh-mine small { color: var(--muted); font-size: 11.5px; }
+.adm-mod { margin-bottom: 12px; padding: 10px; border-radius: 14px; background: rgba(29,155,240,.1); border: 1px solid rgba(29,155,240,.35); } .adm-mod h4 { margin: 0 0 8px; }
