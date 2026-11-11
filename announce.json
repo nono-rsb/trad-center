@@ -1,28 +1,33 @@
 {
-  "id": "maj-2026-11-11-residences",
-  "emoji": "🔑",
-  "title": "Nouveau : achète ta résidence",
+  "id": "promo-partage-2026-11-11",
+  "emoji": "📣",
+  "title": "Partage le jeu et gagne de l'argent !",
   "items": [
     {
-      "icon": "🔑",
-      "title": "Ta résidence sur la carte",
-      "text": "Onglet Ville → Ma résidence : de la tente au manoir, jusqu'à la tour du milliardaire. C'est elle qu'on voit sur la carte 3D."
+      "icon": "👻",
+      "title": "Story Snap publique : 400 €",
+      "text": "Poste Trad Center en story publique, fais une capture et réclame tes 400 €."
     },
     {
-      "icon": "🏯",
-      "title": "Nouveau : le manoir",
-      "text": "Tourelles, toits d'ardoise, perron… L'ancienne résidence est reprise à 70 % quand tu changes."
+      "icon": "🔒",
+      "title": "Story Snap privée : 200 €",
+      "text": "Story pour tes amis proches : 200 €."
     },
     {
-      "icon": "🚶",
-      "title": "Les joueurs en 3D",
-      "text": "Chaque joueur se promène maintenant devant sa résidence, avec son avatar."
+      "icon": "💬",
+      "title": "WhatsApp : 200 €",
+      "text": "Message ou statut WhatsApp avec le lien du jeu : 200 €."
+    },
+    {
+      "icon": "⏳",
+      "title": "Jusqu'à dimanche soir",
+      "text": "Une demande par jour pour chaque type, jusqu'au dimanche 15 novembre. Le créateur vérifie ta capture puis te paie."
     }
   ],
-  "button": "Voir la ville 🗺️",
+  "button": "Partager et gagner 📣",
   "push": {
-    "title": "🔑 Achète ta résidence dans Trad City !",
-    "body": "Tente, villa, manoir, palais… ta résidence apparaît en 3D sur la carte, et toi devant !"
+    "title": "📣 Story Snap = 400 € ! (jusqu'à dimanche)",
+    "body": "Story Snap publique : 400 €, privée : 200 €, WhatsApp : 200 €. Partage Trad Center, fais une capture et réclame ton argent dans le jeu !"
   },
-  "tab": "city"
+  "share": true
 }

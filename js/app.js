@@ -233,7 +233,7 @@
         ${a.text ? `<p>${TC.esc(a.text)}</p>` : ''}
         ${Array.isArray(a.items) ? `<div class="news">${a.items.map(i => `<div class="news-i"><span>${TC.esc(i.icon || '✨')}</span><div><b>${TC.esc(i.title)}</b>${i.text ? `<small>${TC.esc(i.text)}</small>` : ''}</div></div>`).join('')}</div>` : ''}
         <div class="modal-actions"><button class="btn btn-ghost" data-close>Plus tard</button><button class="btn btn-gold" id="b-ann">${TC.esc(a.button || 'OK')}</button></div></div>`);
-      $('#b-ann').onclick = () => { $('#modal').click(); if (a.tab === 'shop') UI.shopType = 'chest'; if (a.tab) setTab(a.tab); };
+      $('#b-ann').onclick = () => { $('#modal').click(); if (a.tab === 'shop') UI.shopType = 'chest'; if (a.tab) setTab(a.tab); if (a.share && TC.Share) setTimeout(() => TC.Share.popup(true), 350); };
     } catch (e) { }
   }
 

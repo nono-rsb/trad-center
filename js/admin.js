@@ -84,6 +84,7 @@
       list.forEach(g => {
         if (!g || g.to !== N.user.uid || !g.id || seen[g.id]) return;
         seen[g.id] = Date.now();
+        if (g.refused) { TC.toast('📣 Ta demande de récompense de partage a été refusée par le créateur.', 'bad', 7000); return; }
         const eur = Math.max(0, Math.min(+g.eur || 0, 1e9)); if (!eur) return;
         S.cash += eur; if (TC.Weekly) TC.Weekly.flow(eur);
         S.log.unshift({ t: Date.now(), kind: 'bonus', eur, asset: 'Cadeau du créateur 🎁' });
@@ -100,15 +101,15 @@
     } catch (e) { }
     giftBusy = false;
   };
-  A.gift = async function (uid, pseudo, eur, msg) {
+  A.gift = async function (uid, pseudo, eur, msg, extra) {
     if (!A.isAdmin()) return;
     eur = Math.round(+eur * 100) / 100;
-    if (!(eur > 0)) return TC.toast('Montant invalide', 'bad');
-    const g = { id: Math.random().toString(36).slice(2, 12), to: uid, eur, msg: String(msg || '').slice(0, 120), at: Date.now(), pseudo: pseudo || '' };
+    if (!(eur > 0) && !(extra && extra.refused)) return TC.toast('Montant invalide', 'bad');
+    const g = Object.assign({ id: Math.random().toString(36).slice(2, 12), to: uid, eur, msg: String(msg || '').slice(0, 120), at: Date.now(), pseudo: pseudo || '' }, extra || {});
     const s = await giftRef().get(); const list = ((s.exists && s.data().list) || []).filter(x => Date.now() - x.at < 60 * 86400000).slice(-199);
     list.push(g);
     await giftRef().set({ list });
-    N.notifyPlayer(uid, 'gift', { eur });
+    if (eur > 0) N.notifyPlayer(uid, 'gift', { eur });
     return g;
   };
 
@@ -131,13 +132,23 @@
         await A.loadBans();
         const s = await N.db().collection('users').get();
         users = s.docs.map(d => N.prof(d.id, d.data())).filter(u => !u.bot).sort((a, b) => (b.nw || 0) - (a.nw || 0));
+        try { const gs = await giftRef().get(); decided = {}; ((gs.exists && gs.data().list) || []).forEach(g => { if (g.claim) decided[g.claim] = 1; }); } catch (e) { }
         render();
       } catch (e) { $('#adm-list').innerHTML = `<div class="empty">Erreur : ${esc(N.errMsg(e))}</div>`; }
+    };
+    let decided = {};
+    const claimsHtml = () => {
+      const R = (TC.Share && TC.Share.REWARDS) || {};
+      const pend = [];
+      users.forEach(u => (u.shareClaims || []).forEach(c => { if (!decided[c.id] && R[c.kind]) pend.push({ u, c }); }));
+      pend.sort((a, b) => a.c.at - b.c.at);
+      return pend.length ? `<div class="adm-claims"><h4>📣 Demandes de récompense (${pend.length})</h4>${pend.map(({ u, c }) => `<div class="adm-claim"><div><b>${esc(u.pseudo || '?')}</b><small>${R[c.kind].e} ${esc(R[c.kind].label)} · ${fmt.time(c.at)}</small></div><b>${fmt.eur(c.eur)}</b>
+        <button class="btn btn-sm" data-cproof="${esc(c.id)}" data-u="${esc(u.uid)}">👁️</button><button class="btn btn-sm btn-buy" data-cok="${esc(c.id)}" data-u="${esc(u.uid)}">✅</button><button class="btn btn-sm btn-sell" data-cno="${esc(c.id)}" data-u="${esc(u.uid)}">❌</button></div>`).join('')}</div>` : '';
     };
     const render = () => {
       const q = filter.toLowerCase();
       const rows = users.filter(u => !q || (u.pseudo || '').toLowerCase().includes(q));
-      $('#adm-list').innerHTML = `<p class="hint">${users.length} joueur(s) · ${Object.keys(A.bans).length} bloqué(s)</p>` + rows.map(u => {
+      $('#adm-list').innerHTML = claimsHtml() + `<p class="hint">${users.length} joueur(s) · ${Object.keys(A.bans).length} bloqué(s)</p>` + rows.map(u => {
         const fl = flags(u), ban = A.isBanned(u.uid);
         return `<button class="adm-row ${ban ? 'ban' : ''}" data-u="${u.uid}">${TC.Style ? TC.Style.avatar(u, 's') : ''}<b>${esc(u.pseudo || '?')}${TC.Style ? TC.Style.badge(u) : ''}</b>
           <span class="adm-nw">${fmt.eur(u.nw || 0, true)}</span><small>${u.updatedAt ? 'vu ' + fmt.time(u.updatedAt) : ''}${u.playMs ? ' · ⏱️ ' + TC.Play.fmt(u.playMs) : ''}</small>
@@ -146,7 +157,31 @@
     };
     md.el.querySelector('#adm-q').oninput = e => { filter = e.target.value; render(); };
     md.el.querySelector('#adm-reload').onclick = load;
-    md.el.querySelector('#adm-list').addEventListener('click', e => { const r = e.target.closest('[data-u]'); if (r) A.player(r.dataset.u); });
+    md.el.querySelector('#adm-list').addEventListener('click', async e => {
+      const pv = e.target.closest('[data-cproof]');
+      if (pv) { // la capture est dans la sauvegarde privée du joueur (lisible par le créateur)
+        pv.disabled = true;
+        try {
+          const s = await N.db().collection('saves').doc(pv.dataset.u).get(); const st = s.exists ? JSON.parse(s.data().state) : {};
+          const img = st.proofs && st.proofs[pv.dataset.cproof]; const u = users.find(x => x.uid === pv.dataset.u);
+          const box = document.createElement('div'); box.className = 'pf-view'; box.innerHTML = img ? `<img src="${img}" alt="Preuve"><b>${esc(u ? u.pseudo : '')}</b><small>Touche pour fermer</small>` : '<b>Pas de capture trouvée</b><small>Le joueur n\'a peut-être pas encore synchronisé sa partie. Réessaie dans une minute.</small>';
+          box.onclick = () => box.remove(); document.body.appendChild(box);
+        } catch (x) { TC.toast('Erreur : ' + N.errMsg(x), 'bad'); }
+        pv.disabled = false; return;
+      }
+      const ok = e.target.closest('[data-cok]'), no = e.target.closest('[data-cno]');
+      if (ok || no) {
+        const b = ok || no, cid = b.dataset.cok || b.dataset.cno, u = users.find(x => x.uid === b.dataset.u), c = u && (u.shareClaims || []).find(x => x.id === cid); if (!c) return;
+        b.disabled = true;
+        try {
+          if (ok) { await A.gift(u.uid, u.pseudo, c.eur, 'Merci pour ton partage 📣', { claim: c.id }); TC.toast(`✅ ${fmt.eur(c.eur)} envoyés à ${esc(u.pseudo)}`, 'ok'); }
+          else { await A.gift(u.uid, u.pseudo, 0, '', { claim: c.id, refused: true }); TC.toast('Demande refusée', 'info'); }
+          decided[c.id] = 1; render();
+        } catch (x) { TC.toast('Erreur : ' + N.errMsg(x), 'bad'); b.disabled = false; }
+        return;
+      }
+      const r = e.target.closest('.adm-row[data-u]'); if (r) A.player(r.dataset.u);
+    });
     load();
   };
 
