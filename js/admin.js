@@ -15,9 +15,34 @@
   A.loadBans = async function () {
     if (!N.db() || !N.user) return;
     try { const s = await banRef().get(); A.bans = (s.exists && s.data().users) || {}; A.allow = (s.exists && s.data().allow) || {}; } catch (e) { }
+    await A.loadBot();
     A.enforce();
   };
-  A.isBanned = uid => !!(uid && A.bans[uid]);
+  /* ---------- Sentinelle, le robot modérateur (compte du serveur, certifié et marqué BOT) ----------
+   * Son profil public contient ses signalements (modReports) et ses sanctions (modBlocks), que tous les joueurs lisent. */
+  A.bot = null; A.botBlocks = {};
+  A.loadBot = async function () {
+    try {
+      const db = N.db(); if (!db) return;
+      if (!A.botUid) { const n = await db.collection('usernames').doc('tradcenter_bot').get(); A.botUid = n.exists ? n.data().uid : null; }
+      if (!A.botUid) return;
+      const p = await db.collection('users').doc(A.botUid).get();
+      if (p.exists) { const first = !A.bot; A.bot = N.prof(A.botUid, p.data()); A.botBlocks = A.bot.modBlocks || {}; if (first && TC.Social && TC.UI && TC.UI.tab === 'social') TC.Social.render(); }
+    } catch (e) { }
+  };
+  A.botBlocked = uid => { const b = uid && A.botBlocks[uid]; return b && (!b.until || b.until > Date.now()) ? b : null; };
+  A.isBanned = uid => !!(uid && (A.bans[uid] || A.botBlocked(uid)));
+  const modRef = () => N.db().collection('admin').doc('mod');
+  A.undoBot = async uid => { await modRef().set({ undo: { [uid]: Date.now() } }, { merge: true }); delete A.botBlocks[uid]; };
+  A.botName = () => (A.bot && A.bot.pseudo) || 'Sentinelle';
+  // fiche publique du robot (onglet Amis)
+  A.botCard = function () {
+    const b = A.bot; if (!b) return '';
+    const nb = Object.keys(A.botBlocks).filter(u => A.botBlocked(u)).length;
+    return `<div class="panel sentinel">${TC.Style ? TC.Style.avatar(b, 'm') : '🤖'}<div class="sn-txt"><b>${esc(b.pseudo)}${TC.Style ? TC.Style.badge(b) : ''}</b><small>${esc(b.botRole || 'Modérateur officiel')} · ${b.modRound && Date.now() - b.modRound < 3 * 3600000 ? '🟢 en service' : '⚪ en pause'}</small>
+      <p>Je surveille le jeu jour et nuit : triche, doubles comptes, insultes, fausses demandes de récompense. Ceux qui ne respectent pas les règles sont suspendus.</p>
+      <div class="sn-stats"><span><b>${b.modTotal || 0}</b> signalement${(b.modTotal || 0) > 1 ? 's' : ''}</span><span><b>${nb}</b> compte${nb > 1 ? 's' : ''} suspendu${nb > 1 ? 's' : ''}</span>${b.modRound ? `<span>dernière ronde ${fmt.time(b.modRound)}</span>` : ''}</div></div></div>`;
+  };
   A.enforce = function () {
     const me = N.user && N.user.uid;
     const lock = $('#banned');
@@ -33,8 +58,32 @@
       el.querySelector('#bn-out').onclick = () => N.signOut();
       return;
     }
-    if (me && A.isBanned(me) && !A.isAdmin()) {
-      if (lock) return;
+    const bb = me && !A.bans[me] && !A.isAdmin() && A.botBlocked(me);
+    if (bb) {
+      if (lock && lock.dataset.k === 'bot' + bb.at) return;
+      if (lock) lock.remove();
+      const el = document.createElement('div'); el.id = 'banned'; el.dataset.k = 'bot' + bb.at;
+      el.innerHTML = `<div class="bn-in"><div class="big-emoji">🤖</div><h1>Compte suspendu</h1>
+        <p><b>${esc(A.botName())}</b> ${TC.Style ? TC.Style.badge(A.bot || { bot: true }) : ''}, le robot modérateur du jeu, a suspendu ton compte.</p>
+        <div class="nbox warn">${esc(bb.reason || '')}</div>
+        ${bb.need === 'pseudo' ? `<p>Choisis un nouveau pseudo correct :</p><div class="bn-ren"><input id="bn-ps" maxlength="20" placeholder="Nouveau pseudo"><button class="btn btn-buy" id="bn-ok">Changer</button></div>
+          <p class="muted">Le robot vérifie ton nouveau pseudo et débloque ton compte dans les 10 minutes.</p>`
+          : `<p>Fin de la suspension : <b>${fmt.time(bb.until)}</b>.</p>`}
+        <p class="muted">Erreur ? Contacte le créateur du jeu : il peut annuler la décision du robot.</p>
+        <button class="btn btn-ghost" id="bn-out">Se déconnecter</button></div>`;
+      document.body.appendChild(el);
+      el.querySelector('#bn-out').onclick = () => N.signOut();
+      const ok = el.querySelector('#bn-ok');
+      if (ok) ok.onclick = async () => {
+        ok.disabled = true;
+        try { await N.changePseudo(el.querySelector('#bn-ps').value); TC.toast('✏️ Pseudo changé : le robot va vérifier et débloquer ton compte.', 'ok', 8000); el.querySelector('.bn-ren').innerHTML = `<div class="nbox ok">✅ Nouveau pseudo : <b>${esc(N.profile.pseudo)}</b>. Déblocage dans les 10 minutes.</div>`; }
+        catch (e) { TC.toast(N.errMsg(e), 'bad'); ok.disabled = false; }
+      };
+      return;
+    }
+    if (me && A.bans[me] && !A.isAdmin()) {
+      if (lock && !lock.dataset.k) return;
+      if (lock) lock.remove();
       const el = document.createElement('div'); el.id = 'banned';
       el.innerHTML = `<div class="bn-in"><div class="big-emoji">⛔</div><h1>Compte suspendu</h1>
         <p>Ton compte a été suspendu par le créateur du jeu${A.bans[me].reason ? ` : « ${esc(A.bans[me].reason)} »` : ''}.</p>
@@ -133,17 +182,22 @@
         await A.loadBans();
         const s = await N.db().collection('users').get();
         users = s.docs.map(d => N.prof(d.id, d.data())).filter(u => !u.bot).sort((a, b) => (b.nw || 0) - (a.nw || 0));
-        try { const bu = await N.db().collection('usernames').doc('tradcenter_bot').get(); if (bu.exists) { const bp = await N.db().collection('users').doc(bu.data().uid).get(); mod = (bp.exists && bp.data().modReports) || []; } } catch (e) { mod = []; }
+        try { const sv = A.botUid ? await N.db().collection('saves').doc(A.botUid).get() : null; mod = (sv && sv.exists && sv.data().modReports) || []; } catch (e) { mod = []; }
+        try { const m = await modRef().get(); modDone = (m.exists && m.data().done) || {}; } catch (e) { modDone = {}; }
         try { const gs = await giftRef().get(); decided = {}; ((gs.exists && gs.data().list) || []).forEach(g => { if (g.claim) decided[g.claim] = 1; }); } catch (e) { }
         render();
       } catch (e) { $('#adm-list').innerHTML = `<div class="empty">Erreur : ${esc(N.errMsg(e))}</div>`; }
     };
-    let decided = {}, mod = [];
+    let decided = {}, mod = [], modDone = {};
     const modSeen = () => G.state.modSeen || (G.state.modSeen = {});
     const modHtml = () => {
-      const L = mod.filter(r => !modSeen()[r.id]).slice().reverse();
-      return `<div class="adm-mod"><h4>🤖 Rapport du modérateur ${L.length ? `(${L.length})` : ''}</h4>${L.length ? L.map(r => `<div class="adm-claim"><div><b>${esc(r.kind)}</b><small>${esc(r.pseudo)} · ${esc(r.detail || '')} · ${fmt.time(r.at)}</small></div>
-        <button class="btn btn-sm" data-u="${esc(r.uid)}" data-modsee="1">Voir</button><button class="btn btn-sm btn-ghost" data-modok="${esc(r.id)}">✓</button></div>`).join('') : '<p class="hint">Rien à signaler 👍 Le robot surveille les joueurs toutes les 10 minutes.</p>'}</div>`;
+      const L = mod.filter(r => !modSeen()[r.id] && !modDone[r.id]).slice().reverse();
+      const nb = Object.keys(A.botBlocks).filter(u => A.botBlocked(u)).length;
+      const st = r => r.action ? `<i class="adm-tag ${/^🤖/.test(r.action) ? 'ban' : ''}">${esc(r.action)}</i>` : r.type && /^(fortune|mot-)/.test(r.type) ? `<i class="adm-tag">⏳ ${esc(A.botName())} agit à ${fmt.time(r.at + 3 * 3600000)} si tu ne fais rien</i>` : '';
+      return `<div class="adm-mod"><h4>🤖 Rapport de ${esc(A.botName())} ${L.length ? `(${L.length})` : ''}</h4>
+        <p class="hint">Le robot surveille les joueurs toutes les 10 minutes. Coche ✓ ce que tu as vérifié : sinon, il sanctionne lui-même au bout de 3 h.${nb ? ` <b>${nb} joueur(s) suspendu(s) par le robot.</b>` : ''}</p>
+        ${L.length ? L.map(r => `<div class="adm-claim"><div><b>${esc(r.kind)}</b><small>${esc(r.pseudo)} · ${esc(r.detail || '')} · ${fmt.time(r.at)}</small>${st(r)}</div>
+        <button class="btn btn-sm" data-u="${esc(r.uid)}" data-modsee="1">Voir</button><button class="btn btn-sm btn-ghost" data-modok="${esc(r.id)}" title="Vérifié : le robot ne sanctionnera pas">✓</button></div>`).join('') : '<p class="hint">Rien à signaler 👍</p>'}</div>`;
     };
     const claimsHtml = () => {
       const R = (TC.Share && TC.Share.REWARDS) || {};
@@ -156,7 +210,7 @@
     const render = () => {
       const q = filter.toLowerCase();
       const rows = users.filter(u => !q || (u.pseudo || '').toLowerCase().includes(q));
-      $('#adm-list').innerHTML = modHtml() + claimsHtml() + `<p class="hint">${users.length} joueur(s) · ${Object.keys(A.bans).length} bloqué(s)</p>` + rows.map(u => {
+      $('#adm-list').innerHTML = modHtml() + claimsHtml() + `<p class="hint">${users.length} joueur(s) · ${Object.keys(A.bans).length} bloqué(s) par toi</p>` + rows.map(u => {
         const fl = flags(u), ban = A.isBanned(u.uid);
         return `<button class="adm-row ${ban ? 'ban' : ''}" data-u="${u.uid}">${TC.Style ? TC.Style.avatar(u, 's') : ''}<b>${esc(u.pseudo || '?')}${TC.Style ? TC.Style.badge(u) : ''}</b>
           <span class="adm-nw">${fmt.eur(u.nw || 0, true)}</span><small>${u.updatedAt ? 'vu ' + fmt.time(u.updatedAt) : ''}${u.playMs ? ' · ⏱️ ' + TC.Play.fmt(u.playMs) : ''}</small>
@@ -166,7 +220,8 @@
     md.el.querySelector('#adm-q').oninput = e => { filter = e.target.value; render(); };
     md.el.querySelector('#adm-reload').onclick = load;
     md.el.querySelector('#adm-list').addEventListener('click', async e => {
-      const mk = e.target.closest('[data-modok]'); if (mk) { modSeen()[mk.dataset.modok] = Date.now(); G.save(); render(); return; }
+      const mk = e.target.closest('[data-modok]');
+      if (mk) { const id = mk.dataset.modok; modSeen()[id] = Date.now(); modDone[id] = Date.now(); G.save(); render(); modRef().set({ done: { [id]: Date.now() } }, { merge: true }).catch(x => TC.toast('Erreur : ' + N.errMsg(x), 'bad')); return; }
       const ms = e.target.closest('[data-modsee]'); if (ms) return A.player(ms.dataset.u);
       const pv = e.target.closest('[data-cproof]');
       if (pv) { // la capture est dans la sauvegarde privée du joueur (lisible par le créateur)
@@ -200,8 +255,9 @@
     const md = TC.modal(`<h2>🛡️ ${esc(u.pseudo || uid)}</h2><div id="adm-p" class="adm"><div class="empty">Chargement de la partie…</div></div>`, { cls: 'wide' });
     let st = null, err = null;
     try { const s = await N.db().collection('saves').doc(uid).get(); st = s.exists ? JSON.parse(s.data().state) : null; } catch (e) { err = e; }
-    const ban = A.bans[uid];
-    let html = `<div class="adm-actions">${ban ? `<span class="adm-tag ban">BLOQUÉ le ${fmt.time(ban.at)}${ban.reason ? ' : ' + esc(ban.reason) : ''}</span><button class="btn btn-buy" id="adm-unban">Débloquer</button>`
+    const ban = A.bans[uid], bb = A.botBlocked(uid);
+    let html = `${bb ? `<div class="nbox warn">🤖 Suspendu par ${esc(A.botName())} ${bb.until ? 'jusqu\'au ' + fmt.time(bb.until) : 'jusqu\'au changement de pseudo'} : ${esc(bb.reason || '')}
+        <button class="btn btn-sm btn-buy" id="adm-unbot">Annuler la sanction du robot</button></div>` : ''}<div class="adm-actions">${ban ? `<span class="adm-tag ban">BLOQUÉ le ${fmt.time(ban.at)}${ban.reason ? ' : ' + esc(ban.reason) : ''}</span><button class="btn btn-buy" id="adm-unban">Débloquer</button>`
       : `<input id="adm-reason" placeholder="Raison (facultatif)"><button class="btn btn-sell" id="adm-ban" ${uid === TC.ADMIN_UID ? 'disabled' : ''}>⛔ Bloquer</button>`}<button class="btn btn-ghost" id="adm-back">← Liste</button></div>
       ${u.dupOf && u.dupOf.length ? `<div class="nbox ${A.allowed(uid) ? 'ok' : 'warn'}">👥 Double compte : cet appareil a déjà servi à ${u.dupOf.map(x => { const o = users.find(y => y.uid === x); return '<b>' + esc(o ? o.pseudo : x) + '</b>'; }).join(', ')}. ${A.allowed(uid) ? 'Tu l\'as autorisé.' : 'Ce compte est bloqué automatiquement.'}
         <button class="btn btn-sm ${A.allowed(uid) ? 'btn-ghost' : 'btn-buy'}" id="adm-allow">${A.allowed(uid) ? 'Retirer l\'autorisation' : '✅ Autoriser ce compte'}</button></div>` : ''}
@@ -241,11 +297,16 @@
       A.player(uid);
     };
     if (b2) b2.onclick = async () => {
-      try { await banRef().set({ users: { [uid]: firebase.firestore.FieldValue.delete() } }, { merge: true }); delete A.bans[uid]; TC.toast('✅ Joueur débloqué', 'ok'); }
+      try { await banRef().set({ users: { [uid]: firebase.firestore.FieldValue.delete() } }, { merge: true }); delete A.bans[uid]; if (A.botBlocks[uid]) await A.undoBot(uid); TC.toast('✅ Joueur débloqué', 'ok'); }
       catch (e) { TC.toast('Erreur : ' + N.errMsg(e), 'bad'); }
       A.player(uid);
     };
     box.querySelector('#adm-back').onclick = () => A.open();
+    const ub = box.querySelector('#adm-unbot');
+    if (ub) ub.onclick = async () => {
+      try { await A.undoBot(uid); TC.toast('✅ Sanction du robot annulée', 'ok'); } catch (e) { TC.toast('Erreur : ' + N.errMsg(e), 'bad'); }
+      A.player(uid);
+    };
     const al = box.querySelector('#adm-allow');
     if (al) al.onclick = async () => {
       const on = !A.allowed(uid);

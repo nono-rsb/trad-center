@@ -161,6 +161,21 @@ async function main() {
   } else if (mine.data().vapid !== K.vapidPublic) {
     await updateDoc(meRef, { vapid: K.vapidPublic, updatedAt: Date.now() }); log('clé publique mise à jour');
   }
+  // Identité publique du robot : « Sentinelle », certifié à vie et marqué BOT dans le jeu (c'est lui le modérateur).
+  try {
+    const now0 = Date.now(), cur = (await getDoc(meRef)).data() || {};
+    const want = { avatar: '🤖', plusUntil: 4102444800000, botRole: 'Modérateur officiel' };
+    if (!cur.displayName || cur.avatar !== want.avatar || cur.plusUntil !== want.plusUntil) {
+      let name = null;
+      for (const [n, k] of [['Sentinelle', 'sentinelle'], ['SentinelleBot', 'sentinellebot']]) {
+        const r = doc(db, 'usernames', k), t = await getDoc(r);
+        if (t.exists() && t.data().uid !== botUid) continue;
+        if (!t.exists()) { const b = writeBatch(db); b.set(r, { uid: botUid }); await b.commit(); }
+        name = { displayName: n, nameKey: k }; break;
+      }
+      await updateDoc(meRef, { ...want, ...(name || {}), updatedAt: now0 }); log('identité du robot :', name ? name.displayName : '(pseudo pris)');
+    }
+  } catch (e) { log('identité robot', e.message); }
 
   const st = loadState(); st.fired = st.fired || {}; st.done = st.done || {}; st.alerts = st.alerts || {}; st.dead = st.dead || {};
   let lastPx = null, sentTotal = 0, verbose = true;
@@ -264,9 +279,12 @@ async function main() {
       const H = st.mod.hist, SEEN = st.mod.seen, now = Date.now(), day = new Date().toISOString().slice(0, 10);
       const reports = [];
       const eu = n => Math.round(n).toLocaleString('fr-FR').replace(/\s/g, ' ') + ' €';
-      const flag = (key, u, kind, detail) => { if (SEEN[key]) return; SEEN[key] = now; reports.push({ id: crypto.randomBytes(5).toString('hex'), at: now, uid: u.uid, pseudo: u.pseudo || '?', kind, detail }); };
+      const flag = (key, u, kind, detail, type) => { if (SEEN[key]) return; SEEN[key] = now; reports.push({ id: crypto.randomBytes(5).toString('hex'), at: now, uid: u.uid, pseudo: u.pseudo || '?', kind, detail, type }); };
       const BAD = /\b(con+(nar+d?e?|ne)?s?|pute?s?|salope?s?|encul[ée]e?s?|ntm|fdp|pd|connasse|batard|bâtard|merde|nique|ta m[eè]re|enfoir[ée]e?s?|tg|ftg|sale (noir|arabe|juif|blanc)|nazi|hitler)\b/i;
       const norm = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[0@]/g, 'o').replace(/[1!]/g, 'i').replace(/3/g, 'e').replace(/\$/g, 's');
+      // mots collés (« NiqueTaMere ») : on compare aussi le texte sans espaces ni symboles
+      const GLUED = /(niquet(a|on|es)|tamere|tonpere|filsdepute|enculee?|salope|connasse|batard|enfoiree?|fdp|nazi|hitler|pedophile)/;
+      const isBad = t => BAD.test(norm(t)) || GLUED.test(norm(t).toLowerCase().replace(/[^a-z]/g, ''));
       const live = users.filter(u => !u.deleted);
       const devOwners = {};
       for (const u of live) {
@@ -274,37 +292,82 @@ async function main() {
         // 1. fortune qui explose sans raison apparente (x10 en moins de 2 h, au-delà de 20 000 €)
         const h = (H[u.uid] || []).filter(x => now - x[0] < 2 * 3600000); h.push([now, nw]); H[u.uid] = h.slice(-30);
         const low = Math.min(...h.map(x => x[1]));
-        if (nw > 20000 && low > 0 && nw > low * 10) flag(`${u.uid}:fortune:${day}`, u, '💰 Fortune suspecte', `de ${eu(low)} à ${eu(nw)} en moins de 2 h`);
-        if (nw > 1e10) flag(`${u.uid}:enorme`, u, '💰 Fortune démesurée', `${Math.round(nw / 1e9)} milliards d'euros`);
+        if (nw > 20000 && low > 0 && nw > low * 10) flag(`${u.uid}:fortune:${day}`, u, '💰 Fortune suspecte', `de ${eu(low)} à ${eu(nw)} en moins de 2 h`, 'fortune');
+        if (nw > 1e10) flag(`${u.uid}:enorme`, u, '💰 Fortune démesurée', `${Math.round(nw / 1e9)} milliards d'euros`, 'fortune');
         // 2. gain de la semaine énorme
         const wk = weekOf(now).field;
-        if (typeof u[wk] === 'number' && u[wk] > 1e6) flag(`${u.uid}:wk:${wk}`, u, '📈 Gain de semaine énorme', `+${eu(u[wk])} cette semaine`);
+        if (typeof u[wk] === 'number' && u[wk] > 1e6) flag(`${u.uid}:wk:${wk}`, u, '📈 Gain de semaine énorme', `+${eu(u[wk])} cette semaine`, 'fortune');
         // 3. mots interdits (pseudo, clan, discours du maire)
-        const texts = [u.pseudo, u.clanDef && u.clanDef.name, u.clanDef && u.clanDef.tag, u.speech && u.speech.text].filter(Boolean);
-        // mots collés (« NiqueTaMere », « fils_de_p... ») : on compare aussi le texte sans espaces ni symboles
-      const GLUED = /(niquet(a|on|es)|tamere|tonpere|filsdepute|enculee?|salope|connasse|batard|enfoiree?|fdp|nazi|hitler|pedophile)/;
-      const bad = texts.find(t => BAD.test(norm(t)) || GLUED.test(norm(t).toLowerCase().replace(/[^a-z]/g, '')));
-        if (bad) flag(`${u.uid}:mot:${norm(bad).slice(0, 40)}`, u, '🤬 Propos interdits', `« ${String(bad).slice(0, 80)} »`);
+        const texts = [['pseudo', u.pseudo], ['clan', u.clanDef && u.clanDef.name], ['clan', u.clanDef && u.clanDef.tag], ['discours', u.speech && u.speech.text]].filter(x => x[1]);
+        const bad = texts.find(x => isBad(x[1]));
+        if (bad) flag(`${u.uid}:mot:${norm(bad[1]).slice(0, 40)}`, u, '🤬 Propos interdits', `${bad[0]} : « ${String(bad[1]).slice(0, 80)} »`, 'mot-' + bad[0]);
         // 4. demandes de récompense en rafale (plus de 3 du même type en 24 h)
         const cl = (u.shareClaims || []).filter(c => now - c.at < 86400000);
         const per = {}; cl.forEach(c => { per[c.kind] = (per[c.kind] || 0) + 1; });
-        Object.entries(per).forEach(([k, n]) => { if (n > 3) flag(`${u.uid}:claims:${k}:${day}`, u, '📣 Demandes abusives', `${n} demandes « ${k} » en 24 h`); });
+        Object.entries(per).forEach(([k, n]) => { if (n > 3) flag(`${u.uid}:claims:${k}:${day}`, u, '📣 Demandes abusives', `${n} demandes « ${k} » en 24 h`, 'claims'); });
         // 5. appareils partagés (doubles comptes)
         (u.devs || []).forEach(d => { (devOwners[d] || (devOwners[d] = [])).push(u); });
       }
       Object.values(devOwners).filter(l => l.length > 1).forEach(l => {
         const ids = l.map(u => u.uid).sort().join('+');
-        flag(`dup:${ids}`, l[l.length - 1], '👥 Plusieurs comptes, même appareil', l.map(u => u.pseudo).join(', '));
+        flag(`dup:${ids}`, l[l.length - 1], '👥 Plusieurs comptes, même appareil', l.map(u => u.pseudo).join(', '), 'dup');
       });
       Object.keys(H).forEach(k => { if (!H[k].length || now - H[k][H[k].length - 1][0] > 86400000) delete H[k]; });
       Object.keys(SEEN).forEach(k => { if (now - SEEN[k] > 14 * 86400000) delete SEEN[k]; });
-      if (reports.length) {
-        const old = ((await getDoc(meRef)).data() || {}).modReports || [];
-        await updateDoc(meRef, { modReports: old.concat(reports).slice(-60), updatedAt: now });
-        log('modération :', reports.length, 'signalement(s)');
-        const admin = TC.ADMIN_UID;
-        for (const s of subs.filter(s => s.uid === admin && !s.dead)) await push(s, { title: `🤖 Modération : ${reports.length} signalement${reports.length > 1 ? 's' : ''}`, body: reports.slice(0, 3).map(r => `${r.kind} : ${r.pseudo}`).join(' · '), tag: 'mod', url: './' });
+      // Sanctions automatiques : si le créateur n'a rien décidé au bout de 3 h, Sentinelle agit elle-même.
+      // Fortune suspecte : blocage 24 h (7 jours en cas de récidive). Pseudo interdit : bloqué jusqu'à ce qu'il le change.
+      // Clan ou discours interdit : 24 h. Doubles comptes (déjà bloqués par le jeu) et demandes de récompense (validées par le créateur) : simple signalement.
+      // Le créateur peut tout annuler (admin/mod.undo) ; un signalement qu'il a coché (admin/mod.done) n'est jamais sanctionné.
+      const AUTO = +process.env.MOD_AUTO_MS || 3 * 3600000;
+      // signalements : dans la sauvegarde privée du robot (lisible seulement par lui et le créateur) ; sanctions : dans son profil public
+      const svRef = doc(db, 'saves', botUid);
+      const md = (await getDoc(meRef)).data() || {}, sv = (await getDoc(svRef)).data() || {};
+      const all = (sv.modReports || md.modReports || []).concat(reports).slice(-60);
+      const blocks = Object.assign({}, md.modBlocks || {});
+      let adm = {}, bans = {};
+      try { const m = await getDoc(doc(db, 'admin', 'mod')); adm = m.exists() ? m.data() : {}; } catch (e) { }
+      try { const b = await getDoc(doc(db, 'admin', 'bans')); bans = (b.exists() && b.data().users) || {}; } catch (e) { }
+      const done = adm.done || {}, undo = adm.undo || {}, strikes = st.mod.strikes || (st.mod.strikes = {});
+      const byUid = Object.fromEntries(live.map(u => [u.uid, u]));
+      let changed = reports.length > 0; const acted = [];
+      for (const r of all) {
+        if (r.acted || done[r.id] || now - r.at < AUTO) continue;
+        r.acted = now; changed = true;
+        const u = byUid[r.uid];
+        if (!u) { r.action = 'Joueur introuvable'; continue; }
+        if ((undo[r.uid] || 0) > r.at) { r.action = 'Annulé par le créateur'; continue; }
+        if (bans[r.uid]) { r.action = 'Déjà bloqué par le créateur'; continue; }
+        let b = null;
+        if (r.type === 'fortune') { const n = strikes[r.uid] = (strikes[r.uid] || 0) + 1; const d = n > 1 ? 7 : 1; b = { until: now + d * 86400000, reason: `${r.kind.replace(/^\S+\s/, '')} (${r.detail}). Vérification en cours.`, label: `bloqué ${d === 1 ? '24 h' : '7 jours'}` }; }
+        else if (r.type === 'mot-pseudo') { if (!isBad(u.pseudo)) { r.action = 'Déjà corrigé par le joueur'; continue; } b = { until: 0, need: 'pseudo', reason: 'Ton pseudo contient des mots interdits. Change-le pour débloquer ton compte.', label: 'bloqué jusqu\'au changement de pseudo' }; }
+        else if (r.type === 'mot-clan' || r.type === 'mot-discours') b = { until: now + 86400000, reason: `Propos interdits dans ${r.type === 'mot-clan' ? 'le nom de ton clan' : 'ton discours de maire'}.`, label: 'bloqué 24 h' };
+        else { r.action = 'Signalement seulement'; continue; }
+        const label = b.label; delete b.label;
+        blocks[r.uid] = { at: now, rid: r.id, kind: r.type, pseudo: u.pseudo || '', ...b };
+        r.action = '🤖 ' + label[0].toUpperCase() + label.slice(1); acted.push({ r, u, b });
       }
+      // levée des sanctions : durée finie, pseudo corrigé, annulation du créateur
+      for (const [uid, bk] of Object.entries(blocks)) {
+        const u = byUid[uid];
+        const lift = !u || (undo[uid] || 0) > bk.at || (bk.until && bk.until < now) || (bk.need === 'pseudo' && !isBad(u.pseudo));
+        if (lift) { delete blocks[uid]; changed = true; log('sanction levée :', bk.pseudo); }
+      }
+      if (changed || md.modReports || !md.modRound || now - md.modRound > 3600000) {
+        const b = writeBatch(db);
+        if (changed || md.modReports) b.set(svRef, { modReports: all, updatedAt: now }, { merge: true });
+        b.update(meRef, { modBlocks: blocks, modReports: null, modRound: now, modTotal: (md.modTotal || 0) + reports.length, updatedAt: now });
+        await b.commit();
+      }
+      const admin = TC.ADMIN_UID;
+      if (reports.length) {
+        log('modération :', reports.length, 'signalement(s)');
+        for (const s of subs.filter(s => s.uid === admin && !s.dead)) await push(s, { title: `🤖 Sentinelle : ${reports.length} signalement${reports.length > 1 ? 's' : ''}`, body: reports.slice(0, 3).map(r => `${r.kind} : ${r.pseudo}`).join(' · ') + ' (j\'agis dans 3 h si tu ne fais rien)', tag: 'mod', url: './' });
+      }
+      for (const { r, u, b } of acted) {
+        log('sanction :', u.pseudo, r.action);
+        for (const s of subs.filter(s => s.uid === u.uid && !s.dead)) await push(s, { title: '🤖 Sentinelle a suspendu ton compte', body: b.reason, tag: 'mod', url: './' });
+      }
+      if (acted.length) for (const s of subs.filter(s => s.uid === admin && !s.dead)) await push(s, { title: `🤖 Sentinelle a agi : ${acted.length} sanction${acted.length > 1 ? 's' : ''}`, body: acted.slice(0, 3).map(x => `${x.u.pseudo} : ${x.r.action.replace('🤖 ', '')}`).join(' · '), tag: 'mod2', url: './' });
     } catch (e) { log('modération', e.message); }
 
     // Objectif 100 joueurs : une notification par jour (vers 18 h, heure de Paris) pour inviter à partager
