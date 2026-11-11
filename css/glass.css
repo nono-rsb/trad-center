@@ -667,3 +667,13 @@ button.nw { border: 0; background: none; color: inherit; font: inherit; cursor: 
 .bi-steps { text-align: left; padding-left: 22px; display: flex; flex-direction: column; gap: 8px; font-size: 15px; } .bi-ic { display: inline-block; padding: 0 6px; border-radius: 8px; background: rgba(255,255,255,.12); }
 .bi-link { display: flex; gap: 8px; } .bi-link input { flex: 1; min-width: 0; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.15); border-radius: 12px; padding: 9px 10px; color: var(--text); font-size: 12px; }
 .cc-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 10px; } .cc-actions .btn { text-decoration: none; }
+/* Récompenses de partage */
+.sh-claims { display: flex; flex-direction: column; gap: 6px; margin: 10px 0; padding: 12px; border-radius: 16px; background: rgba(255,255,255,.06); text-align: left; } .sh-claims .btn { justify-content: space-between; text-align: left; }
+.adm-claims { margin-bottom: 12px; padding: 10px; border-radius: 14px; background: rgba(255,213,96,.1); border: 1px solid rgba(255,213,96,.35); } .adm-claims h4 { margin: 0 0 8px; }
+.adm-claim { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,.08); } .adm-claim > div { flex: 1; min-width: 0; } .adm-claim small { display: block; color: var(--muted); font-size: 11px; }
+.sh-end { color: var(--accent2) !important; font-size: 12px; }
+/* preuves de partage */
+.pf-pick { display: block; text-align: center; padding: 14px; border-radius: 16px; border: 2px dashed rgba(255,213,96,.5); cursor: pointer; font-weight: 700; } .pf-pick input { display: none; }
+.pf-img { display: block; max-width: 100%; max-height: 40vh; margin: 10px auto; border-radius: 12px; }
+.pf-view { position: fixed; inset: 0; z-index: 600; background: rgba(0,0,0,.9); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 16px; color: #fff; text-align: center; }
+.pf-view img { max-width: 100%; max-height: 80vh; border-radius: 12px; } .pf-view small { color: #aaa; }
