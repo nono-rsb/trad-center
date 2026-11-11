@@ -154,6 +154,25 @@
   };
   N.resendVerification = () => N.user.sendEmailVerification();
   N.refreshUser = async () => { await N.user.reload(); N.user = auth.currentUser; emit('change'); };
+  // Supprimer son compte (RGPD) : partie, amis, demandes, pseudo réservé et e-mail effacés ;
+  // le profil public est anonymisé (« Compte supprimé ») et retiré des classements.
+  N.deleteAccount = async function (password) {
+    if (!N.user || !N.user.email) throw userErr('Connecte-toi d\'abord.');
+    const cred = firebase.auth.EmailAuthProvider.credential(N.user.email, password || '');
+    try { await N.user.reauthenticateWithCredential(cred); } catch (e) { throw userErr('Mot de passe incorrect.'); }
+    const uid = N.user.uid, p = N.profile || {};
+    if (TC.Clan && p.clanId) { try { await TC.Clan.leave(); } catch (e) { } }
+    const safe = async f => { try { await f(); } catch (e) { console.warn('suppression', e); } };
+    await safe(() => db.collection('saves').doc(uid).delete());
+    for (const f of (N.friends || [])) await safe(() => db.collection('friendships').doc(pairId(uid, f.uid)).delete());
+    for (const r of (N.incoming || []).concat(N.outgoing || [])) await safe(() => db.collection('friendRequests').doc(r.id).delete());
+    for (const k of [...new Set([p.nameKey, p.pseudoLower].filter(Boolean))]) await safe(() => db.collection('usernames').doc(k).delete());
+    await safe(() => db.collection('users').doc(uid).update({ deleted: true, displayName: 'Compte supprimé', avatar: '👤', nw: 0, rank: '', items: 0, topItem: null, push: {}, devs: [], outbox: [], look: {}, plusUntil: 0, city: null, clanId: null, clanTag: null, clanDef: null, shareClaims: null, plusGiftTo: [], plusGifts: {}, drop: null, speech: null, updatedAt: Date.now() }));
+    linked = false;
+    await N.user.delete();
+    try { localStorage.removeItem('tradcenter.guest'); } catch (e) { }
+    G.reset(false); location.reload();
+  };
   N.signOut = async function () {
     await N.flush();
     await auth.signOut();
@@ -395,7 +414,7 @@
     N.boardScope = scope;
     if (scope === 'friends') { N.board = null; emit('change'); return; }
     const snap = await db.collection('users').orderBy('nw', 'desc').limit(50).get();
-    N.board = snap.docs.map(d => prof(d.id, d.data())).filter(u => !u.bot && !(TC.Admin && TC.Admin.isBanned(u.uid)));
+    N.board = snap.docs.map(d => prof(d.id, d.data())).filter(u => !u.bot && !u.deleted && !(TC.Admin && TC.Admin.isBanned(u.uid)));
     emit('change');
   };
 })();

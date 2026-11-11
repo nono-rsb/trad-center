@@ -53,6 +53,7 @@
       <div class="auth-err" id="a-err"></div>
       <button class="btn btn-gold btn-xl" data-soc="${up ? 'signup' : 'login'}">${up ? 'Créer mon compte' : 'Se connecter'}</button>
       ${document.body.classList.contains('gated') ? '<button class="btn btn-ghost gate-guest" data-guest>👤 Jouer en invité</button><p class="hint gate-gh">En invité, ta partie reste sur cet appareil : pas d\'amis, pas de classement ni de ville en ligne. Tu pourras créer ton compte plus tard (onglet Amis).</p>' : ''}
+      <p class="hint">En créant un compte, tu acceptes les <a href="confidentialite.html">conditions d'utilisation et la politique de confidentialité</a>.</p>
       ${up ? `<p class="hint">Votre partie actuelle (${fmt.eur(G.netWorth())}) sera rattachée au compte. Un e-mail de confirmation vous sera envoyé.</p>` : `<button class="btn btn-ghost btn-sm" data-soc="forgot">Mot de passe oublié ?</button>`}
     </div>`;
   }

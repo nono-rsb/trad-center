@@ -286,7 +286,8 @@
       <div class="kv"><span>Pseudo</span><b>${esc((N.profile && N.profile.pseudo) || '')}</b><span>E-mail</span><b>${esc(N.user.email)}</b><span>Mot de passe</span><b>••••••••</b></div>
       <p class="hint">🔒 Ton mot de passe n'est jamais enregistré en clair, même pas par le jeu : personne ne peut le lire. Si tu l'as oublié, change-le ou reçois un e-mail pour le réinitialiser.</p>
       <div class="modal-actions left"><button class="btn" id="b-pw">🔑 Changer mon mot de passe</button><button class="btn btn-ghost" id="b-pwmail">📧 Mot de passe oublié</button></div>
-      <button class="btn btn-sell logout-btn" id="b-logout">🚪 Se déconnecter</button>` : N && N.enabled ? `<h4>👤 Mon compte</h4><p class="hint">Tu joues en invité : ta partie n'est que sur cet appareil.</p><button class="btn btn-gold logout-btn" id="b-login">🔐 Se connecter ou créer un compte</button>` : ''}
+      <button class="btn btn-sell logout-btn" id="b-logout">🚪 Se déconnecter</button>
+      <button class="btn btn-ghost btn-sm del-btn" id="b-delacc">🗑️ Supprimer mon compte</button>` : N && N.enabled ? `<h4>👤 Mon compte</h4><p class="hint">Tu joues en invité : ta partie n'est que sur cet appareil.</p><button class="btn btn-gold logout-btn" id="b-login">🔐 Se connecter ou créer un compte</button>` : ''}
       <h4>Jeu</h4>
       <button class="btn" id="b-cheat">🎮 Entrer un code de triche</button>
       <label class="tgl"><input type="checkbox" id="s-expert" ${S().expert ? 'checked' : ''}><span>⚡ Mode expert : trading à levier (x2 à x100, plus risqué)</span></label>
@@ -296,10 +297,28 @@
       <button class="btn" id="b-sound2">${S().sound ? '🔊 Activés — couper' : '🔇 Coupés — activer'}</button>
       <h4>Sauvegarde</h4>
       <div class="modal-actions left"><button class="btn" id="b-export">📤 Exporter</button><button class="btn" id="b-import">📥 Importer</button></div>
+      <h4>🔒 Confidentialité</h4>
+      <p class="hint">Ce que le jeu fait de tes données, tes droits et les règles du jeu.</p>
+      <a class="btn" href="confidentialite.html">📄 Confidentialité et conditions</a>
       <h4>Zone dangereuse</h4>
       <button class="btn btn-sell" id="b-reset">🗑️ Recommencer une partie à 10 €</button>
       </div>`);
     const pwb = md.el.querySelector('#b-pw'); if (pwb) pwb.onclick = () => changePw();
+    const da = md.el.querySelector('#b-delacc'); if (da) da.onclick = () => {
+      const m2 = TC.modal(`<h2>🗑️ Supprimer mon compte</h2><div class="modal-body">
+        <p>Ta partie, ton argent, tes objets, tes amis et ton adresse e-mail seront <b>définitivement effacés</b>. C'est irréversible.</p>
+        <p class="hint">Astuce : tu peux d'abord exporter ta sauvegarde (Paramètres → Sauvegarde → Exporter).</p>
+        <label class="fld">Ton mot de passe, pour confirmer<div class="inp pw"><input id="del-pw" type="password" autocomplete="current-password"><button type="button" class="eye" data-eye="del-pw">👁️</button></div></label>
+        <label class="fld">Écris <b>SUPPRIMER</b><div class="inp"><input id="del-ok" autocomplete="off"></div></label>
+        <div class="auth-err" id="del-err"></div>
+        <div class="modal-actions"><button class="btn btn-ghost" data-close>Annuler</button><button class="btn btn-sell" id="del-go">Supprimer définitivement</button></div></div>`);
+      m2.el.querySelector('#del-go').onclick = async e => {
+        const b = e.target, err = m2.el.querySelector('#del-err');
+        if (m2.el.querySelector('#del-ok').value.trim().toUpperCase() !== 'SUPPRIMER') { err.textContent = 'Écris SUPPRIMER pour confirmer.'; return; }
+        b.disabled = true; err.textContent = '';
+        try { await N.deleteAccount(m2.el.querySelector('#del-pw').value); } catch (x) { err.textContent = x.userMsg || N.errMsg(x); b.disabled = false; }
+      };
+    };
     const li = md.el.querySelector('#b-login'); if (li) li.onclick = () => { try { localStorage.removeItem('tradcenter.guest'); } catch (e) { } location.reload(); };
     const lo = md.el.querySelector('#b-logout'); if (lo) lo.onclick = async () => {
       if (!(await TC.confirm('Se déconnecter ?', 'Ta partie reste sauvegardée sur ton compte : tu la retrouveras en te reconnectant. Cet appareil revient à l\'écran de connexion.', 'Se déconnecter', 'btn-sell'))) return;

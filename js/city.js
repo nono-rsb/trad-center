@@ -281,7 +281,7 @@
     loading = true;
     try {
       const snap = await N.db().collection('users').orderBy('nw', 'desc').limit(60).get();
-      const list = snap.docs.map(d => N.prof(d.id, d.data())).filter(u => !u.bot && !(TC.Admin && TC.Admin.isBanned(u.uid)));
+      const list = snap.docs.map(d => N.prof(d.id, d.data())).filter(u => !u.bot && !u.deleted && !(TC.Admin && TC.Admin.isBanned(u.uid)));
       (N.friends || []).forEach(f => { if (!list.some(u => u.uid === f.uid)) list.push(f); });
       players = list; loadedAt = Date.now();
     } catch (e) { console.warn('city', e); players = players || []; }
