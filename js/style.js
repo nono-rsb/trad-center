@@ -15,6 +15,7 @@
     wrist:  { label: 'Poignet',   icon: '⌚' },
     feet:   { label: 'Pieds',     icon: '👟' },
     frame:  { label: 'Cadre',     icon: '🖼️' },
+    icon:   { label: 'Icône',     icon: '📱' },
     creator: { label: 'Créateur', icon: '👑', creator: true },
   };
   /* ---------- Créateur du jeu : badge vérifié multicolore + bonus (réservé au compte TC.ADMIN_UID) ---------- */
@@ -151,9 +152,9 @@
     const prevCard = document.querySelector('#modal.open .modal-card.wide'), keepTop = prevCard ? prevCard.scrollTop : 0;
     const me = ST.mine(), plus = ST.isPlus(me), p = S().plus || {};
     if (tab === 'creator' && !ST.isCreator()) tab = 'body';
-    const items = tab === 'face' || tab === 'body' || tab === 'creator' ? null : ST.ITEMS.filter(i => i.slot === tab && (!i.creator || ST.isCreator()));
+    const items = tab === 'face' || tab === 'body' || tab === 'creator' || tab === 'icon' ? null : ST.ITEMS.filter(i => i.slot === tab && (!i.creator || ST.isCreator()));
     const cb = st().look.cb || 'arcenciel';
-    const grid = tab === 'creator' ? `<div class="cr-tab"><div class="cr-hero"><span class="vbadge cr cr-${cb} xl">✓</span><div><b>Créateur de Trad Center</b><small>Ton badge est unique : il ne peut s'afficher que sur ton compte.</small></div></div>
+    const grid = tab === 'icon' ? (TC.AppIcon ? TC.AppIcon.panel() : '') : tab === 'creator' ? `<div class="cr-tab"><div class="cr-hero"><span class="vbadge cr cr-${cb} xl">✓</span><div><b>Créateur de Trad Center</b><small>Ton badge est unique : il ne peut s'afficher que sur ton compte.</small></div></div>
         <h4>Couleur de ton badge</h4><div class="cr-badges">${ST.CBADGES.map(([k, l]) => `<button data-cb="${k}" class="${cb === k ? 'on' : ''}"><span class="vbadge cr cr-${k}">✓</span>${l}</button>`).join('')}</div>
         <div class="cr-inf"><b>♾️ Argent illimité</b><small>Toujours actif : 1 000 milliards d'euros, rechargés tout seuls. Tu peux en donner à qui tu veux.</small></div>
         <button class="btn ${st().look.frame === 'fr_creator' ? 'btn-ghost' : 'btn-gold'}" data-eq="fr_creator">${st().look.frame === 'fr_creator' ? 'Retirer le halo du créateur' : '👑 Porter le halo du créateur'}</button>
@@ -204,6 +205,7 @@
       <div class="news">
         <div class="news-i"><span><span class="vbadge">✓</span></span><div><b>Badge vérifié</b><small>À côté de ton pseudo : amis, classements, demandes d'ami.</small></div></div>
         <div class="news-i"><span>🖼️</span><div><b>Cadre exclusif « vérifié »</b><small>Un halo bleu animé autour de ton avatar.</small></div></div>
+        <div class="news-i"><span>📱</span><div><b>Logo de l'écran d'accueil au choix</b><small>Or, Diamant, Néon, Arc-en-ciel, Bitcoin… (Mon style → 📱 Icône).</small></div></div>
         <div class="news-i"><span>🎁</span><div><b>Bonus quotidien +50 %</b><small>15 € par jour au lieu de 10 € (30 € en décembre).</small></div></div>
         <div class="news-i"><span>🤝</span><div><b>Offre le vérifié à tes amis</b><small>1 semaine offerte à 3 amis chaque mois, ou parraine un ami pour 100 € de plus par mois.</small></div></div>
       </div>

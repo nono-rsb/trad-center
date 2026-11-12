@@ -10,6 +10,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="manifest" href="manifest.webmanifest">
+  <script>/* icône d'écran d'accueil choisie (membres vérifiés) : appliquée avant que le navigateur lise le manifeste */try{var ik=localStorage.getItem('tradcenter.icon');if(ik&&/^[a-z]+$/.test(ik)){document.querySelector('link[rel=manifest]').href='manifest-icon-'+ik+'.webmanifest';document.querySelector('link[rel=apple-touch-icon]').href='icons/alt/'+ik+'-180.png';}}catch(e){}</script>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Trad Center">
@@ -122,6 +123,7 @@
   <script src="js/chest.js"></script>
   <script src="js/style.js"></script>
   <script src="js/avatar.js"></script>
+  <script src="js/appicon.js"></script>
   <script src="js/plusgift.js"></script>
   <script src="js/teddy.js"></script>
   <script src="js/quiz.js"></script>

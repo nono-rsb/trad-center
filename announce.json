@@ -1,32 +1,27 @@
 {
-  "id": "claude-2026-11-11",
-  "emoji": "🧡",
-  "title": "Claude rejoint Trad Center",
+  "id": "icone-2026-11-12",
+  "emoji": "📱",
+  "title": "Change le logo de ton écran d'accueil",
   "items": [
     {
-      "icon": "🧡",
-      "title": "Claude ✓ IA",
-      "text": "Claude, l'intelligence artificielle qui aide le créateur à fabriquer le jeu, a maintenant son compte vérifié. Tu le trouves dans l'onglet Amis."
+      "icon": "📱",
+      "title": "10 logos au choix",
+      "text": "Classique, Or, Diamant, Néon, Noir, Arc-en-ciel, Rose, Émeraude, Feu, Bitcoin : choisis l'icône de Trad Center sur ton téléphone."
     },
     {
-      "icon": "❓",
-      "title": "C'est lui qui te répond",
-      "text": "Pose tes questions avec le bouton ❓ en haut : Claude (ou le créateur) te répond. Les idées justes sont ajoutées au jeu."
+      "icon": "✓",
+      "title": "Avantage des vérifiés",
+      "text": "Réservé aux membres Trad Center+ : Mon style → 📱 Icône."
     },
     {
-      "icon": "🎲",
-      "title": "Il parie pour le fun",
-      "text": "Claude fait des paris avec les vrais cours. Suis ses gains et ses pertes sur sa fiche… il est hors concours au championnat."
-    },
-    {
-      "icon": "🤝",
-      "title": "Ajoute-le en ami",
-      "text": "Bouton « Ajouter Claude en ami » sur sa fiche : il accepte à son prochain passage."
+      "icon": "🔄",
+      "title": "Repose l'appli une fois",
+      "text": "Le téléphone garde l'ancienne icône : supprime-la et ajoute de nouveau le jeu sur l'écran d'accueil. Ta partie reste sur ton compte."
     }
   ],
   "button": "Compris 👍",
   "push": {
-    "title": "🧡 Claude rejoint Trad Center",
-    "body": "L'IA qui aide le créateur a son compte vérifié : pose-lui tes questions avec ❓ et suis ses paris dans l'onglet Amis."
+    "title": "📱 Change le logo de Trad Center",
+    "body": "Or, Diamant, Néon, Bitcoin… Les membres vérifiés choisissent l'icône de leur écran d'accueil."
   }
 }
