@@ -310,7 +310,7 @@
       <p class="hint">Solde : ${fmt.eur(S().cash)}. La Protection acheteurs te rembourse si l'article est une contrefaçon (litige sous 1 h après réception).</p>
       <div class="modal-actions"><button class="btn btn-ghost" data-close>Annuler</button><button class="btn btn-gold" id="oz-pay">Payer ${fmt.eur(tot)}</button></div></div>`);
     md.el.querySelector('#oz-pay').onclick = async () => {
-      try { if (TC.Pass) await TC.Pass.check(); buyNow(l, price); if (conv) { conv.state = 'paid'; conv.msgs.push({ me: 1, t: Date.now(), txt: 'Payé ✅' }); } md.close(); TC.toast('✅ Acheté ! Le colis arrive dans environ une minute (Profil → livraison).', 'ok', 6000); O.view = null; G.save(); render(); }
+      try { buyNow(l, price); if (conv) { conv.state = 'paid'; conv.msgs.push({ me: 1, t: Date.now(), txt: 'Payé ✅' }); } md.close(); TC.toast('✅ Acheté ! Le colis arrive dans environ une minute (Profil → livraison).', 'ok', 6000); O.view = null; G.save(); render(); }
       catch (e) { TC.toast(e.userMsg || e.message, 'bad'); }
     };
   }

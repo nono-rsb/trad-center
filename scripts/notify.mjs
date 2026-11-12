@@ -423,7 +423,7 @@ async function main() {
         const per = {}; cl.forEach(c => { per[c.kind] = (per[c.kind] || 0) + 1; });
         Object.entries(per).forEach(([k, n]) => { if (n > 3) flag(`${u.uid}:claims:${k}:${day}`, u, '📣 Demandes abusives', `${n} demandes « ${k} » en 24 h`, 'claims'); });
         // 5. appareils partagés (doubles comptes)
-        (u.devs || []).forEach(d => { (devOwners[d] || (devOwners[d] = [])).push(u); });
+        if (!u.guest) (u.devs || []).forEach(d => { (devOwners[d] || (devOwners[d] = [])).push(u); }); // invités exclus
       }
       Object.values(devOwners).filter(l => l.length > 1).forEach(l => {
         const ids = l.map(u => u.uid).sort().join('+');
