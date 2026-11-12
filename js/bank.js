@@ -13,7 +13,7 @@
 
   /* ---------- Relevé : sens et libellé de chaque opération ---------- */
   const IN = { sell: 1, itemsell: 1, rent: 1, biz: 1, recv: 1, close: 1, liq: 1, betres: 1 };
-  const LBL = { buy: '📈 Achat', sell: '📉 Vente', open: '⚡ Position levier', close: '✅ Clôture levier', liq: '💀 Liquidation', bet: '🎲 Pari', betres: '🎲 Pari terminé', item: '🛍️ Achat', itemsell: '♻️ Revente', rent: '🏠 Loyers', biz: '🏪 Commerces', bonus: '🎁 Bonus', send: '📤 Virement émis', recv: '📥 Virement reçu' };
+  const LBL = { fine: '🛡️ Correction', buy: '📈 Achat', sell: '📉 Vente', open: '⚡ Position levier', close: '✅ Clôture levier', liq: '💀 Liquidation', bet: '🎲 Pari', betres: '🎲 Pari terminé', item: '🛍️ Achat', itemsell: '♻️ Revente', rent: '🏠 Loyers', biz: '🏪 Commerces', bonus: '🎁 Bonus', send: '📤 Virement émis', recv: '📥 Virement reçu' };
   function op(l) {
     let sign = IN[l.kind] ? 1 : -1;
     if (l.kind === 'bonus') sign = (l.eur || 0) >= 0 ? 1 : -1;

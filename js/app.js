@@ -282,7 +282,13 @@
       <div class="kv"><span>Crypto (Binance)</span><b>${h.binance}</b><span>Bourse (Yahoo Finance)</span><b>${h.yahoo}</b><span>Devises</span><b>${D.fxStatus}</b><span>1 € =</span><b>${fmt.num(D.fx.USD, 4)} $</b></div>
       <p class="hint">Si votre réseau bloque une source, le jeu utilise le dernier cours connu puis une simulation (badge SIM) jusqu'au retour de la connexion.</p>
       <div class="modal-actions left"><button class="btn" id="b-help2">❔ Aide</button><button class="btn" id="b-notif2">🔔 Notifications</button></div>
-      ${N && N.user && N.user.email ? `<h4>👤 Mon compte</h4>
+      ${N && N.isGuest && N.isGuest() ? `<h4>👤 Mon compte</h4><div class="kv"><span>Pseudo</span><b>${esc((N.profile && N.profile.pseudo) || '')} <span class="guesttag">Invité</span></b></div>
+      <p class="hint">Tu joues en invité : tu es dans les classements et le championnat, mais sans e-mail ta partie est perdue si tu changes de téléphone ou vides ton navigateur. Crée ton compte : tu gardes tout (argent, objets, amis).</p>
+      <label class="fld">E-mail<div class="inp"><input id="g-email" type="email" autocomplete="email" placeholder="toi@exemple.fr"></div></label>
+      <label class="fld">Mot de passe (6 caractères min.)<div class="inp pw"><input id="g-pw" type="password" autocomplete="new-password"><button type="button" class="eye" data-eye="g-pw">👁️</button></div></label>
+      <div class="auth-err" id="g-err"></div>
+      <button class="btn btn-gold logout-btn" id="b-upgrade">✅ Créer mon compte (je garde ma partie)</button>
+      <button class="btn btn-ghost btn-sm" id="b-login">🔐 J'ai déjà un compte : me connecter</button>` : N && N.user && N.user.email ? `<h4>👤 Mon compte</h4>
       <div class="kv"><span>Pseudo</span><b>${esc((N.profile && N.profile.pseudo) || '')}</b><span>E-mail</span><b>${esc(N.user.email)}</b><span>Mot de passe</span><b>••••••••</b></div>
       <p class="hint">🔒 Ton mot de passe n'est jamais enregistré en clair, même pas par le jeu : personne ne peut le lire. Si tu l'as oublié, change-le ou reçois un e-mail pour le réinitialiser.</p>
       <div class="modal-actions left"><button class="btn" id="b-pw">🔑 Changer mon mot de passe</button><button class="btn btn-ghost" id="b-pwmail">📧 Mot de passe oublié</button></div>
@@ -324,7 +330,18 @@
         try { await N.deleteAccount(m2.el.querySelector('#del-pw').value); } catch (x) { err.textContent = x.userMsg || N.errMsg(x); b.disabled = false; }
       };
     };
-    const li = md.el.querySelector('#b-login'); if (li) li.onclick = () => { try { localStorage.removeItem('tradcenter.guest'); } catch (e) { } location.reload(); };
+    const li = md.el.querySelector('#b-login'); if (li) li.onclick = async () => {
+      if (N.isGuest && N.isGuest()) { // se connecter à un autre compte : la partie invité serait perdue
+        if (!(await TC.confirm('Se connecter à un autre compte ?', 'Ta partie d\'invité sera <b>perdue</b> (crée plutôt ton compte pour la garder).', 'Continuer', 'btn-sell'))) return;
+        try { localStorage.removeItem('tradcenter.guest'); } catch (e) { } try { await N.signOut(); } catch (e) { location.reload(); } return;
+      }
+      try { localStorage.removeItem('tradcenter.guest'); } catch (e) { } location.reload();
+    };
+    const up = md.el.querySelector('#b-upgrade'); if (up) up.onclick = async () => {
+      const err = md.el.querySelector('#g-err'); err.textContent = ''; up.disabled = true;
+      try { await N.upgradeGuest(md.el.querySelector('#g-email').value, md.el.querySelector('#g-pw').value); md.close(); TC.toast('✅ Compte créé ! Ta partie est sauvegardée avec ton e-mail.', 'ok', 6000); TC.sound('ach'); }
+      catch (e) { err.textContent = e.userMsg || (N.errMsg ? N.errMsg(e) : e.message); up.disabled = false; }
+    };
     const lo = md.el.querySelector('#b-logout'); if (lo) lo.onclick = async () => {
       if (!(await TC.confirm('Se déconnecter ?', 'Ta partie reste sauvegardée sur ton compte : tu la retrouveras en te reconnectant. Cet appareil revient à l\'écran de connexion.', 'Se déconnecter', 'btn-sell'))) return;
       try { localStorage.removeItem('tradcenter.guest'); } catch (e) { }

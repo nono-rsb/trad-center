@@ -108,10 +108,10 @@
     const s = await db.collection('usernames').doc(keyOf(pseudo)).get();
     return !s.exists;
   };
-  async function createProfile(uid, pseudo) {
+  async function createProfile(uid, pseudo, extra) {
     pseudo = checkPseudo(pseudo);
     const lower = keyOf(pseudo);
-    const prof = { pseudo, pseudoLower: lower, avatar: N.AVATARS[Math.floor(Math.random() * N.AVATARS.length)], nw: G.netWorth(), rank: G.rank().r[1], items: 0, topItem: null, createdAt: Date.now(), updatedAt: Date.now() };
+    const prof = Object.assign({ pseudo, pseudoLower: lower, avatar: N.AVATARS[Math.floor(Math.random() * N.AVATARS.length)], nw: G.netWorth(), rank: G.rank().r[1], items: 0, topItem: null, createdAt: Date.now(), updatedAt: Date.now() }, extra || {});
     const b = db.batch();
     b.set(db.collection('usernames').doc(lower), { uid });
     b.set(db.collection('users').doc(uid), prof);
@@ -143,6 +143,39 @@
     await linkSave();
   };
   N.signIn = (email, pw) => auth.signInWithEmailAndPassword(email.trim(), pw);
+  /* ---------------- Invités : compte en ligne anonyme (sans e-mail) ----------------
+   * L'invité apparaît dans les classements et participe au championnat. Il peut ensuite créer son vrai compte
+   * (e-mail + mot de passe) : même compte, même partie, rien n'est perdu. */
+  N.isGuest = () => !!(N.user && N.user.isAnonymous);
+  N.playGuest = async function () {
+    if (!auth) throw userErr('Mode en ligne indisponible');
+    N.creating = true;
+    try {
+      const cred = N.user && N.user.isAnonymous ? { user: N.user } : await auth.signInAnonymously();
+      const uid = cred.user.uid, have = await db.collection('users').doc(uid).get();
+      if (have.exists) N.profile = prof(uid, have.data());
+      else {
+        for (let i = 0; i < 6 && !N.profile; i++) {
+          const p = 'Invité' + Math.floor(1000 + Math.random() * 9000);
+          if (!(await N.pseudoFree(p))) continue;
+          try { N.profile = Object.assign({ uid }, await createProfile(uid, p, { guest: true })); } catch (e) { if (!/pris/.test(e.message || '')) throw e; }
+        }
+        if (!N.profile) throw userErr('Impossible de créer le compte invité, réessaie.');
+      }
+      N.needPseudo = false; N.ready = true; emit('change');
+      await linkSave();
+    } finally { N.creating = false; }
+  };
+  N.upgradeGuest = async function (email, pw) {
+    if (!N.isGuest()) throw userErr('Tu as déjà un compte.');
+    const cred = firebase.auth.EmailAuthProvider.credential(String(email || '').trim(), pw);
+    await auth.currentUser.linkWithCredential(cred); // même compte : la partie, l'argent et les amis sont gardés
+    await db.collection('users').doc(N.user.uid).update({ guest: false, updatedAt: Date.now() });
+    N.user = auth.currentUser; if (N.profile) N.profile.guest = false;
+    try { await N.user.sendEmailVerification(); } catch (e) { }
+    try { localStorage.removeItem('tradcenter.guest'); } catch (e) { }
+    emit('change');
+  };
   N.resetPassword = email => auth.sendPasswordResetEmail(email.trim());
   // Changer de mot de passe : Firebase demande de confirmer l'ancien juste avant
   N.changePassword = async function (current, next) {
