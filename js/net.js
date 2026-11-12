@@ -221,7 +221,7 @@
     const oldKey = N.profile.nameKey || N.profile.pseudoLower;
     if (p === N.profile.pseudo) throw userErr('C\'est déjà ton pseudo.');
     const last = N.profile.pseudoChangedAt || 0;
-    const forced = TC.Admin && TC.Admin.botBlocked && (TC.Admin.botBlocked(uid) || {}).need === 'pseudo'; // suspendu pour pseudo interdit : pas d'attente
+    const forced = TC.Admin && ((TC.Admin.botBlocked && (TC.Admin.botBlocked(uid) || {}).need === 'pseudo') || ((TC.Admin.bans || {})[uid] || {}).need === 'pseudo'); // pseudo refusé (robot ou créateur) : pas d'attente
     if (!forced && Date.now() - last < N.PSEUDO_COOLDOWN) throw userErr('Tu pourras rechanger de pseudo dans ' + TC.fmt.dur(N.PSEUDO_COOLDOWN - (Date.now() - last)) + '.');
     const ref = db.collection('users').doc(uid);
     if (key !== oldKey) {
