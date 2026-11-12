@@ -147,7 +147,7 @@
   };
   C.takeover = async function (p, id) {
     const b = C.byId[id], l = p.city.biz[id], price = C.takePrice(id, l);
-    const why = C.takeBlock(p, id) || (G.noGift && G.noGift()); if (why) return TC.toast(why, 'bad');
+    const why = C.takeBlock(p, id); if (why) return TC.toast(why, 'bad');
     const mayor = C.elected && C.elected.uid !== N.user.uid && C.elected.uid !== p.uid ? C.elected : null;
     const tax = mayor ? Math.round(price * C.TAX * 100) / 100 : 0, total = price + tax;
     if (S().cash < total) return TC.toast(`Il te faut ${fmt.eur(total)} de cash`, 'bad');

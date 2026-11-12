@@ -306,6 +306,7 @@ async function main() {
       const box = (u.outbox || []).filter(m => m && m.id && !st.done[m.id] && Date.now() - (m.at || 0) < 24 * 3600000).slice(-20);
       for (const m of box) {
         st.done[m.id] = Date.now();
+        if (u.uid === TC.ADMIN_UID && m.kind === 'transfer' && m.to) (st.cgift || (st.cgift = {}))[m.to] = Date.now(); // don du créateur : pas de la triche
         const from = pseudo[u.uid] || 'Un ami';
         if (m.kind === 'speech') { // discours du Maire élu : à tous, au plus un toutes les 6 h
           const prevId = weekOf(Date.now() - 7 * 86400000).id; st.speechAt = st.speechAt || {};
@@ -404,14 +405,15 @@ async function main() {
       const devOwners = {};
       for (const u of live) {
         const nw = +u.nw || 0;
+        const gifted = st.cgift && Date.now() - (st.cgift[u.uid] || 0) < 7 * 86400000; // a reçu un don du créateur cette semaine
         // 1. fortune qui explose sans raison apparente (x10 en moins de 2 h, au-delà de 20 000 €)
         const h = (H[u.uid] || []).filter(x => now - x[0] < 2 * 3600000); h.push([now, nw]); H[u.uid] = h.slice(-30);
         const low = Math.min(...h.map(x => x[1]));
-        if (nw > 20000 && low > 0 && nw > low * 10) flag(`${u.uid}:fortune:${day}`, u, '💰 Fortune suspecte', `de ${eu(low)} à ${eu(nw)} en moins de 2 h`, 'fortune');
-        if (nw > 1e10) flag(`${u.uid}:enorme`, u, '💰 Fortune démesurée', `${Math.round(nw / 1e9)} milliards d'euros`, 'fortune');
+        if (!gifted && nw > 20000 && low > 0 && nw > low * 10) flag(`${u.uid}:fortune:${day}`, u, '💰 Fortune suspecte', `de ${eu(low)} à ${eu(nw)} en moins de 2 h`, 'fortune');
+        if (!gifted && nw > 1e10) flag(`${u.uid}:enorme`, u, '💰 Fortune démesurée', `${Math.round(nw / 1e9)} milliards d'euros`, 'fortune');
         // 2. gain de la semaine énorme
         const wk = weekOf(now).field;
-        if (typeof u[wk] === 'number' && u[wk] > 1e6) flag(`${u.uid}:wk:${wk}`, u, '📈 Gain de semaine énorme', `+${eu(u[wk])} cette semaine`, 'fortune');
+        if (!gifted && typeof u[wk] === 'number' && u[wk] > 1e6) flag(`${u.uid}:wk:${wk}`, u, '📈 Gain de semaine énorme', `+${eu(u[wk])} cette semaine`, 'fortune');
         // 3. mots interdits (pseudo, clan, discours du maire)
         const texts = [['pseudo', u.pseudo], ['clan', u.clanDef && u.clanDef.name], ['clan', u.clanDef && u.clanDef.tag], ['discours', u.speech && u.speech.text]].filter(x => x[1]);
         const bad = texts.find(x => isBad(x[1]));
@@ -546,7 +548,7 @@ async function main() {
         }
       }
     }
-    prune(st.done, 3 * 86400000); prune(st.alerts, 30 * 86400000); prune(st.dead, 30 * 86400000); if (st.ann) prune(st.ann, 60 * 86400000);
+    prune(st.done, 3 * 86400000); if (st.cgift) prune(st.cgift, 30 * 86400000); prune(st.alerts, 30 * 86400000); prune(st.dead, 30 * 86400000); if (st.ann) prune(st.ann, 60 * 86400000);
     prune(st.done, 3 * 86400000); prune(st.alerts, 30 * 86400000); prune(st.dead, 30 * 86400000); if (st.ann) prune(st.ann, 60 * 86400000);
     st.lastRun = Date.now(); keepUsers(); saveState(st);
     if (sent || verbose) log('passage terminé,', sent, 'notification(s) envoyée(s)');

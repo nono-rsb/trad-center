@@ -350,7 +350,6 @@
   /* ---------------- Envois ---------------- */
   N.send = async function (friend, kind, asset, amount, msg) {
     if (TC.haptic) TC.haptic([25]); // « tic » dès qu'on appuie sur Envoyer
-    const ng = G.noGift && G.noGift(); if (ng) throw userErr(ng);
     const t = G.takeForTransfer(kind, asset, amount);
     if (!t.ok) throw userErr(t.msg);
     try {
