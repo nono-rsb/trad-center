@@ -7,6 +7,9 @@
   const { $, esc, fmt } = TC;
   const G = TC.Game, D = TC.Data, S = () => G.state;
   const B = TC.Bot = { PRICE: 100 };
+  // ordres du bot : marqués pour que les missions et l'XP ne comptent que ce que le joueur fait lui-même
+  const botBuy = (...a) => { B.auto = true; try { return G.buy(...a); } finally { B.auto = false; } };
+  const botSell = (...a) => { B.auto = true; try { return G.sell(...a); } finally { B.auto = false; } };
   const MODES = {
     prudent:   { label: '🛡️ Prudent',    tp: 0.02,  sl: 0.01,  trail: 0.006, maxPos: 2, th: 0.0015, bet: 0,    rsiMax: 68 },
     equilibre: { label: '⚖️ Équilibré',  tp: 0.035, sl: 0.018, trail: 0.01,  maxPos: 3, th: 0.0008, bet: 0.05, rsiMax: 74 },
@@ -41,15 +44,15 @@
         const target = ok ? total * w : 0, cur = val(id), diff = target - cur;
         if (!ok && cur > 0.5) { // sous sa moyenne 50 jours : on se protège
           const pos = port[id], h = S().holdings[id], qty = Math.min(pos.qty, h ? h.qty : 0);
-          const res = G.sell(id, qty); delete port[id];
+          const res = botSell(id, qty); delete port[id];
           if (res.ok) { record(b, res, `Protège ${id}`); act(`🛡️ ${id} passe sous sa moyenne 50 jours : mis de côté (${res.pnl >= 0 ? '+' : ''}${fmt.eur(res.pnl)})`); }
         } else if (ok && diff > Math.max(1, target * 0.2) && S().cash >= 1) { // en dessous de son poids : on complète
           const eur = Math.floor(Math.min(diff, S().cash, b.budget) * 100) / 100; if (eur < 1) continue;
-          const before = (S().holdings[id] || { qty: 0 }).qty, res = G.buy(id, eur);
+          const before = (S().holdings[id] || { qty: 0 }).qty, res = botBuy(id, eur);
           if (res.ok) { const q = S().holdings[id].qty - before, pos = port[id] || (port[id] = { qty: 0, cost: 0 }); pos.qty += q; pos.cost += eur; act(`💎 Investit ${fmt.eur(eur)} dans ${id} (objectif ${Math.round(w * 100)} %, tendance de fond haussière)`); }
         } else if (ok && -diff > Math.max(2, target * 0.25)) { // trop gros après une forte hausse : on encaisse une partie
           const p = D.eur(id), pos = port[id], qty = Math.min(pos.qty, -diff / p);
-          const cost = pos.cost * qty / pos.qty, res = G.sell(id, qty);
+          const cost = pos.cost * qty / pos.qty, res = botSell(id, qty);
           if (res.ok) { pos.qty -= qty; pos.cost -= cost; record(b, res, `Rééquilibre ${id}`); act(`⚖️ ${id} a beaucoup monté : encaisse ${fmt.eur(qty * p)} (${res.pnl >= 0 ? '+' : ''}${fmt.eur(res.pnl)})`); }
         }
       }
@@ -166,7 +169,7 @@
   function cryptoStorm() { const r = ret('BTC', 60); return r != null && r < -0.012; }
 
   function sellPart(b, id, qty, why) {
-    const res = G.sell(id, qty);
+    const res = botSell(id, qty);
     if (res.ok) { record(b, res, `Vend ${id}`); learn(b, id, res.pnl || 0); act(`${res.pnl >= 0 ? '🟢' : '🔴'} Vend ${id} (${why}) : ${res.pnl >= 0 ? '+' : ''}${fmt.eur(res.pnl)}`); }
     return res;
   }
@@ -237,7 +240,7 @@
         const byRisk = b.budget * 0.015 / slp, slot = b.budget / m.maxPos;
         const size = Math.floor(Math.min(free, slot, Math.max(slot * .4, byRisk)) * (0.6 + .4 * (pick.conf || .5)) * 100) / 100;
         const before = (S().holdings[pick.a.id] || { qty: 0 }).qty;
-        const res = size >= 1 ? G.buy(pick.a.id, size) : { ok: false };
+        const res = size >= 1 ? botBuy(pick.a.id, size) : { ok: false };
         if (res.ok) {
           const qty = S().holdings[pick.a.id].qty - before;
           b.pos[pick.a.id] = { qty, cost: size, entry: D.eur(pick.a.id), peak: D.eur(pick.a.id), at: Date.now() };
@@ -278,7 +281,7 @@
   B.setBudget = function (v) { const b = st(); b.budget = Math.max(1, Math.round(v * 100) / 100); G.save(true); if (TC.App) TC.App.after(); };
   function closeAll(b, which) {
     const book = which === 'port' ? (b.port || {}) : b.pos; let n = 0;
-    for (const id of Object.keys(book)) { const h = S().holdings[id]; const qty = Math.min(book[id].qty, h ? h.qty : 0); delete book[id]; if (qty > 0) { const r = G.sell(id, qty); if (r.ok) { record(b, r, `Vend ${id}`); n++; } } }
+    for (const id of Object.keys(book)) { const h = S().holdings[id]; const qty = Math.min(book[id].qty, h ? h.qty : 0); delete book[id]; if (qty > 0) { const r = botSell(id, qty); if (r.ok) { record(b, r, `Vend ${id}`); n++; } } }
     return n;
   }
   B.setMode = function (k) {

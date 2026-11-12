@@ -1,27 +1,42 @@
 {
-  "id": "invites-2026-11-12",
-  "emoji": "👤",
-  "title": "Les invités entrent dans la course",
+  "id": "chaque-jour-2026-11-12",
+  "emoji": "🔥",
+  "title": "Grosse mise à jour : reviens chaque jour !",
   "items": [
     {
-      "icon": "👤",
-      "title": "Invités dans les classements",
-      "text": "Tu joues sans e-mail ? Tu apparais maintenant dans le classement mondial (mention « Invité ») et tu participes au championnat des 500 €."
+      "icon": "🔥",
+      "title": "Série de jours",
+      "text": "Bouton 🔥 en haut : reviens chaque jour pour faire grandir ta série. Jour 7 : coffre offert. Jour 30 : cadre Flamme exclusif."
     },
     {
-      "icon": "✅",
-      "title": "Garde ta partie",
-      "text": "Paramètres → Mon compte → « Créer mon compte » : ajoute un e-mail et un mot de passe, tu gardes tout (argent, objets, amis)."
+      "icon": "🎯",
+      "title": "3 missions par jour",
+      "text": "De petites missions chaque jour, avec de l'argent et de l'XP à la clé."
     },
     {
-      "icon": "📱",
-      "title": "Et toujours",
-      "text": "Les vérifiés ✓ peuvent changer le logo de l'écran d'accueil (Mon style → 📱 Icône)."
+      "icon": "⭐",
+      "title": "Niveaux et saison",
+      "text": "Gagne de l'XP, monte de niveau (affiché à côté de ton pseudo) et débloque les 30 paliers de la saison : argent, coffres et cadres exclusifs."
+    },
+    {
+      "icon": "⚔️",
+      "title": "Duels entre amis",
+      "text": "Onglet Amis → ⚔️ : défie un ami. Le plus gros gain en 24 h remporte 100 € (200 € le mardi)."
+    },
+    {
+      "icon": "🏦",
+      "title": "Prêts de la banque",
+      "text": "Trad Banque → Prêt : emprunte jusqu'à la moitié de ton patrimoine. Intérêts de 5 à 25 %, à rembourser à temps !"
+    },
+    {
+      "icon": "🎉",
+      "title": "Un événement par jour",
+      "text": "Lundi sans frais, mardi des duels, mercredi XP ×2, jeudi Bitcoin, vendredi missions ×2, week-end bonus ×2."
     }
   ],
   "button": "Compris 👍",
   "push": {
-    "title": "👤 Les invités entrent dans la course",
-    "body": "Même sans e-mail, tu es dans le classement et le championnat des 500 €. Crée ton compte pour garder ta partie."
+    "title": "🔥 Missions, séries, duels et prêts !",
+    "body": "Grosse mise à jour : 3 missions par jour, série de jours, niveaux, saison, duels entre amis et prêts de la banque."
   }
 }

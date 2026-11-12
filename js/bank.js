@@ -12,8 +12,8 @@
   const pseudo = () => (N.profile && N.profile.pseudo) || 'toi';
 
   /* ---------- Relevé : sens et libellé de chaque opération ---------- */
-  const IN = { sell: 1, itemsell: 1, rent: 1, biz: 1, recv: 1, close: 1, liq: 1, betres: 1 };
-  const LBL = { fine: '🛡️ Correction', buy: '📈 Achat', sell: '📉 Vente', open: '⚡ Position levier', close: '✅ Clôture levier', liq: '💀 Liquidation', bet: '🎲 Pari', betres: '🎲 Pari terminé', item: '🛍️ Achat', itemsell: '♻️ Revente', rent: '🏠 Loyers', biz: '🏪 Commerces', bonus: '🎁 Bonus', send: '📤 Virement émis', recv: '📥 Virement reçu' };
+  const IN = { loan: 1, sell: 1, itemsell: 1, rent: 1, biz: 1, recv: 1, close: 1, liq: 1, betres: 1 };
+  const LBL = { loan: '🏦 Prêt reçu', repay: '🏦 Remboursement', fine: '🛡️ Correction', buy: '📈 Achat', sell: '📉 Vente', open: '⚡ Position levier', close: '✅ Clôture levier', liq: '💀 Liquidation', bet: '🎲 Pari', betres: '🎲 Pari terminé', item: '🛍️ Achat', itemsell: '♻️ Revente', rent: '🏠 Loyers', biz: '🏪 Commerces', bonus: '🎁 Bonus', send: '📤 Virement émis', recv: '📥 Virement reçu' };
   function op(l) {
     let sign = IN[l.kind] ? 1 : -1;
     if (l.kind === 'bonus') sign = (l.eur || 0) >= 0 ? 1 : -1;
@@ -41,6 +41,7 @@
       <div id="bk-card"></div>
       <div class="bk-bal"><div><small>Solde disponible</small><b>${fmt.eur(S().cash)}</b></div><div><small>Patrimoine total</small><b>${fmt.eur(nw)}</b></div></div>
       <div class="bk-quick"><button data-go="send">💸<span>Virement</span></button><button data-go="drop">📲<span>Trad Drop</span></button><button data-go="history">📜<span>Relevé</span></button><button data-go="advisor">💬<span>Conseiller</span></button></div>
+      ${TC.Loan ? TC.Loan.panel() : ''}
       <div class="bk-panel"><h3>7 derniers jours</h3><div class="bk-flow"><div><small>Entrées</small><b class="in">+${fmt.eur(tin)}</b></div><div><small>Sorties</small><b class="out">−${fmt.eur(tout)}</b></div></div></div>
       <div class="bk-panel"><h3>Dernières opérations <button class="bk-link" data-go="history">Tout voir</button></h3>${ops.length ? ops.map(opRow).join('') : '<div class="empty">Aucune opération pour l\'instant.</div>'}</div>
       ${TC.BankInstall && !TC.BankInstall.installed() ? '<button class="bk-install" data-bankinstall><img src="icons/bank-180.png" alt=""><div><b>Mets Trad Banque sur ton écran d\'accueil</b><small>Une vraie appli, à côté du jeu</small></div><span>📲</span></button>' : ''}
@@ -361,14 +362,15 @@
       case 'revenus': return `Revenus passifs : commerces <b>${fmt.eur(ph)}/h</b>, loyers <b>${fmt.eur(rent)}/h</b>, soit environ <b>${fmt.eur((ph + rent) * 24)}</b> par jour avant impôt. Pense à encaisser : la caisse des commerces est plafonnée à 24 h et les loyers à 48 h.`;
       case 'risque': return 'Règles d\'or : ne mets jamais tout sur un seul actif, utilise un stop-loss, évite le levier élevé (x10 = une baisse de 10 % efface tout), et ne parie pas plus de 5 % de ton argent d\'un coup.';
       case 'bot': { const b = s.bot; return b && b.unlocked ? `Ton bot est ${b.on ? '<b>allumé</b>' : 'en pause'}, avec un budget de ${fmt.eur(b.budget)} et un résultat de <b>${fmt.eur(b.pnl || 0)}</b>. Pour limiter les risques, active la pause automatique sur perte du jour (Réglages avancés).` : 'Tu n\'as pas encore le bot de trading (100 € dans Portefeuille). Il trade à ta place pendant que le jeu est ouvert, mais il peut aussi perdre.'; }
+      case 'pret': { const l = TC.Loan && S().loan; return l ? `Tu as un prêt : il reste <b>${fmt.eur(TC.Loan.debt())}</b> à rembourser${l.late ? ', <b>en retard</b> (pénalité de 10 %)' : ' avant le ' + fmt.time(l.end)}. Rembourse-le dès que tu as le cash : les intérêts font baisser ton patrimoine.` : `Tu peux emprunter jusqu'à <b>${fmt.eur(TC.Loan ? TC.Loan.max() : 50)}</b> (bloc 🏦 Prêt de l'accueil). Intérêts : 1 jour +5 %, 3 jours +12 %, 7 jours +25 %. Emprunte seulement si tu es sûr de pouvoir rembourser à temps.`; }
       case 'virement': return 'Pour un virement : onglet 💸 Virement, choisis un ami et un montant. Pour un ami à côté de toi, utilise le 📲 Trad Drop : il touche « Recevoir » et un QR code s\'affiche, tu touches « Envoyer » et tu vises son écran avec ta caméra : coche verte, c\'est envoyé.';
       default: return 'Je peux t\'aider sur : ton bilan, ta carte, où placer ton argent, tes impôts, tes revenus, les risques, le bot ou les virements. Choisis un sujet ci-dessous 👇';
     }
   }
-  const TOPICS = [['bilan', '📊 Mon bilan'], ['placer', '💡 Où placer mon argent ?'], ['carte', '💳 Ma prochaine carte'], ['revenus', '🏪 Mes revenus'], ['impots', '🏛️ Mes impôts'], ['risque', '⚠️ Limiter les risques'], ['bot', '🤖 Mon bot'], ['virement', '💸 Faire un virement']];
+  const TOPICS = [['bilan', '📊 Mon bilan'], ['placer', '💡 Où placer mon argent ?'], ['carte', '💳 Ma prochaine carte'], ['revenus', '🏪 Mes revenus'], ['impots', '🏛️ Mes impôts'], ['risque', '⚠️ Limiter les risques'], ['bot', '🤖 Mon bot'], ['virement', '💸 Faire un virement'], ['pret', '🏦 Emprunter']];
   function guess(q) {
     q = q.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-    const map = [['impot', 'impots'], ['tax', 'impots'], ['carte', 'carte'], ['gold', 'carte'], ['silver', 'carte'], ['diamond', 'carte'], ['goat', 'carte'], ['plac', 'placer'], ['invest', 'placer'], ['epargn', 'placer'], ['risque', 'risque'], ['levier', 'risque'], ['perd', 'risque'], ['bot', 'bot'], ['virement', 'virement'], ['envoy', 'virement'], ['drop', 'virement'], ['revenu', 'revenus'], ['commerce', 'revenus'], ['loyer', 'revenus'], ['bilan', 'bilan'], ['compte', 'bilan'], ['argent', 'bilan']];
+    const map = [['impot', 'impots'], ['tax', 'impots'], ['carte', 'carte'], ['gold', 'carte'], ['silver', 'carte'], ['diamond', 'carte'], ['goat', 'carte'], ['plac', 'placer'], ['invest', 'placer'], ['epargn', 'placer'], ['risque', 'risque'], ['levier', 'risque'], ['perd', 'risque'], ['bot', 'bot'], ['virement', 'virement'], ['envoy', 'virement'], ['drop', 'virement'], ['revenu', 'revenus'], ['commerce', 'revenus'], ['loyer', 'revenus'], ['pret', 'pret'], ['emprunt', 'pret'], ['credit', 'pret'], ['bilan', 'bilan'], ['compte', 'bilan'], ['argent', 'bilan']];
     const m = map.find(([k]) => q.includes(k)); return m ? m[1] : null;
   }
   function ask(topic, label) {

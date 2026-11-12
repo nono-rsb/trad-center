@@ -67,6 +67,12 @@
     { id: 'fr_rainbow', slot: 'frame', brand: 'Cadre', name: 'Arc-en-ciel', price: 10000, e: '🌈', fr: 'rainbow' },
     { id: 'fr_diamond', slot: 'frame', brand: 'Cadre', name: 'Diamant', price: 50000, e: '💠', fr: 'diamond' },
     { id: 'fr_plus', slot: 'frame', brand: 'Trad Center+', name: 'Cadre vérifié', price: 0, e: '✓', fr: 'plus', plus: true },
+    { id: 'fr_s_bronze', slot: 'frame', brand: 'Saison', name: 'Bronze de saison', price: 0, e: '🥉', fr: 'sbronze', season: 5 },
+    { id: 'fr_s_argent', slot: 'frame', brand: 'Saison', name: 'Argent de saison', price: 0, e: '🥈', fr: 'sargent', season: 10 },
+    { id: 'fr_s_or', slot: 'frame', brand: 'Saison', name: 'Or de saison', price: 0, e: '🥇', fr: 'sor', season: 15 },
+    { id: 'fr_s_diamant', slot: 'frame', brand: 'Saison', name: 'Diamant de saison', price: 0, e: '💎', fr: 'sdiamant', season: 20 },
+    { id: 'fr_s_legende', slot: 'frame', brand: 'Saison', name: 'Légende de saison', price: 0, e: '🏆', fr: 'slegende', season: 30 },
+    { id: 'fr_flamme', slot: 'frame', brand: 'Série', name: 'Flamme (30 jours d\'affilée)', price: 0, e: '🔥', fr: 'flamme', streak: 30 },
     { id: 'fr_creator', slot: 'frame', brand: 'Créateur', name: 'Halo du créateur', price: 0, e: '👑', fr: 'creator', creator: true },
   ];
   ST.byId = {}; ST.ITEMS.forEach(i => { ST.byId[i.id] = i; });
@@ -75,7 +81,7 @@
 
   function st() { const s = S().style || (S().style = { owned: {}, look: {} }); s.owned = s.owned || {}; s.look = s.look || {}; return s; }
   ST.isPlus = p => !!(p && ((p.plusUntil && p.plusUntil > Date.now()) || isCreatorUid(p.uid)));
-  ST.mine = () => ({ uid: TC.Net && TC.Net.user ? TC.Net.user.uid : null, avatar: (TC.Net && TC.Net.profile && TC.Net.profile.avatar) || S().face || '😎', look: st().look, plusUntil: (S().plus || {}).until || 0 });
+  ST.mine = () => ({ uid: TC.Net && TC.Net.user ? TC.Net.user.uid : null, lvl: TC.Progress ? TC.Progress.level() : 0, streak: S().prog && S().prog.streak ? S().prog.streak.n : 0, avatar: (TC.Net && TC.Net.profile && TC.Net.profile.avatar) || S().face || '😎', look: st().look, plusUntil: (S().plus || {}).until || 0 });
 
   /* ---------- Rendu d'un avatar (utilisé partout) ---------- */
   ST.avatar = function (p, size = 's') {
@@ -92,12 +98,12 @@
     return `<span class="av av-${size} ${fr && plusOk ? 'fr-' + fr.fr : ''}" style="${out ? '--ring:' + out.ring : ''}"><span class="av-b">${esc(p.avatar || '👤')}</span>${parts.join('')}</span>`;
   };
   ST.badge = p => (p && isCreatorUid(p.uid) ? `<span class="vbadge cr cr-${esc(((p.look || {}).cb) || 'arcenciel')}" title="Créateur de Trad Center">✓</span><span class="crtag">CRÉATEUR</span>`
-    : ST.isPlus(p) ? '<span class="vbadge" title="Membre Trad Center+ (vérifié)">✓</span>' + (p && p.uid && p.uid === TC.CLAUDE_UID ? '<span class="aitag" title="Claude, l\'assistant IA du créateur">IA</span>' : '') : '') + (p && p.bot ? '<span class="botbadge" title="Robot officiel du jeu">BOT</span>' : '') + (p && p.guest ? '<span class="guesttag" title="Joue sans compte e-mail">Invité</span>' : '');
+    : ST.isPlus(p) ? '<span class="vbadge" title="Membre Trad Center+ (vérifié)">✓</span>' + (p && p.uid && p.uid === TC.CLAUDE_UID ? '<span class="aitag" title="Claude, l\'assistant IA du créateur">IA</span>' : '') : '') + (p && p.bot ? '<span class="botbadge" title="Robot officiel du jeu">BOT</span>' : '') + (p && p.guest ? '<span class="guesttag" title="Joue sans compte e-mail">Invité</span>' : '') + (p && p.lvl > 1 ? `<span class="lvlchip" title="Niveau ${+p.lvl}">${+p.lvl}</span>` : '') + (p && p.streak >= 2 ? `<span class="flamechip" title="Série de ${+p.streak} jours">🔥${+p.streak}</span>` : '');
 
   /* ---------- Achats ---------- */
   function spend(eur, label) { S().cash -= eur; if (TC.Weekly) TC.Weekly.flow(-eur); S().log.unshift({ t: Date.now(), kind: 'item', eur, asset: label }); G.save(true); }
   ST.buy = function (id) {
-    const i = ST.byId[id]; if (!i || i.plus || i.creator || st().owned[id]) return;
+    const i = ST.byId[id]; if (!i || i.plus || i.creator || i.season || i.streak || st().owned[id]) return;
     if (ST.isCreator()) { st().owned[id] = Date.now(); st().look[i.slot] = id; G.save(true); TC.sound('kaching'); TC.toast(`👑 ${esc(i.brand)} ${esc(i.name)} offert au créateur et porté !`, 'ok'); return after(); }
     if (S().cash < i.price) return TC.toast(`Il te manque ${fmt.eur(i.price - S().cash)}`, 'bad');
     spend(i.price, `${i.brand} ${i.name}`); st().owned[id] = Date.now(); st().look[i.slot] = id; G.save(true);
@@ -162,10 +168,11 @@
       : tab === 'body' ? (TC.Avatar ? TC.Avatar.editor(st().look.av, st().look) : '') : tab === 'face'
       ? `<div class="avatars">${ST.FACES.map(f => `<button class="avatar big ${me.avatar === f ? 'on' : ''}" data-face="${f}">${f}</button>`).join('')}</div><p class="hint">Le visage est gratuit.</p>`
       : `<div class="st-grid">${items.map(i => {
-          const own = i.creator ? ST.isCreator() : i.plus ? plus : !!st().owned[i.id] || ST.isCreator(), worn = st().look[i.slot] === i.id;
+          const own = i.creator ? ST.isCreator() : i.plus ? plus : !!st().owned[i.id] || (ST.isCreator() && !i.season && !i.streak), worn = st().look[i.slot] === i.id;
           return `<div class="st-item ${worn ? 'worn' : ''} ${i.plus ? 'plus' : ''}"><span class="st-e" style="${i.ring ? 'color:' + i.ring : ''}">${i.e}</span><small>${esc(i.brand)}</small><b>${esc(i.name)}</b>
             ${i.plus ? (plus ? `<button class="btn btn-sm ${worn ? 'btn-ghost' : 'btn-gold'}" data-eq="${i.id}">${worn ? 'Retirer' : 'Porter'}</button>` : `<button class="btn btn-sm" data-plusgo="1">Réservé Trad Center+</button>`)
               : own ? `<button class="btn btn-sm ${worn ? 'btn-ghost' : 'btn-gold'}" data-eq="${i.id}">${worn ? 'Retirer' : 'Porter'}</button>`
+              : i.season ? `<button class="btn btn-sm" disabled>🏆 Saison, palier ${i.season}</button>` : i.streak ? `<button class="btn btn-sm" disabled>🔥 Série de ${i.streak} jours</button>`
               : `<button class="btn btn-sm ${S().cash >= i.price ? 'btn-gold' : ''}" data-buy="${i.id}" ${S().cash >= i.price ? '' : 'disabled'}>${fmt.eur(i.price)}</button>`}</div>`;
         }).join('')}</div>`;
     const md = TC.modal(`<h2>🎨 Mon style</h2>

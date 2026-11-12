@@ -297,9 +297,11 @@
       if (TC.Style) { const m = TC.Style.mine(); pub.look = m.look || {}; pub.plusUntil = m.plusUntil || 0; }
       if (TC.Play) { pub.playMs = Math.round(TC.Play.ms()); pub.playSince = TC.Play.since(); }
       if (TC.City) pub.city = TC.City.pub();
+      if (TC.Progress) { pub.lvl = TC.Progress.level(); pub.streak = (s.prog && s.prog.streak && s.prog.streak.n) || 0; }
+      if (TC.Duel) pub.dl = TC.Duel.pub();
       if (TC.Xmas && TC.Xmas.raceGain() != null) { pub.xmasGain = TC.Xmas.raceGain(); pub.xmasYear = new Date().getFullYear(); }
       // profil public (classements, amis) : toutes les 5 min, ou tout de suite si l'apparence, la ville ou le rang changent
-      const key = JSON.stringify([pub.rank, pub.items, pub.topItem, pub.look, pub.plusUntil, pub.city]);
+      const key = JSON.stringify([pub.rank, pub.items, pub.topItem, pub.look, pub.plusUntil, pub.city, pub.lvl, pub.streak, pub.dl && [pub.dl.id, pub.dl.state, Math.round(pub.dl.g || 0), pub.dl.fin]]); // pendant un duel, le score part à chaque sauvegarde
       if (key !== lastPubKey || Date.now() - lastPub > PUB_EVERY || document.hidden) {
         await db.collection('users').doc(N.user.uid).update(pub); lastPub = Date.now(); lastPubKey = key;
         Object.assign(N.profile || {}, pub);

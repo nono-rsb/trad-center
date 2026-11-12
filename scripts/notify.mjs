@@ -327,6 +327,9 @@ async function main() {
         else if (m.kind === 'clanreq') msg = { title: `✋ ${from} veut rejoindre ton clan [${String(m.tag || '').slice(0, 5)}]`, body: 'Accepte sa demande dans l\'onglet Amis.', tag: 'clan', url: '?tab=social' };
         else if (m.kind === 'clanok') msg = { title: `🛡️ Bienvenue dans le clan [${String(m.tag || '').slice(0, 5)}] !`, body: `${from} a accepté ta demande. Ouvre le jeu pour entrer dans le clan.`, tag: 'clan', url: '?tab=social' };
         else if (m.kind === 'takeover') msg = { title: `🤝 ${from} a racheté ton ${String(m.biz || 'commerce').slice(0, 40)}`, body: `+${eur(m.eur || 0)} pour toi ! Ouvre Trad City pour encaisser… ou racheter un autre commerce.`, tag: 'takeover', url: '?tab=city' };
+      else if (m.kind === 'duelinv') msg = { title: `⚔️ ${from} te défie en duel !`, body: '24 h pour gagner plus que lui : 100 € pour le vainqueur. Accepte dans l\'onglet Amis.', tag: 'duel', url: '?tab=social' };
+        else if (m.kind === 'duelok') msg = { title: `⚔️ ${from} a accepté ton duel !`, body: 'C\'est parti pour 24 h : fais mieux que lui.', tag: 'duel', url: '?tab=social' };
+        else if (m.kind === 'duelres') msg = { title: `⚔️ ${from} a gagné votre duel`, body: 'Prends ta revanche dans l\'onglet Amis !', tag: 'duel', url: '?tab=social' };
       else if (m.kind === 'accept') msg = { title: `🤝 ${from} a accepté votre demande d'ami`, body: 'Vous pouvez maintenant vous envoyer de l\'argent et des cryptos.', tag: 'friend', url: '?tab=social' };
         else continue;
         for (const s of subs.filter(s => s.uid === m.to && !s.dead && (!s.prefs || s.prefs.transfers !== false))) await push(s, msg);
