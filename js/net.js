@@ -350,6 +350,7 @@
   /* ---------------- Envois ---------------- */
   N.send = async function (friend, kind, asset, amount, msg) {
     if (TC.haptic) TC.haptic([25]); // « tic » dès qu'on appuie sur Envoyer
+    const ng = G.noGift && G.noGift(); if (ng) throw userErr(ng);
     const t = G.takeForTransfer(kind, asset, amount);
     if (!t.ok) throw userErr(t.msg);
     try {
@@ -420,7 +421,7 @@
   N.loadXmasBoard = async function () {
     const y = new Date().getFullYear();
     const snap = await db.collection('users').orderBy('xmasGain', 'desc').limit(30).get();
-    N.xmasBoard = snap.docs.map(d => prof(d.id, d.data())).filter(u => !u.bot && u.xmasYear === y && !(TC.Admin && TC.Admin.isBanned(u.uid))).slice(0, 10);
+    N.xmasBoard = snap.docs.map(d => prof(d.id, d.data())).filter(u => !u.bot && u.uid !== TC.ADMIN_UID && u.uid !== TC.CLAUDE_UID && u.xmasYear === y && !(TC.Admin && TC.Admin.isBanned(u.uid))).slice(0, 10);
     N.xmasChamp = N.xmasBoard.length ? N.xmasBoard[0].uid : null;
     return N.xmasBoard;
   };
@@ -432,7 +433,7 @@
     if (N.board && Date.now() - (N.boardAt || 0) < 120000) { emit('change'); return; }
     N.boardAt = Date.now();
     const snap = await db.collection('users').orderBy('nw', 'desc').limit(50).get();
-    N.board = snap.docs.map(d => prof(d.id, d.data())).filter(u => !u.bot && !u.deleted && !(TC.Admin && TC.Admin.isBanned(u.uid)));
+    N.board = snap.docs.map(d => prof(d.id, d.data())).filter(u => !u.bot && !u.deleted && u.uid !== TC.ADMIN_UID && u.uid !== TC.CLAUDE_UID && !(TC.Admin && TC.Admin.isBanned(u.uid))); // créateur et Claude : hors concours
     emit('change');
   };
 })();
