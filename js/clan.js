@@ -32,11 +32,11 @@
     const wf = W() ? W().current().field : null, pf = W() ? W().previous().field : null;
     const clans = defs.docs.map(d => {
       const def = Object.assign({}, d.data().clanDef, { id: d.id });
-      const list = members.filter(u => valid(def, u));
-      const fund = list.reduce((t, u) => t + (u.clanFund && u.clanFund.id === def.id ? Math.max(0, +u.clanFund.eur || 0) : 0), 0);
-      return { def, members: list, fund, verified: !!def.verified, nw: list.reduce((t, u) => t + (u.nw || 0), 0),
-        week: list.reduce((t, u) => t + (typeof u[wf] === 'number' ? u[wf] : 0), 0),
-        prev: list.filter(u => (u.clanSince || 0) < Date.now() - (7 * 86400000 - W().current().left)).reduce((t, u) => t + (typeof u[pf] === 'number' ? u[pf] : 0), 0) };
+      const list = members.filter(u => valid(def, u)), counted = list.filter(u => u.uid !== TC.ADMIN_UID && u.uid !== TC.CLAUDE_UID); // hors concours : ne comptent pas dans les totaux
+      const fund = counted.reduce((t, u) => t + (u.clanFund && u.clanFund.id === def.id ? Math.max(0, +u.clanFund.eur || 0) : 0), 0);
+      return { def, members: list, fund, verified: !!def.verified, nw: counted.reduce((t, u) => t + (u.nw || 0), 0),
+        week: counted.reduce((t, u) => t + (typeof u[wf] === 'number' ? u[wf] : 0), 0),
+        prev: counted.filter(u => (u.clanSince || 0) < Date.now() - (7 * 86400000 - W().current().left)).reduce((t, u) => t + (typeof u[pf] === 'number' ? u[pf] : 0), 0) };
     }).filter(c => !banned(c.def.id) && c.members.some(u => u.uid === c.def.id)).sort((a, b) => b.week - a.week || b.nw - a.nw);
     cache = { at: Date.now(), clans };
     return clans;
@@ -84,6 +84,7 @@
   CL.give = async function (eur) {
     eur = Math.floor(+eur * 100) / 100;
     if (!(eur >= 1)) throw new Error('Mets au moins 1 €.');
+    const ng = G.noGift && G.noGift(); if (ng) throw new Error(ng);
     if (S().cash < eur) throw new Error(`Il te faut ${fmt.eur(eur)} de cash.`);
     const id = N.profile.clanId; if (!id) throw new Error('Tu n\'es dans aucun clan.');
     const prev = N.profile.clanFund && N.profile.clanFund.id === id ? +N.profile.clanFund.eur || 0 : 0;

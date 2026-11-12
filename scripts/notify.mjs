@@ -400,7 +400,7 @@ async function main() {
       // mots collés (« NiqueTaMere ») : on compare aussi le texte sans espaces ni symboles
       const GLUED = /(niquet(a|on|es)|tamere|tonpere|filsdepute|enculee?|salope|connasse|batard|enfoiree?|fdp|nazi|hitler|pedophile)/;
       const isBad = t => BAD.test(norm(t)) || GLUED.test(norm(t).toLowerCase().replace(/[^a-z]/g, ''));
-      const live = users.filter(u => !u.deleted);
+      const live = users.filter(u => !u.deleted && u.uid !== TC.ADMIN_UID && (!claude || u.uid !== claude.uid)); // le créateur (argent illimité) et Claude ne sont pas surveillés
       const devOwners = {};
       for (const u of live) {
         const nw = +u.nw || 0;
@@ -506,7 +506,7 @@ async function main() {
       if (!st.election[prev.id] && 7 * 86400000 - cur.left > 5 * 60000) {
         let bans = {}; try { const b = await getDoc(doc(db, 'admin', 'bans')); bans = (b.exists() && b.data().users) || {}; } catch (e) { }
         const count = {};
-        users.forEach(u => { const v = u[f]; if (typeof v === 'string' && v && v !== u.uid && !u.bot && !bans[u.uid] && !bans[v]) count[v] = (count[v] || 0) + 1; });
+        users.forEach(u => { const v = u[f]; if (typeof v === 'string' && v && v !== u.uid && !u.bot && !bans[u.uid] && !bans[v] && v !== TC.ADMIN_UID && (!claude || v !== claude.uid)) count[v] = (count[v] || 0) + 1; }); // créateur et Claude non éligibles
         const nw = {}; users.forEach(u => { nw[u.uid] = u.nw || 0; });
         const win = Object.keys(count).filter(u => pseudo[u]).sort((a, b) => count[b] - count[a] || nw[b] - nw[a])[0];
         st.election[prev.id] = win || 'aucun';

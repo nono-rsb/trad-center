@@ -147,7 +147,7 @@
   };
   C.takeover = async function (p, id) {
     const b = C.byId[id], l = p.city.biz[id], price = C.takePrice(id, l);
-    const why = C.takeBlock(p, id); if (why) return TC.toast(why, 'bad');
+    const why = C.takeBlock(p, id) || (G.noGift && G.noGift()); if (why) return TC.toast(why, 'bad');
     const mayor = C.elected && C.elected.uid !== N.user.uid && C.elected.uid !== p.uid ? C.elected : null;
     const tax = mayor ? Math.round(price * C.TAX * 100) / 100 : 0, total = price + tax;
     if (S().cash < total) return TC.toast(`Il te faut ${fmt.eur(total)} de cash`, 'bad');
@@ -225,7 +225,7 @@
     const snap = await N.db().collection('users').where(f, '>', '').get();
     const count = {};
     snap.docs.forEach(d => { const v = d.data()[f]; if (d.data().bot || v === d.id || (TC.Admin && TC.Admin.isBanned(d.id))) return; count[v] = (count[v] || 0) + 1; });
-    const ids = Object.keys(count).filter(u => !(TC.Admin && TC.Admin.isBanned(u)));
+    const ids = Object.keys(count).filter(u => !(TC.Admin && TC.Admin.isBanned(u)) && u !== TC.ADMIN_UID && u !== TC.CLAUDE_UID); // créateur et Claude : non éligibles
     const profs = await Promise.all(ids.map(u => (roster().find(x => x.uid === u) ? Promise.resolve(roster().find(x => x.uid === u)) : N.db().collection('users').doc(u).get().then(s => s.exists ? N.prof(u, s.data()) : null).catch(() => null))));
     const rows = ids.map((u, i) => ({ uid: u, votes: count[u], p: profs[i] })).filter(r => r.p).sort((a, b) => b.votes - a.votes || (b.p.nw || 0) - (a.p.nw || 0));
     tallies[weekId] = { at: Date.now(), rows };

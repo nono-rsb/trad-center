@@ -748,3 +748,4 @@ body.gated #sh-chip { display: none; }
 .panel.claude { border-color: rgba(217,119,87,.45); background: linear-gradient(135deg, rgba(217,119,87,.14), rgba(217,119,87,.03)); }
 .cl-bets { margin: 8px 0; } .cl-bets > div { display: grid; grid-template-columns: 1fr auto; gap: 0 8px; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,.06); font-size: 13px; } .cl-bets small { color: var(--muted); grid-column: 1; } .cl-bets b { grid-column: 2; grid-row: 1 / span 2; align-self: center; font-family: var(--mono); }
 .cl-act { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 8px; }
+.cr-inf { margin: 4px 0 10px; padding: 10px 12px; border-radius: 14px; background: rgba(255,215,94,.08); border: 1px solid rgba(255,215,94,.35); } .cr-inf b { display: block; } .cr-inf small { display: block; color: var(--muted); font-size: 12px; }
