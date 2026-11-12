@@ -125,6 +125,7 @@
   A.checkDup = async function () {
     if (!N.user || !N.profile || !N.db() || A.isAdmin()) return;
     const uid = N.user.uid, dev = devId();
+    const guestNow = N.profile.guest || (N.user && N.user.isAnonymous); // un invité n'est jamais bloqué comme double compte
     try {
       const ref = N.db().collection('users').doc(uid);
       const devs = N.profile.devs || [];
@@ -132,7 +133,9 @@
       if (A.allowed(uid)) { if (N.profile.dupOf) { await ref.update({ dupOf: null }); N.profile.dupOf = null; } return A.enforce(); }
       const snap = await N.db().collection('users').where('devs', 'array-contains', dev).get();
       const mine = N.profile.createdAt || 0;
-      const older = snap.docs.filter(d => d.id !== uid && d.id !== TC.ADMIN_UID && !d.data().bot && (d.data().createdAt || 0) < mine).map(d => ({ uid: d.id, pseudo: N.prof(d.id, d.data()).pseudo }));
+      if (guestNow) return A.enforce();
+      // les comptes invités ne comptent pas : un invité qui crée ensuite son vrai compte n'est pas un tricheur
+      const older = snap.docs.filter(d => d.id !== uid && d.id !== TC.ADMIN_UID && !d.data().bot && !d.data().guest && (d.data().createdAt || 0) < mine).map(d => ({ uid: d.id, pseudo: N.prof(d.id, d.data()).pseudo }));
       const dup = older.length ? older.map(o => o.uid) : null;
       if (JSON.stringify(dup) !== JSON.stringify(N.profile.dupOf || null)) { await ref.update({ dupOf: dup, updatedAt: Date.now() }); N.profile.dupOf = dup; }
       A.dupNames = older.map(o => o.pseudo);
