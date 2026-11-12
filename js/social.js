@@ -37,7 +37,7 @@
       <button class="btn btn-gold btn-xl" data-soc="pseudo">Valider</button><p class="hint">3 à 16 caractères : lettres, chiffres, _</p>
       <button class="btn btn-ghost btn-sm" data-soc="logout">Se déconnecter</button></div>`;
     if (!N.profile) return `<div class="panel empty big">Chargement du profil…</div>`;
-    return profileCard() + (TC.Share && TC.Share.block ? TC.Share.block() : '') + (TC.Clan ? TC.Clan.block() : '') + inviteBlock() + friendsBlock() + boardBlock() + (TC.Admin && TC.Admin.claudeCard ? TC.Admin.claudeCard() : '') + (TC.Admin && TC.Admin.botCard ? TC.Admin.botCard() : '') + historyBlock();
+    return profileCard() + (TC.Duel ? TC.Duel.block() : '') + (TC.Share && TC.Share.block ? TC.Share.block() : '') + (TC.Clan ? TC.Clan.block() : '') + inviteBlock() + friendsBlock() + boardBlock() + (TC.Admin && TC.Admin.claudeCard ? TC.Admin.claudeCard() : '') + (TC.Admin && TC.Admin.botCard ? TC.Admin.botCard() : '') + historyBlock();
   }
 
   function authForm() {
@@ -91,7 +91,7 @@
         ${TC.Style.avatar(f, 'm')}
         <div class="f-info"><b>${esc(f.pseudo)}${TC.Style.badge(f)}</b><small>${esc(f.rank || '')} · ${f.items || 0} objet(s)${it ? ' · ' + esc(it.brand + ' ' + it.model) : ''}</small></div>
         <div class="f-nw">${fmt.eur(f.nw || 0, true)}</div>
-        <div class="f-act"><button class="btn btn-sm btn-gold" data-send="${f.uid}">💸 Envoyer</button><button class="btn btn-sm btn-ghost" data-unfriend="${f.uid}" title="Retirer">✕</button></div>
+        <div class="f-act"><button class="btn btn-sm btn-gold" data-send="${f.uid}">💸 Envoyer</button>${TC.Duel ? `<button class="btn btn-sm" data-duel="${f.uid}" title="Défier en duel">⚔️</button>` : ''}<button class="btn btn-sm btn-ghost" data-unfriend="${f.uid}" title="Retirer">✕</button></div>
       </div>`;
     }).join('');
     return `<div class="panel"><h3>👥 Mes amis <small>(${N.friends.length})</small></h3>

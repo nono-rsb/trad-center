@@ -114,3 +114,6 @@ body.bank-app #tax-bar { position: relative; }
 .bk-term.rx { width: min(78vw, 300px); padding: 8px 12px 10px; margin: 0 auto 8px; } .bk-term.rx .bk-leds { margin-bottom: 6px; } .bk-term.rx .bk-lcd { padding: 6px; } .bk-term.rx .bk-lcd span { font-size: 14px; }
 .bk-ar.seek { aspect-ratio: 1; max-width: 360px; } .bk-ar.seek .bk-cam-frame { z-index: 1; }
 .bk-dcard { width: min(86vw, 330px); margin: 4px auto 14px; } .bk-dcard .cc { cursor: default; }
+.bk-loan h3 small { color: var(--muted); font-weight: 600; font-size: 12px; } .bk-loan.late { border-color: #ff7a8a; background: rgba(255,122,138,.08); }
+.bk-lbar { height: 8px; border-radius: 4px; background: rgba(255,255,255,.08); margin: 10px 0 6px; overflow: hidden; } .bk-lbar i { display: block; height: 100%; background: var(--mint); }
+.ln-plans { margin: 10px 0; } .ln-plans button small { display: block; font-size: 11px; opacity: .8; }
