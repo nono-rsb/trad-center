@@ -1,0 +1,36 @@
+{
+  "name": "Trad Center — De 10 € à la Bugatti",
+  "short_name": "Trad Center",
+  "description": "Jeu de trading avec les vrais cours : partez de 10 € et achetez Porsche, Lamborghini, Ferrari et villas.",
+  "lang": "fr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0b0e14",
+  "theme_color": "#0b0e14",
+  "categories": [
+    "games",
+    "finance"
+  ],
+  "icons": [
+    {
+      "src": "icons/alt/neon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/alt/neon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/alt/neon-mask.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
