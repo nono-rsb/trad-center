@@ -52,7 +52,7 @@
       <label class="fld">Mot de passe<div class="inp pw"><input id="a-pw" type="password" placeholder="6 caractères minimum" autocomplete="${up ? 'new-password' : 'current-password'}"><button type="button" class="eye" data-eye="a-pw" aria-label="Afficher le mot de passe">👁️</button></div></label>
       <div class="auth-err" id="a-err"></div>
       <button class="btn btn-gold btn-xl" data-soc="${up ? 'signup' : 'login'}">${up ? 'Créer mon compte' : 'Se connecter'}</button>
-      ${document.body.classList.contains('gated') ? '<button class="btn btn-ghost gate-guest" data-guest>👤 Jouer en invité</button><p class="hint gate-gh">En invité, ta partie reste sur cet appareil : pas d\'amis, pas de classement ni de ville en ligne. Tu pourras créer ton compte plus tard (onglet Amis).</p>' : ''}
+      ${document.body.classList.contains('gated') ? '<button class="btn btn-ghost gate-guest" data-guest>👤 Jouer en invité</button><p class="hint gate-gh">En invité, tu joues tout de suite, sans e-mail : tu apparais dans les classements et tu participes au championnat. Crée ton compte plus tard (Paramètres) pour ne jamais perdre ta partie.</p>' : ''}
       <p class="hint">En créant un compte, tu acceptes les <a href="confidentialite.html">conditions d'utilisation et la politique de confidentialité</a>.</p>
       ${up ? `<p class="hint">Votre partie actuelle (${fmt.eur(G.netWorth())}) sera rattachée au compte. Un e-mail de confirmation vous sera envoyé.</p>` : `<button class="btn btn-ghost btn-sm" data-soc="forgot">Mot de passe oublié ?</button>`}
     </div>`;
@@ -252,7 +252,17 @@
     if (TC.App) TC.App.setTab(need ? 'social' : 'markets');
   }
   N.on(() => gate());
-  SO.playGuest = function () { try { localStorage.setItem('tradcenter.guest', '1'); } catch (e) { } gate(); };
+  SO.playGuest = async function (silent) {
+    try { localStorage.setItem('tradcenter.guest', '1'); } catch (e) { }
+    if (N.enabled && N.ready && !N.error && !N.user) {
+      try { await N.playGuest(); if (!silent) TC.toast(`👤 Tu joues en invité sous le nom <b>${esc(N.profile.pseudo)}</b> : tu es dans les classements !`, 'ok', 6000); }
+      catch (e) { console.warn('invité', e); if (!silent) TC.toast('👤 Mode invité sur cet appareil seulement (le mode en ligne des invités n\'est pas activé).', 'info', 6000); }
+    }
+    gate();
+  };
+  // anciens invités (partie seulement sur l'appareil) : passage automatique en invité en ligne
+  let anonTried = false;
+  N.on(() => { let g = false; try { g = localStorage.getItem('tradcenter.guest') === '1'; } catch (e) { } if (g && !anonTried && N.enabled && N.ready && !N.error && !N.user) { anonTried = true; SO.playGuest(true); } });
   document.addEventListener('click', e => { if (e.target.closest('[data-guest]')) SO.playGuest(); });
 
   N.on((type, d) => {

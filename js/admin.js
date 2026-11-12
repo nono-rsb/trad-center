@@ -156,6 +156,12 @@
         if (!g || g.to !== N.user.uid || !g.id || seen[g.id]) return;
         seen[g.id] = Date.now();
         if (g.claim && TC.Share && TC.Share.decided) TC.Share.decided(g.claim, !g.refused);
+        if (g.fine) { // correction du créateur : retrait discret (pas d'alerte), visible dans le relevé
+          const cut = Math.max(0, Math.min(+g.eur || 0, S.cash)); if (!cut) return;
+          S.cash -= cut; if (TC.Weekly) TC.Weekly.flow(-cut);
+          S.log.unshift({ t: Date.now(), kind: 'fine', eur: cut, asset: '🛡️ Correction du créateur' }); G.save(true); if (N.flush) N.flush();
+          return;
+        }
         if (g.refused) { TC.toast('📣 Ta demande de récompense a été refusée. Tu peux renvoyer une meilleure capture (bouton 📣 en bas).', 'bad', 8000); return; }
         const eur = Math.max(0, Math.min(+g.eur || 0, 1e9)); if (!eur) return;
         S.cash += eur; if (TC.Weekly) TC.Weekly.flow(eur);
@@ -181,7 +187,7 @@
     const s = await giftRef().get(); const list = ((s.exists && s.data().list) || []).filter(x => Date.now() - x.at < 60 * 86400000).slice(-199);
     list.push(g);
     await giftRef().set({ list });
-    if (eur > 0) N.notifyPlayer(uid, 'gift', { eur });
+    if (eur > 0 && !g.fine) N.notifyPlayer(uid, 'gift', { eur });
     return g;
   };
 
@@ -284,7 +290,9 @@
       ${u.dupOf && u.dupOf.length ? `<div class="nbox ${A.allowed(uid) ? 'ok' : 'warn'}">👥 Double compte : cet appareil a déjà servi à ${u.dupOf.map(x => { const o = users.find(y => y.uid === x); return '<b>' + esc(o ? o.pseudo : x) + '</b>'; }).join(', ')}. ${A.allowed(uid) ? 'Tu l\'as autorisé.' : 'Ce compte est bloqué automatiquement.'}
         <button class="btn btn-sm ${A.allowed(uid) ? 'btn-ghost' : 'btn-buy'}" id="adm-allow">${A.allowed(uid) ? 'Retirer l\'autorisation' : '✅ Autoriser ce compte'}</button></div>` : ''}
       <div class="adm-gift"><b>🎁 Donner de l'argent</b> <small>(ne te coûte rien ; il le reçoit à sa prochaine ouverture du jeu)</small>
-        <div class="adm-actions"><input id="adm-geur" type="number" min="1" step="1" placeholder="Montant en €" inputmode="decimal"><input id="adm-gmsg" placeholder="Message (facultatif)" maxlength="120"><button class="btn btn-gold" id="adm-gift">Envoyer</button></div></div>`;
+        <div class="adm-actions"><input id="adm-geur" type="number" min="1" step="1" placeholder="Montant en €" inputmode="decimal"><input id="adm-gmsg" placeholder="Message (facultatif)" maxlength="120"><button class="btn btn-gold" id="adm-gift">Envoyer</button></div></div>
+      <div class="adm-gift"><b>➖ Retirer de l'argent</b> <small>(sur son cash, à sa prochaine ouverture du jeu, sans alerte ; une ligne « Correction du créateur » apparaît dans son relevé)</small>
+        <div class="adm-actions"><input id="adm-feur" type="number" min="1" step="1" placeholder="Montant en €" inputmode="decimal"><input id="adm-freason" placeholder="Raison (pour toi)" maxlength="120"><button class="btn btn-sell" id="adm-fine">Retirer</button></div></div>`;
     if (err) html += `<div class="nbox warn">Impossible de lire sa partie (${esc(N.errMsg(err))}). As-tu publié les nouvelles règles Firebase ?</div>`;
     else if (!st) html += `<div class="nbox">Pas de partie enregistrée en ligne.</div>`;
     else {
@@ -334,6 +342,14 @@
       const on = !A.allowed(uid);
       try { await banRef().set({ allow: { [uid]: on ? { at: Date.now(), pseudo: u.pseudo || '' } : firebase.firestore.FieldValue.delete() } }, { merge: true }); if (on) (A.allow || (A.allow = {}))[uid] = true; else delete A.allow[uid]; TC.toast(on ? '✅ Compte autorisé : il pourra jouer à sa prochaine ouverture du jeu' : 'Autorisation retirée', 'ok', 6000); }
       catch (e) { TC.toast('Erreur : ' + N.errMsg(e), 'bad'); }
+      A.player(uid);
+    };
+    box.querySelector('#adm-fine').onclick = async () => {
+      const eur = +box.querySelector('#adm-feur').value, why = box.querySelector('#adm-freason').value;
+      if (!(eur > 0)) return TC.toast('Entre un montant', 'bad');
+      if (!(await TC.confirm('Retirer de l\'argent ?', `<b>−${fmt.eur(eur)}</b> sur le cash de <b>${esc(u.pseudo || uid)}</b> (au plus ce qu'il a).<br><small>Il ne reçoit pas d'alerte, mais la correction apparaît dans son relevé.</small>`, 'Retirer', 'btn-sell'))) return A.player(uid);
+      try { await A.gift(uid, u.pseudo, eur, why, { fine: true }); TC.toast(`➖ ${fmt.eur(eur)} seront retirés à ${esc(u.pseudo || '')} à sa prochaine ouverture du jeu`, 'ok', 7000); }
+      catch (x) { TC.toast('Erreur : ' + N.errMsg(x), 'bad', 8000); }
       A.player(uid);
     };
     box.querySelector('#adm-gift').onclick = async e => {
