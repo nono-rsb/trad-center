@@ -104,7 +104,7 @@
     if (t.closest('#gta') && !TC.season.noel) { TC.goto('TTWO'); return; } // bandeau GTA VI → action Take-Two (Rockstar)
     if (b && b.dataset.sellall) {
       const id = b.dataset.sellall; const h = S().holdings[id]; if (!h) return;
-      if (!(await TC.confirm('Tout vendre ?', `Vendre <b>${fmt.qty(h.qty)} ${id}</b> pour environ <b>${fmt.eur(G.holdingValue(id) * (1 - G.FEE_SPOT))}</b> ?`, 'Vendre', 'btn-sell'))) return;
+      if (!(await TC.confirm('Tout vendre ?', `Vendre <b>${fmt.qty(h.qty)} ${id}</b> pour environ <b>${fmt.eur(G.holdingValue(id) * (1 - G.feeSpot()))}</b> ?`, 'Vendre', 'btn-sell'))) return;
       const r = G.sell(id, h.qty); notify(r); if (r.ok) { TC.sound('sell'); afterAction(); }
       return;
     }
@@ -131,6 +131,7 @@
     if (b && b.id === 'b-help') return help();
     if (b && b.id === 'b-install') return install();
     if (b && b.id === 'b-settings') return settings();
+    if (b && b.dataset.guestsave) return settings();
   });
 
   document.addEventListener('input', e => {
@@ -445,6 +446,18 @@
     const pend = G.pendingRent();
     if (pend >= 0.01) setTimeout(() => TC.toast(`🏠 ${fmt.eur(pend)} de loyers vous attendent dans votre Collection`, 'info', 6000), 1500);
     if (!S().seenIntro) setTimeout(help, 400);
+    setInterval(guestNudge, 60000);
+  }
+  /* Invité qui progresse : rappel discret (au plus une fois par jour) de créer son compte pour ne pas perdre sa partie */
+  function guestNudge() {
+    const N = TC.Net;
+    if (document.hidden || !N || !N.isGuest || !N.isGuest() || $('#modal.open') || document.body.classList.contains('gated')) return;
+    const nw = G.netWorth(), trades = (S().stats && S().stats.trades) || 0;
+    if (nw < 25 && trades < 5) return; // rien d'important à perdre pour l'instant
+    let last = 0; try { last = +localStorage.getItem('tradcenter.guestnudge') || 0; } catch (e) { }
+    if (Date.now() - last < 24 * 3600000) return;
+    try { localStorage.setItem('tradcenter.guestnudge', String(Date.now())); } catch (e) { }
+    TC.toast(`💾 Ta partie d'invité (${fmt.eur(nw)}) disparaît si tu changes de téléphone. <button class="btn btn-sm btn-gold" data-guestsave="1">Créer mon compte</button>`, 'info', 12000);
   }
   boot();
 })();

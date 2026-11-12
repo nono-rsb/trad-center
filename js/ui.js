@@ -258,17 +258,17 @@
     if (prev) {
       if (UI.mode === 'spot' && UI.spotSide === 'buy') {
         const v = +(amtEl && amtEl.value) || 0;
-        prev.innerHTML = v > 0 && p ? `Vous recevez ≈ <b>${fmt.qty(v * (1 - G.FEE_SPOT) / p)} ${esc(a.id)}</b><br>Frais : ${fmt.eur(v * G.FEE_SPOT)}` : '';
+        prev.innerHTML = v > 0 && p ? `Vous recevez ≈ <b>${fmt.qty(v * (1 - G.feeSpot()) / p)} ${esc(a.id)}</b><br>Frais : ${fmt.eur(v * G.feeSpot())}` : '';
       } else if (UI.mode === 'spot') {
         const q = +(qtyEl && qtyEl.value) || 0; const h = S().holdings[a.id];
         if (q > 0 && p && h) {
-          const gross = q * p, net = gross * (1 - G.FEE_SPOT), cost = h.cost * Math.min(q, h.qty) / h.qty, pnl = net - cost;
+          const gross = q * p, net = gross * (1 - G.feeSpot()), cost = h.cost * Math.min(q, h.qty) / h.qty, pnl = net - cost;
           prev.innerHTML = `Vous recevez ≈ <b>${fmt.eur(net)}</b><br>Résultat : <b class="${cls(pnl)}">${pnl > 0 ? '+' : ''}${fmt.eur(pnl)}</b>`;
         } else prev.innerHTML = '';
       } else if (UI.mode === 'lev') {
         const v = +(amtEl && amtEl.value) || 0;
         if (v > 0 && p) {
-          const fee = v * UI.lev * G.FEE_LEV, m = v - fee, size = m * UI.lev, liq = G.liqPrice(UI.levSide, p, UI.lev);
+          const fee = v * UI.lev * G.feeLev(), m = v - fee, size = m * UI.lev, liq = G.liqPrice(UI.levSide, p, UI.lev);
           const move1 = size * 0.01;
           prev.innerHTML = `Taille de position : <b>${fmt.eur(size)}</b><br>Prix de liquidation : <b class="warn-t">${fmt.eur(liq)}</b> (${fmt.pct((liq - p) / p * 100)})<br>
             Un mouvement de 1 % = <b>${fmt.eur(move1)}</b> · Frais : ${fmt.eur(fee)}`;

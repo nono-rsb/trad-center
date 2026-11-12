@@ -429,9 +429,12 @@
     try {
       const snap = await db.collection('users').where('referredBy', '==', N.user.uid).get();
       const paid = G.state.refPaid || (G.state.refPaid = {});
-      N.referrals = snap.docs.map(d => ({ uid: d.id, pseudo: prof(d.id, d.data()).pseudo, ok: !!d.data().refOk, paid: !!paid[d.id] }));
+      // Prime seulement pour un vrai compte (pas un invité anonyme, créé sans limite) qui n'a pas servi sur un de mes appareils
+      const myDevs = (N.profile && N.profile.devs) || [];
+      const valid = x => !x.guest && !x.bot && !(x.dupOf && x.dupOf.length) && !(x.devs || []).some(v => myDevs.includes(v));
+      N.referrals = snap.docs.map(d => ({ uid: d.id, pseudo: prof(d.id, d.data()).pseudo, ok: !!d.data().refOk && valid(d.data()), guest: !!d.data().guest, paid: !!paid[d.id] }));
       for (const d of snap.docs) {
-        if (!d.data().refOk || paid[d.id]) continue;
+        if (!d.data().refOk || paid[d.id] || !valid(d.data())) continue;
         paid[d.id] = Date.now();
         G.state.cash += N.REF_BONUS;
         G.state.log.unshift({ t: Date.now(), kind: 'bonus', eur: N.REF_BONUS, who: prof(d.id, d.data()).pseudo });

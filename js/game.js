@@ -4,6 +4,9 @@
   const KEY = 'tradcenter.save.v1';
   G.FEE_SPOT = 0.001;    // 0,1 % par ordre au comptant
   G.FEE_LEV = 0.0005;    // 0,05 % du notionnel à l'ouverture et à la clôture
+  // Frais réellement appliqués : taux de base (éventuellement changé par le Maire) × effet « fees » des événements (js/events.js)
+  G.feeSpot = () => G.FEE_SPOT * (TC.Events ? TC.Events.mult('fees') : 1);
+  G.feeLev = () => G.FEE_LEV * (TC.Events ? TC.Events.mult('fees') : 1);
   G.MAINT = 0.9;         // liquidation quand la perte atteint 90 % de la marge
   G.BET_PAYOUT = 2;      // gain x2 sur un pari réussi (mise doublée)
   G.BET_DURATIONS = [[1, '1 min'], [5, '5 min'], [15, '15 min'], [60, '1 h']];
@@ -89,7 +92,7 @@
     if (eur < 0.1) return err('Montant minimum : 0,10 €');
     if (eur > S().cash + 1e-9) return err('Fonds insuffisants');
     eur = Math.min(eur, S().cash);
-    const fee = eur * G.FEE_SPOT;
+    const fee = eur * G.feeSpot();
     const qty = (eur - fee) / p;
     const h = S().holdings[id] || { qty: 0, cost: 0 };
     h.qty += qty; h.cost += eur; h.lastVal = h.qty * p;
@@ -108,7 +111,7 @@
     qty = +qty;
     if (!(qty > 0)) return err('Quantité invalide');
     if (qty >= h.qty * 0.9999) qty = h.qty;
-    const gross = qty * p; const fee = gross * G.FEE_SPOT; const proceeds = gross - fee;
+    const gross = qty * p; const fee = gross * G.feeSpot(); const proceeds = gross - fee;
     const costPart = h.cost * qty / h.qty;
     const pnl = proceeds - costPart;
     h.qty -= qty; h.cost -= costPart;
@@ -136,7 +139,7 @@
     sl = sl ? +sl : null; tp = tp ? +tp : null;
     if (side === 'long') { if (sl && sl >= p) return err('Le stop-loss doit être sous le prix actuel'); if (tp && tp <= p) return err('Le take-profit doit être au-dessus du prix actuel'); }
     else { if (sl && sl <= p) return err('Le stop-loss doit être au-dessus du prix actuel'); if (tp && tp >= p) return err('Le take-profit doit être sous le prix actuel'); }
-    const fee = margin * lev * G.FEE_LEV;
+    const fee = margin * lev * G.feeLev();
     const m = margin - fee;
     const qty = m * lev / p;
     const pos = { id: uid(), asset: id, side, lev, margin: m, entry: p, qty, sl, tp, liq: G.liqPrice(side, p, lev), t: Date.now(), lastPnl: 0 };
@@ -156,7 +159,7 @@
     let back;
     if (reason === 'liq') { back = 0; pnl = -pos.margin; S().stats.liquidations++; }
     else {
-      const fee = pos.qty * p * G.FEE_LEV;
+      const fee = pos.qty * p * G.feeLev();
       back = Math.max(0, pos.margin + pnl - fee); pnl = back - pos.margin; S().stats.fees += fee;
     }
     S().positions.splice(i, 1);

@@ -449,7 +449,7 @@ html.gold body::before { filter: sepia(.6) saturate(1.4) hue-rotate(-12deg); }
 @media (max-width: 700px) { .city-map { padding: 8px; border-radius: 22px; } .city-grid { grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 5px; } .lot { min-height: 122px; } .biz-grid { grid-template-columns: 1fr; } .tabs button .ti { font-size: 18px; } .tabs button span { font-size: 9px !important; } }
 
 /* ---------- Connexion obligatoire ---------- */
-body.gated footer, body.gated #gta, body.gated #tabs, body.gated .topbar, body.gated #goalbar, body.gated #notif-nudge, body.gated #teddy { display: none !important; }
+body.gated footer, body.gated #gta, body.gated #tabs, body.gated .topbar, body.gated #goalbar, body.gated #notif-nudge, body.gated #teddy, body.gated #ev-banner { display: none !important; }
 body.gated #tab-social { padding-bottom: 40px; }
 .gate-hi { margin: 4px 0 10px; padding: 10px 12px; border-radius: 14px; background: rgba(240,185,11,.14); border: 1px solid rgba(240,185,11,.4); font-size: 14px; }
 body.gated #tab-social { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; padding-top: 20px; }
@@ -756,3 +756,12 @@ body.gated #sh-chip { display: none; }
 .ai-big { width: 96px; height: 96px; border-radius: 22px; box-shadow: 0 10px 24px rgba(0,0,0,.45); margin: 4px auto 6px; display: block; }
 .ai-tab .nbox { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .guesttag { display: inline-block; margin-left: 4px; padding: 1px 5px; border-radius: 6px; font-size: 9.5px; font-weight: 800; vertical-align: middle; color: var(--muted); background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.18); }
+
+/* ---------- Bandeau d'événement (js/events.js) ---------- */
+.ev-banner { display: flex; align-items: center; gap: 10px; width: calc(100% - 40px); margin: 8px 20px 0; padding: 7px 12px; border: 1px solid rgba(255,190,90,.45); border-radius: 16px; background: linear-gradient(90deg, rgba(255,120,60,.22), rgba(240,185,11,.14)); color: inherit; text-align: left; font: inherit; cursor: pointer; }
+.ev-banner.soon { border-color: var(--line); background: rgba(255,255,255,.06); }
+.ev-banner .ev-ic { font-size: 22px; line-height: 1; }
+.ev-banner .ev-t { flex: 1; min-width: 0; } .ev-banner .ev-t b { display: block; font-size: 13.5px; } .ev-banner .ev-t small { display: block; font-size: 11.5px; opacity: .8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ev-banner .ev-time { flex: none; font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: rgba(0,0,0,.22); }
+.ev-banner.on .ev-ic { animation: ring 2.4s infinite; }
+@media (max-width: 900px) { .ev-banner { width: calc(100% - 24px); margin: 6px 12px 0; } }

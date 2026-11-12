@@ -1,0 +1,14 @@
+{
+  "events": [
+    {
+      "id": "happyhour-2026-11-12",
+      "emoji": "🍹",
+      "title": "Happy hour : frais offerts",
+      "text": "0 € de frais sur tous les ordres, au comptant et à levier",
+      "start": "2026-11-12T17:00:00+01:00",
+      "end": "2026-11-12T23:00:00+01:00",
+      "tab": "markets",
+      "effects": { "fees": 0 }
+    }
+  ]
+}
