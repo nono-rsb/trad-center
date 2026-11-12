@@ -84,7 +84,6 @@
   CL.give = async function (eur) {
     eur = Math.floor(+eur * 100) / 100;
     if (!(eur >= 1)) throw new Error('Mets au moins 1 €.');
-    const ng = G.noGift && G.noGift(); if (ng) throw new Error(ng);
     if (S().cash < eur) throw new Error(`Il te faut ${fmt.eur(eur)} de cash.`);
     const id = N.profile.clanId; if (!id) throw new Error('Tu n\'es dans aucun clan.');
     const prev = N.profile.clanFund && N.profile.clanFund.id === id ? +N.profile.clanFund.eur || 0 : 0;

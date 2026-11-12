@@ -21,29 +21,20 @@
   const isCreatorUid = uid => !!uid && uid === TC.ADMIN_UID;
   ST.isCreator = () => !!(TC.Net && TC.Net.user && isCreatorUid(TC.Net.user.uid));
   ST.CBADGES = [['arcenciel', '🌈 Arc-en-ciel'], ['or', '🥇 Or'], ['diamant', '💎 Diamant'], ['neon', '💜 Néon'], ['feu', '🔥 Feu'], ['galaxie', '🌌 Galaxie']];
-  /* Argent illimité (créateur) : le cash reste à 1 000 milliards et se recharge tout seul.
-   * Le créateur est hors concours partout ; et tant que c'est activé, il ne peut pas donner d'argent aux joueurs. */
+  /* Argent illimité : c'est l'état normal du compte du créateur (1 000 milliards, rechargés tout seuls).
+   * Il reste libre de donner de l'argent à qui il veut. Il est hors concours partout. */
   ST.INF = 1e12;
-  ST.infinite = () => ST.isCreator() && !!(S().creator && S().creator.inf);
-  ST.setInfinite = function (on) {
-    if (!ST.isCreator()) return;
-    const c = S().creator || (S().creator = {});
-    if (on && !c.inf) { c.inf = true; c.real = S().cash; refill(); TC.toast('♾️ Argent illimité activé', 'ok'); }
-    else if (!on && c.inf) { c.inf = false; S().cash = Math.max(0, +c.real || 0); TC.toast(`Argent illimité désactivé : retour à ${fmt.eur(S().cash)}`, 'info'); }
-    G.save(true); after();
-  };
+  ST.infinite = () => ST.isCreator();
   function refill() {
-    if (!ST.infinite() || S().cash >= ST.INF * 0.999) return;
+    if (!ST.infinite() || S().cash >= ST.INF) return;
     const d = ST.INF - S().cash; S().cash = ST.INF; if (TC.Weekly) TC.Weekly.flow(d); // la recharge ne compte pas comme un gain
   }
-  setInterval(refill, 1500); G.on(() => refill());
-  // bloque les dons d'argent aux joueurs en mode illimité (renvoie le message à afficher, ou null)
-  G.noGift = () => ST.infinite() ? '♾️ Argent illimité activé : tu ne peux pas donner d\'argent aux joueurs, ce serait injuste pour eux. Désactive-le dans Mon style → 👑 Créateur.' : null;
+  setInterval(refill, 1500); G.on(() => refill()); if (TC.Net && TC.Net.on) TC.Net.on(t => { if (t === 'linked') { refill(); after(); } });
   ST.CREATOR_PERKS = [
     ['✓', 'Badge vérifié multicolore', 'Animé, à côté de ton pseudo partout dans le jeu, avec la mention CRÉATEUR. Personne d\'autre ne peut l\'avoir.'],
     ['👑', 'Halo du créateur', 'Cadre exclusif arc-en-ciel animé autour de ton avatar.'],
     ['♾️', 'Trad Center+ à vie', 'Tous les avantages du vérifié, sans abonnement ni renouvellement.'],
-    ['♾️', 'Argent illimité', 'Interrupteur ci-dessus : 1 000 milliards d\'euros qui se rechargent tout seuls.'],
+    ['♾️', 'Argent illimité', '1 000 milliards d\'euros qui se rechargent tout seuls. Tu peux en donner à qui tu veux.'],
     ['🏁', 'Hors concours partout', 'Classement mondial, championnat de la semaine, course de Noël, élection du Maire, clans : les prix et les places reviennent aux joueurs.'],
     ['🎁', 'Bonus quotidien ×3', 'Au lieu de ×1,5 pour les membres Trad Center+.'],
     ['🛍️', 'Tout le style gratuit', 'Casquettes, lunettes, chaînes, tenues, cadres : tout est offert.'],
@@ -164,7 +155,7 @@
     const cb = st().look.cb || 'arcenciel';
     const grid = tab === 'creator' ? `<div class="cr-tab"><div class="cr-hero"><span class="vbadge cr cr-${cb} xl">✓</span><div><b>Créateur de Trad Center</b><small>Ton badge est unique : il ne peut s'afficher que sur ton compte.</small></div></div>
         <h4>Couleur de ton badge</h4><div class="cr-badges">${ST.CBADGES.map(([k, l]) => `<button data-cb="${k}" class="${cb === k ? 'on' : ''}"><span class="vbadge cr cr-${k}">✓</span>${l}</button>`).join('')}</div>
-        <label class="tgl cr-inf"><input type="checkbox" data-crinf ${ST.infinite() ? 'checked' : ''}><span><b>♾️ Argent illimité</b><small>1 000 milliards d'euros, rechargés tout seuls. Pendant ce temps, tu ne peux pas donner d'argent aux joueurs.</small></span></label>
+        <div class="cr-inf"><b>♾️ Argent illimité</b><small>Toujours actif : 1 000 milliards d'euros, rechargés tout seuls. Tu peux en donner à qui tu veux.</small></div>
         <button class="btn ${st().look.frame === 'fr_creator' ? 'btn-ghost' : 'btn-gold'}" data-eq="fr_creator">${st().look.frame === 'fr_creator' ? 'Retirer le halo du créateur' : '👑 Porter le halo du créateur'}</button>
         <h4>Tes bonus</h4><div class="news">${ST.CREATOR_PERKS.map(([i, t, d]) => `<div class="news-i"><span>${i === '✓' ? `<span class="vbadge cr cr-${cb}">✓</span>` : i}</span><div><b>${t}</b><small>${d}</small></div></div>`).join('')}</div></div>`
       : tab === 'body' ? (TC.Avatar ? TC.Avatar.editor(st().look.av, st().look) : '') : tab === 'face'
@@ -186,7 +177,6 @@
       <p class="hint">Articles cosmétiques (non revendables), payés avec l'argent du jeu et visibles par tes amis dans les classements.</p>`, { cls: 'wide' });
     const card = md.el.querySelector('.modal-card'); if (keepTop) card.scrollTop = keepTop;
     const setAv = v => { st().look.av = v; G.save(true); after(); ST.open(); };
-    card.addEventListener('change', e => { if (e.target.dataset && e.target.dataset.crinf !== undefined) { ST.setInfinite(e.target.checked); return ST.open(); } });
     card.addEventListener('change', e => { const k = e.target.dataset && e.target.dataset.avcolor; if (k) setAv(Object.assign({}, st().look.av || TC.Avatar.random(), { [k]: e.target.value })); });
     card.addEventListener('click', async e => {
       const b = e.target.closest('button, input'); if (!b) return;
