@@ -37,7 +37,13 @@
     } catch (e) { }
   };
   A.botBlocked = uid => { const b = uid && A.botBlocks[uid]; return b && (!b.until || b.until > Date.now()) ? b : null; };
-  A.isBanned = uid => !!(uid && (A.bans[uid] || A.botBlocked(uid)));
+  // blocage « jusqu'au changement de pseudo » : levé dès que le joueur ne porte plus le pseudo refusé
+  A.renamedAway = function (uid, b) {
+    if (!b || b.need !== 'pseudo') return false;
+    const p = N.user && uid === N.user.uid ? N.profile && N.profile.pseudo : ((typeof users !== 'undefined' && users.find(x => x.uid === uid)) || {}).pseudo;
+    return !!p && p !== b.pseudo;
+  };
+  A.isBanned = uid => !!(uid && ((A.bans[uid] && !A.renamedAway(uid, A.bans[uid])) || A.botBlocked(uid)));
   const modRef = () => N.db().collection('admin').doc('mod');
   A.undoBot = async uid => { await modRef().set({ undo: { [uid]: Date.now() } }, { merge: true }); delete A.botBlocks[uid]; };
   A.botName = () => (A.bot && A.bot.pseudo) || 'Sentinelle';
@@ -103,7 +109,27 @@
       };
       return;
     }
-    if (me && A.bans[me] && !A.isAdmin()) {
+    const ab = me && A.bans[me] && !A.isAdmin() && !A.renamedAway(me, A.bans[me]) ? A.bans[me] : null;
+    if (ab && ab.need === 'pseudo') { // le créateur exige un nouveau pseudo
+      if (lock && lock.dataset.k === 'ren' + ab.at) return;
+      if (lock) lock.remove();
+      const el = document.createElement('div'); el.id = 'banned'; el.dataset.k = 'ren' + ab.at;
+      el.innerHTML = `<div class="bn-in"><div class="big-emoji">✏️</div><h1>Change ton pseudo</h1>
+        <p>Le créateur du jeu a bloqué ton compte tant que tu gardes le pseudo <b>${esc(ab.pseudo || '')}</b>.</p>
+        ${ab.reason ? `<div class="nbox warn">${esc(ab.reason)}</div>` : ''}
+        <p>Choisis un pseudo correct (pas de choses bizarres) pour rejouer tout de suite :</p>
+        <div class="bn-ren"><input id="bn-ps" maxlength="20" placeholder="Nouveau pseudo"><button class="btn btn-buy" id="bn-ok">Changer</button></div>
+        <button class="btn btn-ghost" id="bn-out">Se déconnecter</button></div>`;
+      document.body.appendChild(el);
+      el.querySelector('#bn-out').onclick = () => N.signOut();
+      el.querySelector('#bn-ok').onclick = async e => {
+        e.target.disabled = true;
+        try { await N.changePseudo(el.querySelector('#bn-ps').value); TC.toast(`✅ Nouveau pseudo : <b>${esc(N.profile.pseudo)}</b>. Bon jeu !`, 'ok', 6000); A.enforce(); }
+        catch (x) { TC.toast(x.userMsg || x.message, 'bad', 6000); e.target.disabled = false; }
+      };
+      return;
+    }
+    if (ab) {
       if (lock && !lock.dataset.k) return;
       if (lock) lock.remove();
       const el = document.createElement('div'); el.id = 'banned';
@@ -213,6 +239,9 @@
         await A.loadBans();
         const s = await N.db().collection('users').get();
         users = s.docs.map(d => N.prof(d.id, d.data())).filter(u => !u.bot).sort((a, b) => (b.nw || 0) - (a.nw || 0));
+        // ménage : les joueurs qui ont changé de pseudo après un blocage « nouveau pseudo » sont débloqués pour de bon
+        const done = Object.keys(A.bans).filter(id => A.renamedAway(id, A.bans[id]));
+        if (done.length) { const upd = {}; done.forEach(id => { upd[id] = firebase.firestore.FieldValue.delete(); delete A.bans[id]; }); banRef().set({ users: upd }, { merge: true }).catch(() => { }); }
         try { const sv = A.botUid ? await N.db().collection('saves').doc(A.botUid).get() : null; mod = (sv && sv.exists && sv.data().modReports) || []; } catch (e) { mod = []; }
         try { const m = await modRef().get(); modDone = (m.exists && m.data().done) || {}; } catch (e) { modDone = {}; }
         try { const gs = await giftRef().get(); decided = {}; ((gs.exists && gs.data().list) || []).forEach(g => { if (g.claim) decided[g.claim] = 1; }); } catch (e) { }
@@ -288,8 +317,8 @@
     try { const s = await N.db().collection('saves').doc(uid).get(); st = s.exists ? JSON.parse(s.data().state) : null; } catch (e) { err = e; }
     const ban = A.bans[uid], bb = A.botBlocked(uid);
     let html = `${bb ? `<div class="nbox warn">🤖 Suspendu par ${esc(A.botName())} ${bb.until ? 'jusqu\'au ' + fmt.time(bb.until) : 'jusqu\'au changement de pseudo'} : ${esc(bb.reason || '')}
-        <button class="btn btn-sm btn-buy" id="adm-unbot">Annuler la sanction du robot</button></div>` : ''}<div class="adm-actions">${ban ? `<span class="adm-tag ban">BLOQUÉ le ${fmt.time(ban.at)}${ban.reason ? ' : ' + esc(ban.reason) : ''}</span><button class="btn btn-buy" id="adm-unban">Débloquer</button>`
-      : `<input id="adm-reason" placeholder="Raison (facultatif)"><button class="btn btn-sell" id="adm-ban" ${uid === TC.ADMIN_UID ? 'disabled' : ''}>⛔ Bloquer</button>`}<button class="btn btn-ghost" id="adm-back">← Liste</button></div>
+        <button class="btn btn-sm btn-buy" id="adm-unbot">Annuler la sanction du robot</button></div>` : ''}<div class="adm-actions">${ban ? `<span class="adm-tag ban">${ban.need === 'pseudo' ? '✏️ BLOQUÉ JUSQU\'AU NOUVEAU PSEUDO' : 'BLOQUÉ'} le ${fmt.time(ban.at)}${ban.reason ? ' : ' + esc(ban.reason) : ''}</span><button class="btn btn-buy" id="adm-unban">Débloquer</button>`
+      : `<input id="adm-reason" placeholder="Raison (facultatif)"><button class="btn btn-sell" id="adm-ban" ${uid === TC.ADMIN_UID ? 'disabled' : ''}>⛔ Bloquer</button><button class="btn" id="adm-ren" ${uid === TC.ADMIN_UID ? 'disabled' : ''}>✏️ Bloquer jusqu'au nouveau pseudo</button>`}<button class="btn btn-ghost" id="adm-back">← Liste</button></div>
       ${u.dupOf && u.dupOf.length ? `<div class="nbox ${A.allowed(uid) ? 'ok' : 'warn'}">👥 Double compte : cet appareil a déjà servi à ${u.dupOf.map(x => { const o = users.find(y => y.uid === x); return '<b>' + esc(o ? o.pseudo : x) + '</b>'; }).join(', ')}. ${A.allowed(uid) ? 'Tu l\'as autorisé.' : 'Ce compte est bloqué automatiquement.'}
         <button class="btn btn-sm ${A.allowed(uid) ? 'btn-ghost' : 'btn-buy'}" id="adm-allow">${A.allowed(uid) ? 'Retirer l\'autorisation' : '✅ Autoriser ce compte'}</button></div>` : ''}
       <div class="adm-gift"><b>🎁 Donner de l'argent</b> <small>(ne te coûte rien ; il le reçoit à sa prochaine ouverture du jeu)</small>
@@ -322,6 +351,14 @@
     }
     const box = md.el.querySelector('#adm-p'); box.innerHTML = html;
     const b1 = box.querySelector('#adm-ban'), b2 = box.querySelector('#adm-unban');
+    const b3 = box.querySelector('#adm-ren');
+    if (b3) b3.onclick = async () => {
+      if (!(await TC.confirm('Exiger un nouveau pseudo ?', `<b>${esc(u.pseudo || uid)}</b> est bloqué tant qu'il garde ce pseudo. Il peut en choisir un autre directement sur l'écran de blocage, et il est débloqué tout de suite.`, 'Bloquer', 'btn-sell'))) return A.player(uid);
+      const reason = ((box.querySelector('#adm-reason') || {}).value || 'Pseudo non autorisé : choisis un pseudo correct, sans choses bizarres.').slice(0, 120);
+      try { await banRef().set({ users: { [uid]: { at: Date.now(), reason, pseudo: u.pseudo || '', need: 'pseudo' } } }, { merge: true }); A.bans[uid] = { at: Date.now(), reason, pseudo: u.pseudo || '', need: 'pseudo' }; TC.toast('✏️ Joueur bloqué jusqu\'à ce qu\'il change de pseudo', 'ok', 6000); }
+      catch (e) { TC.toast('Erreur : ' + N.errMsg(e), 'bad', 8000); }
+      A.player(uid);
+    };
     if (b1) b1.onclick = async () => {
       if (!(await TC.confirm('Bloquer ce joueur ?', `<b>${esc(u.pseudo || uid)}</b> ne pourra plus jouer et disparaîtra des classements.`, 'Bloquer', 'btn-sell'))) return A.player(uid);
       const reason = (box.querySelector('#adm-reason') || {}).value || '';
