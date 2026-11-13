@@ -322,7 +322,7 @@
       <span class="lot-n">${p.me ? 'Toi' : esc(p.pseudo || '?')}${TC.Style ? TC.Style.badge(p) : ''}</span>
       <small class="lot-nw">${fmt.eur(p.nw || 0, true)}</small></button>`;
   }
-  function landHtml(l) { return `<button class="lot land" data-land="${l.id}"><span class="lot-b">${l.e}</span><span class="lot-n">${l.name}</span></button>`; }
+  function landHtml(l) { return `<button class="lot land${TC.Hunt && TC.Hunt.hunting() ? ' dig' : ''}" data-land="${l.id}"><span class="lot-b">${l.e}</span><span class="lot-n">${l.name}</span></button>`; }
 
   function mapHtml() {
     const r = roster();
@@ -505,6 +505,7 @@
   };
   function landmark(id) {
     const l = LANDMARKS.find(x => x.id === id); if (!l) return;
+    if (TC.Hunt && TC.Hunt.dig(id)) return; // chasse au trésor en cours : on fouille le monument
     if (l.go === 'parc') { TC.toast(TC.season && TC.season.noel ? '🎄 Le sapin de la ville brille dans le parc !' : '🌳 Un banc, des pigeons… et tout le monde parle du Bitcoin.', 'info'); return; }
     if (l.go === 'mairie') return mairie();
     if (l.go === 'chest') { UI().shopType = 'chest'; TC.App.setTab('shop'); return; }

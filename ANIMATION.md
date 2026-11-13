@@ -12,6 +12,8 @@ Tenu par l'animation automatique (Claude). Dépôt public : **aucun pseudo, uid,
 - **Règles Firestore plus strictes sur le profil** : `referredBy` non modifiable une fois posé, `refOk` seulement false → true, `guest` seulement true → false.
 - **Défi trading du soir** : classement séparé « meilleur gain entre 17 h et 23 h » (champ `ev_<id>` dans le profil, comme `wk_…`), petite prime symbolique (10–20 €) versée par Sentinelle.
 - **Chasse au trésor sur la map** de Trad City : un objet caché sur un lot différent chaque soir.
+- **Duels : prime versée par le serveur** : aujourd'hui chaque joueur calcule lui-même le résultat et se paie ; Sentinelle pourrait comparer les deux scores publiés (`dl.g`) et signaler les écarts ou les duels gagnés tous les jours contre le même ami inactif.
+- **Chasse au trésor en 3D** : faire briller les monuments à fouiller dans la vue 3D (aujourd'hui seule la carte 2D les entoure en doré).
 - **Effet `rent` / `bonus` dans events.json** (loyers x2, bonus x2) en ne multipliant que la part de temps passée pendant l'événement.
 
 ## Bilans
@@ -27,6 +29,14 @@ Tenu par l'animation automatique (Claude). Dépôt public : **aucun pseudo, uid,
 - **Commits** : 50 (hors fusions) depuis lundi.
 
 ## Journal
+
+### 2026-11-13 (vendredi)
+
+- **Événement** : 💎 Chasse au trésor à Trad City, 17 h – 23 h. Nouveau type d'événement `hunt` dans le système commun (`js/hunt.js`, documenté dans EVENTS.md) : un trésor est caché dans un des 8 monuments de la carte, cachette différente pour chaque joueur ; toucher un monument le fouille, un mauvais monument donne une devinette sur le bon. Prime de 25 € (plafond 50 € dans le code) + 50 XP, une fois par joueur, réservée aux vrais comptes (pas invité, pas double compte), exclue du championnat et des duels.
+- **Annonce** : `tresor-2026-11-13`, push « 💎 Un trésor est caché dans Trad City », ouvre l'onglet Ville. Seule annonce du jour.
+- **Anti-triche** : logs notify des dernières 24 h : 11 passages, tous réussis, aucune erreur, aucune ligne « modération » ni « sanction ». Faille corrigée dans les duels (ajoutés hier) : un joueur pouvait se faire un compte invité en navigation privée, l'ajouter en ami, lancer un duel et le laisser à 0 € pour gagner 100 € par jour (200 € le mardi), ou supprimer ce compte pour gagner d'office. Plus de duel ni de prime contre un invité, un bot, un double compte, un compte qui a servi sur un de ses appareils ou un compte introuvable (revérifié sur le profil frais au moment de payer). Règles Firestore relues : rien à republier.
+- **Amélioration** : bouton 📤 sur le bandeau d'événement pour inviter ses amis à l'événement avec son lien de parrainage (partage natif du téléphone, sinon copie). Corrigé au passage : toucher le bandeau ouvrait l'onglet de l'événement affiché au chargement même si un autre avait pris sa place.
+- **Chiffres du log** : 19 à 20 joueurs, 11 à 12 appareils abonnés aux notifications.
 
 ### 2026-11-12 (jeudi)
 

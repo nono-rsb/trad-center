@@ -35,6 +35,16 @@ Système commun à tous les mini-événements (animation du soir, événement du
 |---|---|---|---|
 | `fees` | multiplicateur des frais de trading (comptant et levier) : `0` = offerts, `0.5` = moitié prix | 0 à 1 | `G.feeSpot()` / `G.feeLev()` dans `js/game.js` |
 
+### Chasse au trésor (`hunt`)
+
+```json
+"hunt": { "prize": 25 }
+```
+
+Hors de `effects` : un trésor est caché dans un des 8 monuments de la carte (cachette différente pour chaque joueur, tirée de l'`id` + uid). Pendant l'événement, toucher un monument (2D ou 3D) le fouille au lieu de l'ouvrir ; un mauvais monument donne une devinette sur le bon. Prime (plafonnée à 50 € dans `js/hunt.js`) une seule fois par événement, réservée aux vrais comptes (pas invité, pas double compte), exclue du championnat et des duels (`TC.Weekly.flow`), +50 XP. Mettre `"tab": "city"`.
+
+Le bandeau a aussi un bouton 📤 qui partage l'événement avec le lien de parrainage du joueur.
+
 Les effets se cumulent par multiplication avec ceux du Maire (ex. Maire « Zéro frais » + happy hour = toujours 0).
 
 **Ajouter un effet** : déclarer ses bornes dans `EFFECTS` (js/events.js) puis le lire dans le moteur avec `TC.Events.mult('<nom>')` (vaut 1 hors événement). Pour un effet sur une durée (loyers, recettes), ne multiplier que la part de temps passée pendant l'événement, sinon on peut attendre 48 h et tout encaisser pendant l'événement.

@@ -1,42 +1,28 @@
 {
-  "id": "chaque-jour-2026-11-12",
-  "emoji": "🔥",
-  "title": "Grosse mise à jour : reviens chaque jour !",
+  "id": "tresor-2026-11-13",
+  "emoji": "💎",
+  "title": "Chasse au trésor ce soir !",
+  "tab": "city",
   "items": [
     {
-      "icon": "🔥",
-      "title": "Série de jours",
-      "text": "Bouton 🔥 en haut : reviens chaque jour pour faire grandir ta série. Jour 7 : coffre offert. Jour 30 : cadre Flamme exclusif."
+      "icon": "🗺️",
+      "title": "Un trésor caché dans Trad City",
+      "text": "De 17 h à 23 h, un trésor de 25 € est caché dans un des monuments de la carte. Chacun a sa propre cachette !"
     },
     {
-      "icon": "🎯",
-      "title": "3 missions par jour",
-      "text": "De petites missions chaque jour, avec de l'argent et de l'XP à la clé."
+      "icon": "🧭",
+      "title": "Des indices à chaque fouille",
+      "text": "Onglet Ville : touche un monument pour le fouiller. Raté ? Tu reçois une devinette sur la bonne cachette."
     },
     {
-      "icon": "⭐",
-      "title": "Niveaux et saison",
-      "text": "Gagne de l'XP, monte de niveau (affiché à côté de ton pseudo) et débloque les 30 paliers de la saison : argent, coffres et cadres exclusifs."
-    },
-    {
-      "icon": "⚔️",
-      "title": "Duels entre amis",
-      "text": "Onglet Amis → ⚔️ : défie un ami. Le plus gros gain en 24 h remporte 100 € (200 € le mardi)."
-    },
-    {
-      "icon": "🏦",
-      "title": "Prêts de la banque",
-      "text": "Trad Banque → Prêt : emprunte jusqu'à la moitié de ton patrimoine. Intérêts de 5 à 25 %, à rembourser à temps !"
-    },
-    {
-      "icon": "🎉",
-      "title": "Un événement par jour",
-      "text": "Lundi sans frais, mardi des duels, mercredi XP ×2, jeudi Bitcoin, vendredi missions ×2, week-end bonus ×2."
+      "icon": "📤",
+      "title": "Invite tes amis",
+      "text": "Bouton 📤 sur le bandeau de l'événement : envoie ton lien, chaque ami qui crée son compte te rapporte la prime de parrainage."
     }
   ],
-  "button": "Compris 👍",
+  "button": "Je cherche 🔍",
   "push": {
-    "title": "🔥 Missions, séries, duels et prêts !",
-    "body": "Grosse mise à jour : 3 missions par jour, série de jours, niveaux, saison, duels entre amis et prêts de la banque."
+    "title": "💎 Un trésor est caché dans Trad City",
+    "body": "Ce soir 17 h – 23 h : fouille les monuments de la carte, suis les indices et empoche 25 €. Chacun a sa cachette !"
   }
 }

@@ -13,6 +13,16 @@
   const prize = () => TC.Progress && TC.Progress.event().k === 'duel' ? D.PRIZE * 2 : D.PRIZE;
   const friend = uid => (N.friends || []).find(f => f.uid === uid);
   const nwNow = () => G.netWorth();
+  // Adversaire valable pour la prime : un vrai compte (pas un invité anonyme créé à volonté, pas un bot, pas un double compte)
+  // qui n'a jamais servi sur un de mes appareils. Sinon on pourrait se défier soi-même en navigation privée et gagner 100 € par jour.
+  D.why = function (p) {
+    if (!p || p.deleted) return 'joueur introuvable';
+    if (p.guest) return 'joue en invité : il doit créer son compte pour les duels';
+    if (p.bot) return 'les robots ne font pas de duel';
+    const mine = (N.profile && N.profile.devs) || [];
+    if ((p.dupOf && p.dupOf.length) || (p.devs || []).some(v => mine.includes(v))) return 'compte lié à ton appareil : pas de duel avec toi-même';
+    return null;
+  };
 
   // les flux extérieurs (dons, primes, achats de licences…) ne comptent pas dans le gain du duel
   if (TC.Weekly && TC.Weekly.flow) { const f = TC.Weekly.flow; TC.Weekly.flow = function (eur) { const d = cur(); if (d && d.state === 'on' && Date.now() < d.end) d.flow = (d.flow || 0) + eur; return f.apply(this, arguments); }; }
@@ -30,6 +40,7 @@
     const f = friend(uid); if (!f) return;
     const d = cur(); if (d && (d.state === 'inv' || d.state === 'on')) return TC.toast('Tu as déjà un duel en cours.', 'bad');
     if (f.dl && f.dl.state === 'on' && Date.now() < f.dl.end) return TC.toast(`${esc(f.pseudo)} est déjà en duel.`, 'bad');
+    const no = D.why(f); if (no) return TC.toast(`⚔️ ${esc(f.pseudo)} : ${esc(no)}.`, 'bad', 6000);
     if (!(await TC.confirm('⚔️ Défier ' + esc(f.pseudo) + ' ?', `Pendant 24 h, celui qui gagne le plus d'argent remporte <b>${fmt.eur(prize())}</b> offerts par le jeu. Pas de mise, les dons ne comptent pas.`, 'Défier ⚔️', 'btn-gold'))) return;
     set({ id: me().slice(0, 5) + Date.now().toString(36), vs: uid, vsP: f.pseudo, state: 'inv', at: Date.now(), role: 'ch' });
     if (N.flush) await N.flush();
@@ -40,6 +51,7 @@
   D.accept = async function (uid) {
     const f = friend(uid); if (!f || !f.dl || f.dl.vs !== me() || f.dl.state !== 'inv') return;
     const d = cur(); if (d && d.state === 'on' && Date.now() < d.end) return TC.toast('Tu as déjà un duel en cours.', 'bad');
+    const no = D.why(f); if (no) return TC.toast(`⚔️ ${esc(f.pseudo)} : ${esc(no)}.`, 'bad', 6000);
     const now = Date.now();
     set({ id: f.dl.id, vs: uid, vsP: f.pseudo, state: 'on', start: now, end: now + D.LEN, base: nwNow(), flow: 0, g: 0, role: 'op' });
     if (N.flush) await N.flush();
@@ -72,7 +84,9 @@
           const other = dl && dl.id === d.id ? +dl.g || 0 : 0, mine = d.g || 0;
           d.state = 'done'; d.res = mine > other ? 'win' : mine < other ? 'lose' : 'tie'; d.og = other;
           const day = new Date().toDateString(), paid = S().duelPaid || (S().duelPaid = {});
-          if (d.res === 'win' && !paid[day]) {
+          const no = d.res === 'win' ? D.why(snap.exists ? snap.data() : null) : null; // revérifié sur le profil frais au moment de payer
+          if (d.res === 'win' && no) TC.toast(`⚔️ Duel gagné contre ${esc(d.vsP)}, mais pas de prime : ${esc(no)}.`, 'info', 8000);
+          else if (d.res === 'win' && !paid[day]) {
             paid[day] = d.id; const p = prize();
             S().cash += p; if (TC.Weekly) TC.Weekly.flow(p);
             S().log.unshift({ t: now, kind: 'bonus', eur: p, asset: `⚔️ Duel gagné contre ${d.vsP}` });
