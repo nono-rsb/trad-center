@@ -25,9 +25,9 @@
       "text": "Pendant la chasse au trésor, approche-toi d'un monument et appuie sur E pour le fouiller."
     }
   ],
-  "button": "Je cherche 🔍",
+  "button": "Je vais me balader 🚶",
   "push": {
-    "title": "💎 Un trésor est caché dans Trad City",
-    "body": "Ce soir 17 h – 23 h : fouille les monuments de la carte, suis les indices et empoche 25 €. Chacun a sa cachette !"
+    "title": "🚶 Balade-toi dans Trad City",
+    "body": "Nouveau : marche dans la ville, passe au 🛒 Trad Market et paie avec ton vrai téléphone en scannant le QR."
   }
 }
