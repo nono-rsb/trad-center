@@ -220,6 +220,7 @@ async function main() {
         const from = d.data().from; if (!from) return;
         b.set(doc(claude.db, 'friendships', from < claude.uid ? from + '_' + claude.uid : claude.uid + '_' + from), { members: [from, claude.uid], createdAt: Date.now() });
         b.delete(d.ref); box.push({ id: crypto.randomBytes(5).toString('hex'), to: from, kind: 'accept', at: Date.now() });
+        log(`Claude a un nouvel ami : ${d.data().fromPseudo || from}`);
       });
       b.update(claude.ref, { outbox: box, updatedAt: Date.now() });
       await b.commit(); log('Claude a accepté', reqs.size, 'demande(s) d\'ami');
@@ -241,7 +242,7 @@ async function main() {
         g.cash = Math.round((g.cash + eur) * 100) / 100;
         recv.push({ from: t.fromPseudo || '?', eur, kind: t.kind, asset: t.asset || null, msg: String(t.msg || '').slice(0, 120), at: Date.now() });
         box.push({ id: crypto.randomBytes(5).toString('hex'), to: t.from, kind: 'thanks', eur, at: Date.now() });
-        log(`Claude a reçu ${eur} € de ${t.fromPseudo || '?'}${t.asset ? ' (' + t.asset + ')' : ''}${t.msg ? ' : « ' + String(t.msg).slice(0, 80) + ' »' : ''}`);
+        log(`Claude a reçu ${eur} € de ${t.fromPseudo || '?'}${t.asset ? ' (' + t.asset + ')' : ''}${t.msg ? ' : « ' + String(t.msg).slice(0, 200) + ' »' : ' (sans message)'}`);
       }
       const nw = Math.round((g.cash + g.bets.filter(b => !b.res).reduce((s, b) => s + b.stake, 0)) * 100) / 100;
       await updateDoc(claude.ref, { cb: g, nw, recv, outbox: box, updatedAt: Date.now() });
