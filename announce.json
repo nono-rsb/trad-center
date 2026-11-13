@@ -1,33 +1,38 @@
 {
-  "id": "balade-2026-11-13",
-  "emoji": "🚶",
-  "title": "Balade dans Trad City + Trad Market",
+  "id": "tradcity-v2-2026-11-13",
+  "emoji": "🏙️",
+  "title": "Trad City 2.0 : la ville à taille humaine",
   "tab": "city",
   "items": [
     {
-      "icon": "🚶",
-      "title": "Promène-toi à pied dans la ville",
-      "text": "Onglet Ville → 🚶 Balade. Sur ordinateur : ZQSD pour marcher, Maj pour courir, la souris pour regarder. Sur téléphone : un joystick."
+      "icon": "🧍",
+      "title": "Des vrais personnages",
+      "text": "Taille humaine, bras, mains, genoux qui bougent quand tu marches ou cours. Ton visage et ta tenue viennent de ton avatar."
     },
     {
-      "icon": "🛒",
-      "title": "Le Trad Market, à côté de la Bourse",
-      "text": "Boissons, snacks, sandwichs… Ils vont dans ton sac 🎒 et te redonnent de l'énergie ⚡ pour marcher et courir."
+      "icon": "👁️",
+      "title": "Vue à la 1re personne",
+      "text": "Touche V (ou 👁️ Vue) pour voir par les yeux de ton perso."
     },
     {
-      "icon": "📱",
-      "title": "Paie avec ton vrai téléphone",
-      "text": "À la caisse, l'ordinateur affiche un QR code : scanne-le avec Trad Banque → 📷 Payer, valide avec ta carte. Bip, c'est payé (argent du jeu)."
+      "icon": "🏎️",
+      "title": "Conduis tes véhicules achetés",
+      "text": "Trottinette, scooter, moto, citadine, SUV, supercar… chacun a sa silhouette et sa couleur. G pour le garage, F pour monter."
     },
     {
-      "icon": "💎",
-      "title": "Le trésor se cherche aussi à pied",
-      "text": "Pendant la chasse au trésor, approche-toi d'un monument et appuie sur E pour le fouiller."
+      "icon": "🚪",
+      "title": "Entre vraiment dans les maisons",
+      "text": "E devant une maison : tu passes la porte, tu l'ouvres et la fermes. Chez toi, B pour poser des meubles que tes amis verront."
+    },
+    {
+      "icon": "🎡",
+      "title": "Fête foraine",
+      "text": "Grande roue (4 €) et stand de tir (3 €) : paie en scannant le QR avec ton téléphone. 12 cibles = une peluche géante !"
     }
   ],
-  "button": "Je vais me balader 🚶",
+  "button": "Je vais voir 🏙️",
   "push": {
-    "title": "🚶 Balade-toi dans Trad City",
-    "body": "Nouveau : marche dans la ville, passe au 🛒 Trad Market et paie avec ton vrai téléphone en scannant le QR."
+    "title": "🏙️ Trad City 2.0 est là",
+    "body": "Ville à taille humaine, vue 1re personne, conduis tes voitures, entre dans les maisons, grande roue et stand de tir !"
   }
 }

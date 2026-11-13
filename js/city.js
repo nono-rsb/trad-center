@@ -123,7 +123,8 @@
   C.pub = () => {
     const o = {}, at = {}; Object.entries(st().biz).forEach(([id, x]) => { o[id] = x.lvl; at[id] = x.at || 0; });
     const own = [...new Set(S().owned.slice().sort((a, b) => b.price - a.price).map(x => x.item))].slice(0, 16);
-    return { biz: o, at, own, home: S().home || 'tente' };
+    const deco = (S().deco || []).slice(0, 40).map(d => [d.k, d.x, d.z, d.r || 0]);
+    return { biz: o, at, own, home: S().home || 'tente', deco };
   };
 
   /* ---------- Rachat du commerce d'un autre joueur ----------
@@ -382,18 +383,19 @@
       const isCar = top && top.type === 'car';
       return { uid: p.uid, pseudo: p.pseudo || '?', tier: C.home(p).b, avatar: p.me ? (TC.Style ? TC.Style.mine().avatar : p.avatar) : p.avatar, biz: (p.city && p.city.biz) || {}, me: !!p.me, mayor: p.uid === C.mayorUid(), tag: p.clanTag || null,
         friend: !p.me && N && (N.friends || []).some(f => f.uid === p.uid), plus: TC.Style ? TC.Style.isPlus(p) : false,
-        car: isCar ? { color: parseInt(String(top.grad && top.grad[0] || '#d00000').replace('#', ''), 16) } : null };
+        look: p.me ? (TC.Style ? TC.Style.mine().look : p.look) : p.look,
+        car: isCar ? { color: parseInt(String(top.grad && top.grad[0] || '#d00000').replace('#', ''), 16), style: TC.City3D && TC.City3D.vstyle ? TC.City3D.vstyle(top) : null } : null };
     });
     return { players, landmarks: LANDMARKS, biz: C.byId, night: nightNow() };
   }
   function map3dHtml() {
     const r = roster(); const guest = !N || !N.enabled || !N.user || !N.profile;
     const inn = TC.City3D && TC.City3D.insideOf && TC.City3D.insideOf(), wk = TC.Walk && TC.Walk.on();
-    if (inn) return `<div class="city3d${wk ? ' walking' : ''}" id="city3d-host"><div class="c3-load">🏠 On ouvre la porte…</div>
+    if (wk) return `<div class="city3d walking" id="city3d-host"><div class="c3-load">🚶 On sort se balader…</div>${TC.Walk.hud()}</div>`;
+    if (inn) return `<div class="city3d" id="city3d-host"><div class="c3-load">🏠 On ouvre la porte…</div>
       <div class="c3-top"><b>🏠 ${inn.me ? 'Chez toi' : 'Chez ' + esc(inn.pseudo)}</b><span>${esc(inn.homeName || '')}</span></div>
       <div class="c3-hud"><button data-c3="out">⬅️ Ville</button></div>
       <div class="c3-help">☝️ Glisse pour faire le tour · 🤏 pince pour zoomer</div></div>`;
-    if (wk) return `<div class="city3d walking" id="city3d-host"><div class="c3-load">🚶 On sort se balader…</div>${TC.Walk.hud()}</div>`;
     return `<div class="city3d" id="city3d-host"><div class="c3-load">🏗️ Construction de Trad City…</div>
       <div class="c3-top"><b>🗺️ Trad City</b><span>${r.length} habitant${r.length > 1 ? 's' : ''}</span></div>
       <div class="c3-hud">${TC.Walk ? '<button data-c3="walk" class="c3-walk">🚶 Balade</button>' : ''}<button data-c3="me">📍 Moi</button><button data-c3="mayor">👑 Maire</button><button data-c3="night">${TC.City3D && TC.City3D.ready && TC.City3D.isNight() ? '☀️' : '🌙'}</button><button data-c3="2d">2D</button></div>
@@ -443,6 +445,7 @@
   function $$biz() { document.querySelectorAll('[data-biz]').forEach(b => { b.disabled = S().cash < C.upCost(b.dataset.biz); }); }
 
   /* ---------- Fiche d'un terrain ---------- */
+  C.lotModal = uid => lotModal(uid);
   function lotModal(uid) {
     const p = roster().find(x => x.uid === uid); if (!p) return;
     const i = roster().indexOf(p), t = C.home(p), isMayor = p.uid === C.mayorUid(), voted = C.myVote() === p.uid;
@@ -500,10 +503,15 @@
     } catch (e) { const el = md.el.querySelector('#elect-res'); if (el) el.innerHTML = '<div class="empty">Résultats indisponibles</div>'; }
   }
   // Visite de la maison en 3D
+  C.houseInfo = function (p) {
+    const own = p.me ? [...new Set(S().owned.slice().sort((a, b) => b.price - a.price).map(x => x.item))].slice(0, 16) : ((p.city && p.city.own) || (p.topItem ? [p.topItem] : []));
+    const deco = p.me ? (S().deco || []) : ((p.city && p.city.deco) || []).map(a => Array.isArray(a) ? { k: a[0], x: a[1], z: a[2], r: a[3] } : a);
+    return { uid: p.uid, pseudo: p.pseudo || '?', avatar: p.me ? (TC.Style && TC.Style.mine().avatar) : p.avatar, look: p.me ? (TC.Style && TC.Style.mine().look) : p.look, tier: interiorTier(C.home(p)), homeName: C.home(p).name, nw: p.nw || 0, own, deco, me: !!p.me };
+  };
   C.visit = function (p) {
     if (!TC.City3D || !TC.City3D.ready) return;
-    const own = p.me ? [...new Set(S().owned.slice().sort((a, b) => b.price - a.price).map(x => x.item))].slice(0, 16) : ((p.city && p.city.own) || (p.topItem ? [p.topItem] : []));
-    TC.City3D.enter({ uid: p.uid, pseudo: p.pseudo || '?', avatar: p.avatar || (TC.Style && TC.Style.mine().avatar), tier: interiorTier(C.home(p)), homeName: C.home(p).name, nw: p.nw || 0, own, me: !!p.me });
+    if (TC.Walk && TC.Walk.on()) return TC.Walk.enterHouse(p);
+    TC.City3D.enter(C.houseInfo(p));
     C.render(); window.scrollTo({ top: 0, behavior: 'smooth' });
   };
   function landmark(id) {
