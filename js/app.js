@@ -433,7 +433,7 @@
     if (qs.get('ref')) { try { if (!localStorage.getItem('tradcenter.ref')) localStorage.setItem('tradcenter.ref', qs.get('ref').slice(0, 64)); } catch (e) { } }
     if (qs.toString()) history.replaceState(null, '', location.pathname);
     setTimeout(announce, 2500);
-    TC.Chart.init($('#chart'));
+    TC.Chart.init($('#chart')); document.querySelectorAll('#c-type button').forEach(x => x.classList.toggle('active', x.dataset.type === TC.Chart.type()));
     UI.cats(); UI.list(); UI.tfButtons(); UI.ticker(); UI.databar();
     UI.chartHead(); UI.order(); UI.header();
     D.start();
