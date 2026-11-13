@@ -1,6 +1,8 @@
 /* Trad Center — Trad City en 3D (Three.js r149, chargé seulement quand on ouvre l'onglet Ville)
  * Bâtiments modélisés selon le patrimoine de chaque joueur, commerces autour, monuments, voitures qui roulent,
  * jour / nuit à l'heure de Paris, neige en décembre. Un doigt : tourner. Deux doigts : zoom et déplacement. Toucher : ouvrir.
+ * Mode balade (V.walk) : on se promène à pied, à la 3e personne (clavier + souris sur ordinateur, joystick sur téléphone),
+ * avec collisions contre les bâtiments, voitures qui s'arrêtent devant le piéton, et le Trad Market (épicerie) près de la Bourse.
  */
 (function () {
   const V = TC.City3D = { ready: false, failed: false };
@@ -208,6 +210,7 @@
     if (me) { const ring = mesh(new T.TorusGeometry(.9, .08, 8, 24), new T.MeshBasicMaterial({ color: 0xffd23f }), 0, .06, 0, false); ring.rotation.x = Math.PI / 2; g.add(ring); }
     g.traverse(o => { if (o.isMesh) o.castShadow = true; });
     g.userData.walk = (t, k) => { const sw = Math.sin(t * 5 + k) * .5; legL.rotation.x = sw; legR.rotation.x = -sw; armL.rotation.x = -sw * .8; armR.rotation.x = sw * .8; };
+    g.userData.still = () => { legL.rotation.x = legR.rotation.x = armL.rotation.x = armR.rotation.x = 0; };
     return g;
   }
   const SKIN = [0xe63946, 0x3a86ff, 0x2a9d8f, 0xf4a261, 0x8338ec, 0x06d6a0, 0xff006e, 0x264653, 0xffbe0b];
@@ -269,6 +272,18 @@
 
   /* ---------- Monuments ---------- */
   const LAND = {
+    market(g) { // 🛒 Trad Market : supérette (vitrine, auvent vert, enseigne, caddies)
+      const wall = col(0xf4f1ea), green = col(0x1f9d55), glass = col(0x9fd0ff, { emissive: night ? 0xffe2a0 : 0, emissiveIntensity: .7, roughness: .2 });
+      g.add(box(15, 6, 9, wall, 0, 0, -1.5)); g.add(box(15.4, .6, 9.4, col(0x5d636b), 0, 6, -1.5));
+      g.add(box(13, 3.4, .15, glass, 0, .3, 3.05)); // vitrine
+      g.add(box(2.6, 3, .2, col(0x2b2f36), 0, .3, 3.12)); // portes coulissantes
+      const aw = box(15.4, .3, 2, green, 0, 0, 0); aw.position.set(0, 4.3, 3.9); aw.rotation.x = .28; g.add(aw);
+      const sign = new T.Mesh(new T.PlaneGeometry(9, 1.5), new T.MeshBasicMaterial({ map: canvasTex(512, 86, (c, w, h) => { c.fillStyle = '#1f9d55'; c.fillRect(0, 0, w, h); c.fillStyle = '#fff'; c.font = 'bold 54px system-ui, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('🛒 TRAD MARKET', w / 2, h / 2 + 3); }) }));
+      sign.position.set(0, 5.2, 3.2); g.add(sign);
+      [[-5.5, 5.4], [-4.3, 5.4], [5.2, 5.6]].forEach(([x, z]) => { const c = new T.Group(); c.add(box(1, .7, 1.3, col(0xb8bec7, { metalness: .7, roughness: .3 }), 0, .45, 0)); [[-.4, -.5], [.4, -.5], [-.4, .5], [.4, .5]].forEach(([a, b]) => c.add(cyl(.08, .08, .45, col(0x333333), a, 0, b, 6))); c.position.set(x, 0, z); g.add(c); });
+      g.add(box(1.4, 1.6, .9, col(0xd62839), 6.6, 0, 4.6)); // frigo à boissons dehors
+      return 8;
+    },
     bourse(g) {
       const stone = col(0xf2ead8);
       g.add(box(16, 1, 12, col(0xd9cfb8))); g.add(box(15, .6, 11, col(0xe6dcc4), 0, 1, 0));
@@ -359,7 +374,7 @@
     world.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.isSprite) { o.material.map && o.material.map.dispose(); o.material.dispose(); } });
     winMats.forEach(m => { m.map && m.map.dispose(); m.emissiveMap && m.emissiveMap.dispose(); m.dispose(); }); winMats.length = 0;
     pickables.length = animated.length = cars.length = labels.length = blinkers.length = 0;
-    world = null; snow = null; stars = null; lotPos = {};
+    world = null; snow = null; stars = null; lotPos = {}; colliders.length = 0; blockPos.length = 0; meWalker = null;
   }
 
   function setSky() {
@@ -387,7 +402,7 @@
     world = new T.Group(); scene.add(world);
     night = forcedNight != null ? forcedNight : data.night;
     const noel = !!(TC.season && TC.season.noel);
-    const items = [{ land: 'bourse' }];
+    const items = [{ land: 'bourse' }, { land: 'market' }];
     // monuments mélangés aux plus riches, comme sur la carte 2D
     let li = 1; const L = data.landmarks;
     data.players.forEach((p, i) => { if (i % 2 === 0 && li < L.length) items.push({ land: L[li++].id }); items.push({ p, i }); });
@@ -428,7 +443,7 @@
       if (it.land) {
         h = LAND[it.land](b);
         b.userData.pick = { land: it.land };
-        const name = (data.landmarks.find(l => l.id === it.land) || { name: 'Bourse' }).name;
+        const name = it.land === 'market' ? '🛒 Trad Market' : (data.landmarks.find(l => l.id === it.land) || { name: 'Bourse' }).name;
         const lb = label(name, { bg: 'rgba(255,255,255,.88)', color: '#1e1b2e', scale: .9 }); lb.position.set(s.x, h + 3, s.z); world.add(lb); labels.push(lb);
         lotPos[it.land] = { x: s.x, z: s.z, h };
       } else {
@@ -436,7 +451,7 @@
         h = p.tier === 'manor' ? manor(b, r) : BUILD[Math.max(0, Math.min(BUILD.length - 1, +p.tier || 0))](b, r);
         // le joueur en 3D, qui fait les cent pas devant sa résidence
         const pr = person(p.avatar, SKIN[(r() * SKIN.length) | 0], p.me), k = r() * 6;
-        pr.position.set(3, .45, 8); g.add(pr);
+        pr.position.set(3, .45, 8); pr.userData.noCol = true; g.add(pr); if (p.me) meWalker = pr;
         animated.push(t => { const x = Math.sin(t * .35 + k) * 4.2; const dir = Math.cos(t * .35 + k); pr.position.x = x; pr.rotation.y = dir > 0 ? Math.PI / 2 : -Math.PI / 2; pr.userData.walk(t, k); });
         b.rotation.y = 0;
         b.userData.pick = { uid: p.uid };
@@ -474,7 +489,7 @@
       const lane = dir * 1.8;
       const o = { g: c, axis, dir, line: line + lane, t: (rc() - .5) * W, v: (sport ? 16 : 9) + rc() * 6, W };
       c.rotation.y = axis === 'x' ? (dir > 0 ? Math.PI / 2 : -Math.PI / 2) : (dir > 0 ? 0 : Math.PI);
-      world.add(c); cars.push(o);
+      c.userData.noCol = true; world.add(c); cars.push(o);
     }
     // nuages
     for (let i = 0; i < 7; i++) {
@@ -490,6 +505,9 @@
       g.setAttribute('position', new T.Float32BufferAttribute(a, 3));
       stars = new T.Points(g, new T.PointsMaterial({ color: 0xffffff, size: 2, sizeAttenuation: false, fog: false })); world.add(stars);
     }
+    pos.slice(0, items.length).forEach(s => blockPos.push({ x: s.x, z: s.z }));
+    computeColliders();
+    if (meWalker) meWalker.visible = !Wk.on;
     if (inside) world.visible = false;
     if (noel) {
       const g = new T.BufferGeometry(), a = []; for (let i = 0; i < 1500; i++) a.push((rc() - .5) * W, rc() * 90, (rc() - .5) * W);
@@ -660,6 +678,7 @@
     canvas.addEventListener('pointermove', e => {
       if (!pts.has(e.pointerId)) return;
       const p = pts.get(e.pointerId), dx = e.clientX - p.x, dy = e.clientY - p.y; p.x = e.clientX; p.y = e.clientY; moved += Math.abs(dx) + Math.abs(dy);
+      if (Wk.on && !inside) { if (pts.size === 1) { Wk.yaw -= dx * .006; Wk.pitch = Math.max(.02, Math.min(1.2, Wk.pitch + dy * .004)); } return; }
       if (pts.size === 1) {
         if (down && (down.btn === 2 || down.shift)) pan(dx, dy); else { cam.th -= dx * .006; cam.ph -= dy * .005; }
       } else if (pts.size === 2) {
@@ -671,11 +690,11 @@
     });
     const up = e => {
       pts.delete(e.pointerId); last = null;
-      if (down && pts.size === 0 && moved < 8 && Date.now() - down.t < 400) pick(e);
+      if (down && pts.size === 0 && moved < 8 && Date.now() - down.t < 400 && !(Wk.on && !inside)) pick(e);
       if (pts.size === 0) down = null;
     };
     canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', e => { pts.delete(e.pointerId); last = null; });
-    canvas.addEventListener('wheel', e => { e.preventDefault(); cam.r *= Math.exp(e.deltaY * .0012); cam.goal = null; cam.idle = 0; }, { passive: false });
+    canvas.addEventListener('wheel', e => { e.preventDefault(); if (Wk.on) { Wk.d = Math.max(3, Math.min(18, Wk.d * Math.exp(e.deltaY * .0012))); return; } cam.r *= Math.exp(e.deltaY * .0012); cam.goal = null; cam.idle = 0; }, { passive: false });
     canvas.addEventListener('contextmenu', e => e.preventDefault());
   }
   const ray = () => new T.Raycaster();
@@ -696,6 +715,74 @@
   V.setNight = function (v) { forcedNight = v; sig = ''; };
   V.isNight = () => night;
 
+  /* ---------- Balade à pied ---------- */
+  const Wk = V.walkState = { on: false, x: 0, y: 0, z: 0, yaw: Math.PI, pitch: .42, d: 11, keys: {}, joy: { x: 0, y: 0, run: false }, speed: 1, canRun: true, dist: 0, runDist: 0, near: null, moving: false, face: 0 };
+  const colliders = [], blockPos = []; let meWalker = null, avatarW = null;
+  function computeColliders() { // boîtes (vues du dessus) de tout ce qui est solide : bâtiments, commerces, arbres, lampadaires…
+    colliders.length = 0; if (!world) return;
+    world.updateMatrixWorld(true);
+    const bb = new T.Box3();
+    (function visit(o) {
+      if (o.userData && o.userData.noCol) return;
+      if (o.isMesh && !(o.material && o.material.isMeshBasicMaterial && o.material.transparent)) {
+        bb.setFromObject(o);
+        if (bb.max.y > 1.1 && bb.min.y < 3 && bb.max.y - bb.min.y > .9 && bb.max.x - bb.min.x < 60) colliders.push({ x0: bb.min.x, x1: bb.max.x, z0: bb.min.z, z1: bb.max.z, y1: bb.max.y });
+      }
+      o.children.forEach(visit);
+    })(world);
+  }
+  const R = .45;
+  function hit(x, z) { for (const c of colliders) if (x > c.x0 - R && x < c.x1 + R && z > c.z0 - R && z < c.z1 + R) return true; return false; }
+  function inBox(x, y, z) { for (const c of colliders) if (y < c.y1 && x > c.x0 && x < c.x1 && z > c.z0 && z < c.z1) return true; return false; }
+  function ground(x, z) { for (const b of blockPos) if (Math.abs(x - b.x) < BLOCK / 2 && Math.abs(z - b.z) < BLOCK / 2) return .42; return .05; }
+  function walkStep(dt, t) {
+    const k = Wk.keys, j = Wk.joy;
+    let f = (k.KeyW || k.ArrowUp ? 1 : 0) - (k.KeyS || k.ArrowDown ? 1 : 0) - j.y, s = (k.KeyD || k.ArrowRight ? 1 : 0) - (k.KeyA || k.ArrowLeft ? 1 : 0) + j.x;
+    const len = Math.hypot(f, s); if (len > 1) { f /= len; s /= len; }
+    const run = (k.ShiftLeft || k.ShiftRight || j.run) && Wk.canRun, v = (run ? 12 : 6) * Wk.speed;
+    const sy = Math.sin(Wk.yaw), cy = Math.cos(Wk.yaw);
+    const mx = (sy * f - cy * s) * v * dt, mz = (cy * f + sy * s) * v * dt;
+    Wk.moving = len > .05;
+    if (Wk.moving) {
+      const lim = HALF + 16, was = hit(Wk.x, Wk.z); // coincé dans un mur : on laisse sortir
+      const nx = Math.max(-lim, Math.min(lim, Wk.x + mx)); if (was || !hit(nx, Wk.z)) Wk.x = nx;
+      const nz = Math.max(-lim, Math.min(lim, Wk.z + mz)); if (was || !hit(Wk.x, nz)) Wk.z = nz;
+      const d = Math.hypot(mx, mz); Wk.dist += d; if (run) Wk.runDist += d;
+      const want = Math.atan2(mx, mz); let da = want - Wk.face; da = Math.atan2(Math.sin(da), Math.cos(da)); Wk.face += da * Math.min(1, dt * 12);
+      avatarW.userData.walk(t * (run ? 1.7 : 1.1), 0);
+    } else avatarW.userData.still();
+    Wk.y += (ground(Wk.x, Wk.z) - Wk.y) * Math.min(1, dt * 14);
+    avatarW.position.set(Wk.x, Wk.y, Wk.z); avatarW.rotation.y = Wk.face;
+    // caméra derrière l'épaule, rapprochée si un bâtiment est entre les deux
+    const ty = Wk.y + 2.3, cp = Math.cos(Wk.pitch), sp = Math.sin(Wk.pitch);
+    let d = Wk.d;
+    for (let q = .8; q <= Wk.d; q += .4) { if (inBox(Wk.x - sy * cp * q, ty + sp * q, Wk.z - cy * cp * q)) { d = Math.max(1.2, q - .5); break; } }
+    camera.position.set(Wk.x - sy * cp * d, ty + sp * d, Wk.z - cy * cp * d); camera.lookAt(Wk.x, ty, Wk.z);
+    // à côté de quoi on est ?
+    let best = null, bd = 1e9;
+    Object.entries(lotPos).forEach(([key, p]) => { const dd = Math.hypot(Wk.x - p.x, Wk.z - p.z); if (dd < bd) { bd = dd; best = key; } });
+    Wk.near = bd < BLOCK / 2 + 4 ? best : null;
+  }
+  V.walk = function (on, opt = {}) {
+    if (!V.ready) return false;
+    if (on) {
+      if (inside) V.exit(true);
+      if (!avatarW) { avatarW = person(opt.avatar || '😎', opt.color || 0xffbe0b, true); scene.add(avatarW); }
+      const p = (opt.uid && lotPos[opt.uid]) || lotPos.market || { x: 0, z: 0 };
+      Wk.x = p.x; Wk.z = p.z + S / 2; Wk.y = .05; Wk.yaw = Math.PI; Wk.face = Math.PI; Wk.keys = {}; Wk.joy = { x: 0, y: 0, run: false };
+      Wk.on = true; avatarW.visible = true; if (meWalker) meWalker.visible = false;
+    } else {
+      Wk.on = false; Wk.keys = {}; if (avatarW) avatarW.visible = false; if (meWalker) meWalker.visible = true;
+      if (document.pointerLockElement === canvas) document.exitPointerLock();
+    }
+    setTimeout(resize, 30); return true;
+  };
+  V.setAvatar = function (av, color) { if (!avatarW) return; const was = avatarW.visible; scene.remove(avatarW); avatarW = person(av || '😎', color || 0xffbe0b, true); avatarW.visible = was; scene.add(avatarW); };
+  V.canvas = () => canvas;
+  V.nearInfo = () => { const k = Wk.near; if (!k) return null; return k in LAND ? { land: k } : { uid: k }; };
+  V.openNear = () => { const n = V.nearInfo(); if (n && onPick) onPick(n); return n; };
+  V.resize = () => resize();
+
   /* ---------- Boucle ---------- */
   function loop() {
     if (!running) return;
@@ -703,13 +790,18 @@
     requestAnimationFrame(loop);
     const dt = Math.min(.05, clock.getDelta()), t = clock.elapsedTime;
     cam.idle += dt;
-    if (cam.goal) { const g = cam.goal, k = Math.min(1, dt * 3); cam.tx += (g.tx - cam.tx) * k; cam.tz += (g.tz - cam.tz) * k; cam.r += (g.r - cam.r) * k; cam.ty += ((g.ty || 4) - cam.ty) * k; if (Math.abs(g.tx - cam.tx) + Math.abs(g.tz - cam.tz) + Math.abs(g.r - cam.r) < .5) cam.goal = null; }
+    if (Wk.on && !inside) walkStep(dt, t);
+    else if (cam.goal) { const g = cam.goal, k = Math.min(1, dt * 3); cam.tx += (g.tx - cam.tx) * k; cam.tz += (g.tz - cam.tz) * k; cam.r += (g.r - cam.r) * k; cam.ty += ((g.ty || 4) - cam.ty) * k; if (Math.abs(g.tx - cam.tx) + Math.abs(g.tz - cam.tz) + Math.abs(g.r - cam.r) < .5) cam.goal = null; }
     else if (cam.idle > 6) cam.th += dt * .05; // rotation lente quand on ne touche à rien
-    applyCam();
+    if (!Wk.on || inside) applyCam();
     if (inside) { animIn.forEach(f => f(t, dt)); walls.forEach(w => { const n = w.userData.n; w.visible = (camera.position.x * n[0] + camera.position.z * n[1]) < w.userData.half + 2; }); }
     else animated.forEach(f => f(t, dt));
     blinkers.forEach((b, i) => { b.visible = ((t + i * .3) % 1.4) < .7; });
     cars.forEach(c => {
+      if (Wk.on) { // le piéton devant la voiture : elle s'arrête
+        const along = ((c.axis === 'x' ? Wk.x : Wk.z) - c.t) * c.dir, lat = Math.abs((c.axis === 'x' ? Wk.z : Wk.x) - c.line);
+        if (lat < 1.8 && along > 0 && along < 7) return;
+      }
       c.t += c.v * c.dir * dt; const lim = c.W / 2 + 6;
       if (c.t > lim) c.t = -lim; if (c.t < -lim) c.t = lim;
       if (c.axis === 'x') c.g.position.set(c.t, .1, c.line); else c.g.position.set(c.line, .1, c.t);

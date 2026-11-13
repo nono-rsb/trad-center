@@ -292,6 +292,7 @@
     const m = TC.Style ? TC.Style.mine() : {};
     return Object.assign({}, N && N.profile ? N.profile : { pseudo: 'Toi', avatar: m.avatar }, { uid: N && N.user ? N.user.uid : 'me', nw: G.netWorth(), city: C.pub(), look: m.look, plusUntil: m.plusUntil, me: true });
   }
+  C.roster = () => roster();
   function roster() {
     const me = meAsPlayer();
     const list = (players || []).filter(u => u.uid !== me.uid).concat([me]);
@@ -387,19 +388,20 @@
   }
   function map3dHtml() {
     const r = roster(); const guest = !N || !N.enabled || !N.user || !N.profile;
-    const inn = TC.City3D && TC.City3D.insideOf && TC.City3D.insideOf();
-    if (inn) return `<div class="city3d" id="city3d-host"><div class="c3-load">🏠 On ouvre la porte…</div>
+    const inn = TC.City3D && TC.City3D.insideOf && TC.City3D.insideOf(), wk = TC.Walk && TC.Walk.on();
+    if (inn) return `<div class="city3d${wk ? ' walking' : ''}" id="city3d-host"><div class="c3-load">🏠 On ouvre la porte…</div>
       <div class="c3-top"><b>🏠 ${inn.me ? 'Chez toi' : 'Chez ' + esc(inn.pseudo)}</b><span>${esc(inn.homeName || '')}</span></div>
       <div class="c3-hud"><button data-c3="out">⬅️ Ville</button></div>
       <div class="c3-help">☝️ Glisse pour faire le tour · 🤏 pince pour zoomer</div></div>`;
+    if (wk) return `<div class="city3d walking" id="city3d-host"><div class="c3-load">🚶 On sort se balader…</div>${TC.Walk.hud()}</div>`;
     return `<div class="city3d" id="city3d-host"><div class="c3-load">🏗️ Construction de Trad City…</div>
       <div class="c3-top"><b>🗺️ Trad City</b><span>${r.length} habitant${r.length > 1 ? 's' : ''}</span></div>
-      <div class="c3-hud"><button data-c3="me">📍 Moi</button><button data-c3="mayor">👑 Maire</button><button data-c3="night">${TC.City3D && TC.City3D.ready && TC.City3D.isNight() ? '☀️' : '🌙'}</button><button data-c3="2d">2D</button></div>
+      <div class="c3-hud">${TC.Walk ? '<button data-c3="walk" class="c3-walk">🚶 Balade</button>' : ''}<button data-c3="me">📍 Moi</button><button data-c3="mayor">👑 Maire</button><button data-c3="night">${TC.City3D && TC.City3D.ready && TC.City3D.isNight() ? '☀️' : '🌙'}</button><button data-c3="2d">2D</button></div>
       <div class="c3-help">☝️ Glisse pour tourner · 🤏 pince pour zoomer · touche un bâtiment</div>
       ${guest ? '<p class="city-guest c3-guest">👥 Crée un compte (onglet Amis) pour voir les autres joueurs.</p>' : ''}</div>`;
   }
   if (TC.City3D) TC.City3D.onFail = () => { if (UI().tab === 'city') setTimeout(() => C.render(), 0); };
-  function onPick3d(own) { if (own.uid) lotModal(own.uid); else if (own.land) landmark(own.land); }
+  function onPick3d(own) { if (own.uid) lotModal(own.uid); else if (own.land === 'market') { if (TC.Walk) TC.Walk.shop(); } else if (own.land) landmark(own.land); }
   function voteBar() {
     if (!N || !N.enabled) return '';
     const v = C.myVote && C.myVote(), who = v && roster().find(x => x.uid === v);
@@ -430,6 +432,7 @@
     if (a === 'me') return V3.focus(N && N.user ? N.user.uid : 'me');
     if (a === 'mayor') { const m = C.mayorUid(); if (m) V3.focus(m); return; }
     if (a === 'out') { V3.exit(); return C.render(); }
+    if (a === 'walk') { if (TC.Walk) TC.Walk.start(); return; }
     if (a === 'night') { V3.setNight(!V3.isNight()); C.render(); }
   });
   C.live = function () {
