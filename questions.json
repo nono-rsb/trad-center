@@ -1,12 +1,5 @@
 {
   "info": "Questions des joueurs sans réponse (anonymes). Réponses : answers.json sur main.",
-  "updated": 1794586237488,
-  "questions": [
-    {
-      "id": "I96NBGmwf6b700",
-      "type": "question",
-      "q": "Le trésor est sur la carte 2d ou 3d ?",
-      "t": 1794586237488
-    }
-  ]
+  "updated": 0,
+  "questions": []
 }
