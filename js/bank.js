@@ -1,6 +1,7 @@
 /* Trad Banque — l'appli bancaire de Trad Center (même compte, même argent que le jeu)
  * Accueil (carte 3D, solde), Virements entre amis, Trad Drop (virement instantané en approchant deux téléphones),
  * Relevé de compte, Conseiller bancaire (réponses calculées à partir de ta vraie partie).
+ * 📷 Payer : on scanne le QR code affiché par le jeu sur l'ordinateur (Trad Market en balade) et on valide avec sa carte.
  */
 (function () {
   const { $, esc, fmt } = TC;
@@ -13,7 +14,7 @@
 
   /* ---------- Relevé : sens et libellé de chaque opération ---------- */
   const IN = { loan: 1, sell: 1, itemsell: 1, rent: 1, biz: 1, recv: 1, close: 1, liq: 1, betres: 1 };
-  const LBL = { loan: '🏦 Prêt reçu', repay: '🏦 Remboursement', fine: '🛡️ Correction', buy: '📈 Achat', sell: '📉 Vente', open: '⚡ Position levier', close: '✅ Clôture levier', liq: '💀 Liquidation', bet: '🎲 Pari', betres: '🎲 Pari terminé', item: '🛍️ Achat', itemsell: '♻️ Revente', rent: '🏠 Loyers', biz: '🏪 Commerces', bonus: '🎁 Bonus', send: '📤 Virement émis', recv: '📥 Virement reçu' };
+  const LBL = { shop: '🛒 Courses', loan: '🏦 Prêt reçu', repay: '🏦 Remboursement', fine: '🛡️ Correction', buy: '📈 Achat', sell: '📉 Vente', open: '⚡ Position levier', close: '✅ Clôture levier', liq: '💀 Liquidation', bet: '🎲 Pari', betres: '🎲 Pari terminé', item: '🛍️ Achat', itemsell: '♻️ Revente', rent: '🏠 Loyers', biz: '🏪 Commerces', bonus: '🎁 Bonus', send: '📤 Virement émis', recv: '📥 Virement reçu' };
   function op(l) {
     let sign = IN[l.kind] ? 1 : -1;
     if (l.kind === 'bonus') sign = (l.eur || 0) >= 0 ? 1 : -1;
@@ -40,7 +41,7 @@
     return `<div class="bk-hello">Bonjour ${esc(pseudo())} 👋</div>
       <div id="bk-card"></div>
       <div class="bk-bal"><div><small>Solde disponible</small><b>${fmt.eur(S().cash)}</b></div><div><small>Patrimoine total</small><b>${fmt.eur(nw)}</b></div></div>
-      <div class="bk-quick"><button data-go="send">💸<span>Virement</span></button><button data-go="drop">📲<span>Trad Drop</span></button><button data-go="history">📜<span>Relevé</span></button><button data-go="advisor">💬<span>Conseiller</span></button></div>
+      <div class="bk-quick"><button data-go="send">💸<span>Virement</span></button><button data-go="drop">📲<span>Trad Drop</span></button><button data-go="scan">📷<span>Payer</span></button><button data-go="history">📜<span>Relevé</span></button><button data-go="advisor">💬<span>Conseiller</span></button></div>
       ${TC.Loan ? TC.Loan.panel() : ''}
       <div class="bk-panel"><h3>7 derniers jours</h3><div class="bk-flow"><div><small>Entrées</small><b class="in">+${fmt.eur(tin)}</b></div><div><small>Sorties</small><b class="out">−${fmt.eur(tout)}</b></div></div></div>
       <div class="bk-panel"><h3>Dernières opérations <button class="bk-link" data-go="history">Tout voir</button></h3>${ops.length ? ops.map(opRow).join('') : '<div class="empty">Aucune opération pour l\'instant.</div>'}</div>
@@ -130,6 +131,79 @@
         <button class="bk-dbig" id="bk-dseek">📤<b>Envoyer</b><small>Je scanne son écran</small></button></div>
       <p class="hint">Le téléphone qui reçoit affiche un QR code (et émet des petits bips) ; celui qui envoie le vise avec sa caméra. Vous pouvez aussi cogner doucement les deux téléphones. Si vous n'êtes pas encore amis, vous le devenez automatiquement.</p>`;
   }
+  /* ---------- 📷 Payer un achat fait sur l'ordinateur (QR code du jeu) ---------- */
+  let scanning = false;
+  const PAYRE = /#pay=([A-Za-z0-9_-]{6,64})\.([a-z0-9]{4,16})/;
+  function scanScreen() {
+    return `<h2 class="bk-h">📷 Payer</h2>
+      <div class="bk-cam" id="bk-scan">${B.scanErr ? `<p>${esc(B.scanErr)}</p>` : '<i class="bk-cam-frame"></i>'}</div>
+      <p class="bk-center bk-big">Vise le QR code affiché sur l'ordinateur</p>
+      <p class="hint bk-center">Dans le jeu sur ton ordinateur : balade-toi jusqu'au 🛒 Trad Market, choisis tes articles et touche « Payer ». Un QR code s'affiche : vise-le avec ce téléphone.</p>
+      <button class="btn btn-ghost bk-full" data-go="home">Annuler</button>`;
+  }
+  async function startScan() {
+    B.scanErr = null; scanning = true;
+    try {
+      await TC.QR.scan(camEl(), txt => {
+        const m = PAYRE.exec(txt || ''); if (!m || !scanning) return;
+        stopScan(); TC.haptic([30]); TC.sound('bip');
+        B.pay = { uid: m[1], id: m[2], st: 'load' }; B.tab = 'pay'; render();
+      });
+      render();
+    } catch (e) { scanning = false; B.scanErr = '📷 Caméra refusée : autorise-la dans les réglages du téléphone, ou scanne le QR avec l\'appareil photo.'; render(); }
+  }
+  function stopScan() { if (!scanning) return; scanning = false; try { TC.QR.stop(); } catch (e) { } }
+  async function loadPay() {
+    const p = B.pay; if (!p || p.st !== 'load' || p.busy || !N.user) return;
+    p.busy = true;
+    try {
+      if (p.uid !== me()) throw new Error('Ce paiement est pour un autre compte. Connecte-toi sur ce téléphone avec le même compte que sur l\'ordinateur.');
+      const snap = await N.db().collection('users').doc(me()).get(), r = snap.exists && snap.data().pay;
+      if (!r || r.id !== p.id) throw new Error('Ce paiement n\'existe plus (annulé sur l\'ordinateur ?). Recommence depuis la caisse.');
+      if (r.ok === p.id) throw new Error('Ce paiement a déjà été réglé ✓');
+      if (!(r.until > Date.now())) throw new Error('Ce QR code a expiré. Touche « Payer » de nouveau sur l\'ordinateur.');
+      p.req = r; p.st = 'ok';
+    } catch (e) { p.st = 'err'; p.msg = e.message || N.errMsg(e); }
+    p.busy = false; if (B.tab === 'pay') render();
+  }
+  function payScreen() {
+    const p = B.pay;
+    if (!p) return `<h2 class="bk-h">📷 Payer</h2><div class="empty">Aucun paiement en cours.</div><button class="btn bk-full" data-go="scan">📷 Scanner un QR code</button>`;
+    if (p.st === 'load') return `<h2 class="bk-h">🛒 Paiement</h2><p class="bk-center bk-big">Lecture du paiement…</p>`;
+    if (p.st === 'err') return `<h2 class="bk-h">🛒 Paiement</h2><div class="bk-panel"><p>${esc(p.msg)}</p></div><button class="btn btn-gold bk-full" data-go="scan">📷 Scanner à nouveau</button><button class="btn btn-ghost bk-full" data-go="home">Retour</button>`;
+    const r = p.req;
+    return `<h2 class="bk-h">🛒 Paiement ${esc(r.shop || 'Trad Market')}</h2>
+      <div class="bk-term" id="bk-term"><div class="bk-leds"><i></i><i></i><i></i><i></i></div>
+        <div class="bk-lcd"><small>${esc(r.shop || 'Trad Market')} · ordinateur</small><b>${fmt.eur(+r.eur || 0)}</b><span id="bk-lcdmsg">Présentez votre carte</span></div></div>
+      <div class="bk-panel"><h3>Ticket</h3><p>${esc(r.items || '')}</p><div class="bk-flow"><div><small>À payer</small><b class="out">${fmt.eur(+r.eur || 0)}</b></div><div><small>Solde après</small><b>${fmt.eur(+r.solde || 0)}</b></div></div></div>
+      <div class="bk-paystage"><div class="bk-paycard" id="bk-paycard"></div><span class="bk-waves">)))</span></div>
+      <button class="btn btn-gold btn-xl bk-full" id="bk-ppay">💳 Payer ${fmt.eur(+r.eur || 0)}</button>
+      <button class="btn btn-ghost bk-full" id="bk-pno">Refuser</button>`;
+  }
+  async function shopPay() {
+    const p = B.pay; if (!p || p.st !== 'ok') return;
+    p.st = 'paying';
+    const term = $('#bk-term'), msg = $('#bk-lcdmsg'), card = $('#bk-paycard'), btn = $('#bk-ppay');
+    if (btn) btn.disabled = true; if (card) card.classList.add('tapped'); if (term) term.classList.add('reading'); if (msg) msg.textContent = 'Lecture…';
+    TC.haptic([25]);
+    await new Promise(r => setTimeout(r, 650));
+    TC.sound('bip'); TC.haptic([60]); if (msg) msg.textContent = 'Paiement en cours…';
+    try {
+      const ref = N.db().collection('users').doc(me()), r = (await ref.get()).data().pay;
+      if (!r || r.id !== p.id || !(r.until > Date.now())) throw new Error('Ce paiement a expiré ou a été annulé sur l\'ordinateur.');
+      await ref.update({ 'pay.ok': p.id, 'pay.okAt': Date.now() });
+      if (term) term.classList.add('ok'); if (msg) msg.textContent = 'PAIEMENT ACCEPTÉ ✓';
+      await new Promise(r => setTimeout(r, 900));
+      okOverlay('Payé !', `<b>${fmt.eur(+p.req.eur || 0)}</b> · ${esc(p.req.shop || 'Trad Market')}<br><small>Tes articles sont dans ton sac sur l'ordinateur 🎒</small>`);
+      B.pay = null; B.tab = 'home'; render();
+    } catch (x) {
+      TC.sound('bipko'); if (term) { term.classList.remove('reading'); term.classList.add('ko'); } if (msg) msg.textContent = 'REFUSÉ';
+      p.st = 'err'; p.msg = x.message || N.errMsg(x); setTimeout(render, 1400);
+    }
+  }
+  // QR scanné avec l'appareil photo du téléphone : bank.html#pay=<uid>.<id>
+  { const m = PAYRE.exec(location.hash || ''); if (m) { B.pay = { uid: m[1], id: m[2], st: 'load' }; B.tab = 'pay'; try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { } } }
+
   let camVideo = null;
   const camEl = () => camVideo || (camVideo = document.createElement('video'));
   function keepInputs() { if (!drop) return; const a = $('#bk-damt'), m = $('#bk-dmsg'); if (a) drop.amt = a.value; if (m) drop.msg = m.value; }
@@ -393,11 +467,13 @@
     if (!N.ready) { r.innerHTML = '<div class="bk-login"><div class="bk-logo">🏦</div><p>Connexion…</p></div>'; return; }
     if (!N.user || !N.profile) { r.innerHTML = login(); bindLogin(); return; }
     const scroll = B.tab === 'advisor';
-    const body = B.tab === 'send' ? send() : B.tab === 'drop' ? dropScreen() : B.tab === 'history' ? history() : B.tab === 'advisor' ? advisor() : home();
+    const body = B.tab === 'scan' ? scanScreen() : B.tab === 'pay' ? payScreen() : B.tab === 'send' ? send() : B.tab === 'drop' ? dropScreen() : B.tab === 'history' ? history() : B.tab === 'advisor' ? advisor() : home();
     r.innerHTML = `<header class="bk-top"><b>🏦 Trad Banque</b><span>${TC.Style ? TC.Style.avatar(Object.assign({}, N.profile, TC.Style.mine()), 's') : ''}</span></header><main class="bk-main">${body}</main>
       <nav class="bk-nav">${NAV.map(([k, i, l]) => `<button data-tab="${k}" class="${B.tab === k ? 'on' : ''}"><i>${i}</i><span>${l}</span></button>`).join('')}</nav>`;
     if (B.tab === 'home' && TC.Card) TC.Card.mountInto($('#bk-card'));
-    if (drop && (drop.mode === 'pay' || drop.mode === 'seek')) mountPayCard();
+    if ((drop && (drop.mode === 'pay' || drop.mode === 'seek')) || B.tab === 'pay') mountPayCard();
+    const scBox = $('#bk-scan'); if (scBox && camVideo && scanning) scBox.prepend(camVideo);
+    if (B.tab === 'pay' && B.pay && B.pay.st === 'load') loadPay();
     document.querySelectorAll('[data-face]').forEach(b => { if (TC.Card && !b.firstChild) b.appendChild(TC.Card.face()); });
         const camBox = $('#bk-cam'); if (camBox && camVideo && drop && drop.cam) camBox.prepend(camVideo);
     const arBox = $('#bk-ar'); if (arBox && camVideo) arBox.prepend(camVideo);
@@ -412,9 +488,11 @@
 
   document.addEventListener('click', async e => {
     const t = e.target;
-    if (t.closest('#bk-paycard')) return payTap();
-        const nav = t.closest('[data-tab]'); if (nav) { B.tab = nav.dataset.tab; if (B.tab !== 'drop' && drop) await stopDrop(true); render(); window.scrollTo(0, 0); return; }
-    const go = t.closest('[data-go]'); if (go) { B.tab = go.dataset.go; render(); window.scrollTo(0, 0); return; }
+    if (t.closest('#bk-paycard')) return B.tab === 'pay' ? shopPay() : payTap();
+    if (t.closest('#bk-ppay')) return shopPay();
+    if (t.closest('#bk-pno')) { if (B.pay && B.pay.uid === me()) { try { N.db().collection('users').doc(me()).update({ pay: firebase.firestore.FieldValue.delete() }).catch(() => { }); } catch (x) { } } B.pay = null; B.tab = 'home'; render(); return; }
+        const nav = t.closest('[data-tab]'); if (nav) { stopScan(); B.tab = nav.dataset.tab; if (B.tab !== 'drop' && drop) await stopDrop(true); render(); window.scrollTo(0, 0); return; }
+    const go = t.closest('[data-go]'); if (go) { stopScan(); B.tab = go.dataset.go; render(); if (B.tab === 'scan') startScan(); window.scrollTo(0, 0); return; }
     const ben = t.closest('[data-ben]'); if (ben) { B.to = ben.dataset.ben; render(); return; }
     const qa = t.closest('[data-amt]'); if (qa) { $('#bk-amt').value = qa.dataset.amt; return; }
     const a = t.closest('[data-ask]'); if (a) return ask(a.dataset.ask, a.textContent);

@@ -1,0 +1,60 @@
+/* Trad Center — 🚶 balade dans Trad City + 🛒 Trad Market */
+.c3-hud .c3-walk { background: linear-gradient(135deg, #ffd23f, #ff9f1c); color: #2a1a00; border-color: rgba(255,255,255,.6); }
+body.wk-on { overflow: hidden; }
+.city3d.walking { position: fixed; inset: 0; height: 100%; min-height: 0; max-height: none; margin: 0; border-radius: 0; z-index: 120; }
+.city3d.walking .city3d-cv { cursor: crosshair; }
+.wk-hud { position: absolute; inset: 0; pointer-events: none; z-index: 3; color: #fff; }
+.wk-hud button { pointer-events: auto; }
+.wk-top { position: absolute; top: calc(10px + env(safe-area-inset-top)); left: 10px; right: 10px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.wk-top > b, .wk-top > span:not(.wk-gap), .wk-top button { padding: 8px 13px; border-radius: 999px; background: rgba(20,12,35,.6); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,.25); color: #fff; font-weight: 800; font-size: 14px; }
+.wk-top button { cursor: pointer; }
+.wk-gap { flex: 1; }
+.wk-en { position: relative; min-width: 120px; overflow: hidden; }
+.wk-en i { position: absolute; left: 0; top: 0; bottom: 0; background: linear-gradient(90deg, #06d6a0, #4cc9f0); opacity: .55; transition: width .3s; }
+.wk-en em { position: relative; font-style: normal; }
+.wk-en.low i { background: linear-gradient(90deg, #ef476f, #f78c6b); }
+.wk-en.boost i { background: linear-gradient(90deg, #ffd23f, #ff9f1c); }
+.wk-en.big { display: block; padding: 10px 14px; border-radius: 14px; background: rgba(127,127,127,.18); margin: 6px 0 12px; font-weight: 800; }
+.wk-prompt { position: absolute; left: 50%; bottom: 22%; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; padding: 11px 18px; border-radius: 999px; border: 1px solid rgba(255,255,255,.4); background: rgba(20,12,35,.72); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); color: #fff; font-weight: 800; font-size: 15px; cursor: pointer; animation: wkpop .25s ease-out; }
+.wk-prompt[hidden] { display: none; }
+.wk-prompt kbd { display: inline-grid; place-items: center; min-width: 28px; height: 28px; border-radius: 8px; background: #fff; color: #1e1b2e; font: 800 14px/1 system-ui, sans-serif; box-shadow: 0 3px 0 #b9b4c9; }
+.wk-prompt kbd[hidden] { display: none; }
+@keyframes wkpop { from { opacity: 0; transform: translate(-50%, 8px); } }
+.wk-help { position: absolute; left: 10px; bottom: calc(12px + env(safe-area-inset-bottom)); max-width: min(560px, 70%); padding: 8px 12px; border-radius: 14px; background: rgba(20,12,35,.55); font-size: 12px; font-weight: 600; line-height: 1.5; transition: opacity .4s; }
+.wk-help.locked { opacity: .35; }
+.wk-joy, .wk-run { display: none; }
+@media (pointer: coarse) {
+  .wk-help { bottom: auto; top: calc(60px + env(safe-area-inset-top)); max-width: 75%; animation: c3fade 1s 8s forwards; }
+  .wk-joy { display: block; position: absolute; left: 22px; bottom: calc(26px + env(safe-area-inset-bottom)); width: 128px; height: 128px; border-radius: 50%; background: rgba(20,12,35,.35); border: 2px solid rgba(255,255,255,.35); pointer-events: auto; touch-action: none; }
+  .wk-joy i { position: absolute; left: 50%; top: 50%; width: 56px; height: 56px; margin: -28px 0 0 -28px; border-radius: 50%; background: rgba(255,255,255,.85); box-shadow: 0 4px 14px rgba(0,0,0,.35); }
+  .wk-run { display: grid; place-items: center; position: absolute; right: 22px; bottom: calc(40px + env(safe-area-inset-bottom)); width: 72px; height: 72px; border-radius: 50%; border: 2px solid rgba(255,255,255,.4); background: rgba(20,12,35,.5); font-size: 30px; }
+  .wk-run.on { background: linear-gradient(135deg, #ffd23f, #ff9f1c); }
+  .wk-prompt { bottom: calc(180px + env(safe-area-inset-bottom)); }
+}
+
+/* Trad Market */
+.wk-modal { max-width: 520px; }
+.wk-prods { display: flex; flex-direction: column; gap: 8px; max-height: 52vh; overflow-y: auto; margin: 10px 0; }
+.wk-prod { display: flex; align-items: center; gap: 10px; padding: 9px 11px; border-radius: 14px; background: rgba(127,127,127,.12); }
+.wk-pe { font-size: 26px; width: 34px; text-align: center; }
+.wk-pn { flex: 1; min-width: 0; } .wk-pn b { display: block; } .wk-pn small { opacity: .75; }
+.wk-pp { white-space: nowrap; }
+.wk-q { display: flex; align-items: center; gap: 6px; } .wk-q span { min-width: 18px; text-align: center; font-weight: 800; }
+.wk-q button { width: 30px; height: 30px; border-radius: 50%; border: 1px solid rgba(127,127,127,.4); background: rgba(127,127,127,.15); color: inherit; font-size: 17px; font-weight: 800; cursor: pointer; }
+.wk-tot { display: flex; justify-content: space-between; align-items: center; padding: 10px 4px; font-size: 18px; border-top: 1px solid rgba(127,127,127,.3); }
+
+/* Caisse : borne + QR à scanner avec son téléphone */
+.wk-paybox { text-align: center; }
+.wk-term { display: flex; align-items: center; gap: 12px; margin: 8px auto 12px; max-width: 340px; padding: 12px 14px; border-radius: 18px; background: linear-gradient(160deg, #2b2f36, #14161a); box-shadow: 0 10px 24px rgba(0,0,0,.35); }
+.wk-leds { display: flex; flex-direction: column; gap: 5px; } .wk-leds i { width: 9px; height: 9px; border-radius: 50%; background: #3a3f47; }
+.wk-term.reading .wk-leds i { animation: wkled .65s forwards; } .wk-term.reading .wk-leds i:nth-child(2) { animation-delay: .15s; } .wk-term.reading .wk-leds i:nth-child(3) { animation-delay: .3s; } .wk-term.reading .wk-leds i:nth-child(4) { animation-delay: .45s; }
+.wk-term.ok .wk-leds i { background: #06d6a0; box-shadow: 0 0 8px #06d6a0; animation: none; }
+.wk-term.ko .wk-leds i { background: #ef476f; box-shadow: 0 0 8px #ef476f; animation: none; }
+@keyframes wkled { to { background: #06d6a0; box-shadow: 0 0 8px #06d6a0; } }
+.wk-lcd { flex: 1; padding: 8px 12px; border-radius: 10px; background: #b8d8a8; color: #12260c; font-family: 'JetBrains Mono', monospace; text-align: left; }
+.wk-lcd small, .wk-lcd span { display: block; font-size: 11px; font-weight: 700; } .wk-lcd b { display: block; font-size: 24px; }
+.wk-ticket { font-size: 13px; opacity: .8; margin: 0 0 8px; }
+.wk-qr { width: min(260px, 70vw); margin: 0 auto 10px; padding: 10px; border-radius: 18px; background: #fff; transition: opacity .3s, filter .3s; }
+.wk-qr svg { display: block; width: 100%; height: auto; }
+.wk-qr.off { opacity: .25; filter: blur(3px); }
+.wk-how { margin: 6px 0; }

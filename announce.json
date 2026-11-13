@@ -1,23 +1,28 @@
 {
-  "id": "tresor-2026-11-13",
-  "emoji": "💎",
-  "title": "Chasse au trésor ce soir !",
+  "id": "balade-2026-11-13",
+  "emoji": "🚶",
+  "title": "Balade dans Trad City + Trad Market",
   "tab": "city",
   "items": [
     {
-      "icon": "🗺️",
-      "title": "Un trésor caché dans Trad City",
-      "text": "De 17 h à 23 h, un trésor de 25 € est caché dans un des monuments de la carte. Chacun a sa propre cachette !"
+      "icon": "🚶",
+      "title": "Promène-toi à pied dans la ville",
+      "text": "Onglet Ville → 🚶 Balade. Sur ordinateur : ZQSD pour marcher, Maj pour courir, la souris pour regarder. Sur téléphone : un joystick."
     },
     {
-      "icon": "🧭",
-      "title": "Des indices à chaque fouille",
-      "text": "Onglet Ville : touche un monument pour le fouiller. Raté ? Tu reçois une devinette sur la bonne cachette."
+      "icon": "🛒",
+      "title": "Le Trad Market, à côté de la Bourse",
+      "text": "Boissons, snacks, sandwichs… Ils vont dans ton sac 🎒 et te redonnent de l'énergie ⚡ pour marcher et courir."
     },
     {
-      "icon": "📤",
-      "title": "Invite tes amis",
-      "text": "Bouton 📤 sur le bandeau de l'événement : envoie ton lien, chaque ami qui crée son compte te rapporte la prime de parrainage."
+      "icon": "📱",
+      "title": "Paie avec ton vrai téléphone",
+      "text": "À la caisse, l'ordinateur affiche un QR code : scanne-le avec Trad Banque → 📷 Payer, valide avec ta carte. Bip, c'est payé (argent du jeu)."
+    },
+    {
+      "icon": "💎",
+      "title": "Le trésor se cherche aussi à pied",
+      "text": "Pendant la chasse au trésor, approche-toi d'un monument et appuie sur E pour le fouiller."
     }
   ],
   "button": "Je cherche 🔍",
