@@ -2,7 +2,7 @@
 (function () {
   const C = TC.Chart = {};
   const TZ = -new Date().getTimezoneOffset() * 60; // affichage à l'heure locale
-  let chart = null, series = null, type = 'area', el = null, bars = [], tfSec = 300, lines = [], fallback = null;
+  let chart = null, series = null, type = (() => { try { return localStorage.getItem('tradcenter.chartType') === 'area' ? 'area' : 'candle'; } catch (e) { return 'candle'; } })(), el = null, bars = [], tfSec = 300, lines = [], fallback = null;
   const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 
   function precisionFor(v) {
@@ -41,7 +41,8 @@
 
   const shift = b => ({ time: b.time + TZ, open: b.open, high: b.high, low: b.low, close: b.close, value: b.close });
 
-  C.setType = function (t) { type = t; if (chart) { makeSeries(); C.setData(bars, tfSec); } else drawFallback(); };
+  C.type = () => type;
+  C.setType = function (t) { type = t; try { localStorage.setItem('tradcenter.chartType', t); } catch (e) { } if (chart) { makeSeries(); C.setData(bars, tfSec); } else drawFallback(); };
 
   C.setData = function (data, sec) {
     bars = data.slice(); tfSec = sec;

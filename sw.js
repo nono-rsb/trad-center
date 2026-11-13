@@ -1,7 +1,7 @@
 /* Trad Center — service worker : jeu installable et jouable hors connexion.
  * Fichiers du jeu : réseau d'abord (toujours la dernière version), cache en secours.
  * Les API de prix et les photos ne sont jamais mises en cache ici. */
-const CACHE = 'tradcenter-v86';
+const CACHE = 'tradcenter-v87';
 const FILES = [...new Set(['./', 'index.html', 'confidentialite.html', 'manifest.webmanifest', 'css/style.css', 'css/glass.css', 'js/config.js', 'js/catalog.js', 'js/util.js', 'js/music.js', 'js/data.js', 'js/images.js', 'js/game.js', 'js/loan.js', 'js/events.js', 'js/tax.js', 'js/playtime.js', 'js/chart.js', 'js/ui.js', 'js/net.js', 'js/app.js', 'js/social.js', 'js/notify.js', 'js/xmas.js', 'js/weekly.js', 'js/cheats.js', 'js/chest.js', 'js/style.js', 'js/avatar.js', 'js/appicon.js', 'js/plusgift.js', 'js/teddy.js', 'js/quiz.js', 'js/bot.js', 'js/admin.js', 'js/qa.js', 'js/progress.js', 'js/duel.js', 'js/city.js', 'js/city3d.js', 'js/mayor.js', 'js/clan.js', 'js/card.js', 'js/bankinstall.js', 'js/share.js', 'bank.html', 'css/bank.css', 'js/vendor/qr/qrcode.js', 'js/nearby.js', 'js/hand.js', 'js/bank.js', 'manifest-bank.webmanifest', 'occaz.html', 'css/occaz.css', 'js/occaz.js', 'manifest-occaz.webmanifest', 'icons/occaz-180.png', 'icons/occaz-192.png', 'icons/bank-192.png', 'icons/bank-180.png', 'icons/teddy.svg', 'js/vendor/lightweight-charts.standalone.production.js', 'icons/logo.svg', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png', 'icons/badge-96.png', 'announce.json'])];
 self.addEventListener('install', e => {
   self.skipWaiting();
