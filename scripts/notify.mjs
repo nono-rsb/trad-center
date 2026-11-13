@@ -226,6 +226,28 @@ async function main() {
     } catch (e) { log('amis de Claude', e.code || e.message); }
   }
 
+  // 💸 Virements reçus par Claude : encaissés par le serveur (Claude n'a pas d'appli ouverte), ajoutés à son argent,
+  // notés sur sa fiche, et le joueur reçoit un merci. Une ligne « Claude a reçu » apparaît dans le journal du passage.
+  async function claudeTransfers() {
+    if (!claude) return;
+    try {
+      const q = await getDocs(query(collection(claude.db, 'transfers'), where('to', '==', claude.uid), where('claimed', '==', false)));
+      if (q.empty) return;
+      const cur = (await getDoc(claude.ref)).data() || {}, g = Object.assign({ cash: 10, bets: [], wins: 0, losses: 0, bonusDay: '' }, cur.cb || {});
+      const recv = (cur.recv || []).slice(-19), box = (cur.outbox || []).filter(m => Date.now() - m.at < 24 * 3600000).slice(-20);
+      for (const d of q.docs) {
+        const t = d.data(), eur = Math.max(0, +t.eur || 0);
+        const b = writeBatch(claude.db); b.update(d.ref, { claimed: true, claimedAt: Date.now() }); await b.commit();
+        g.cash = Math.round((g.cash + eur) * 100) / 100;
+        recv.push({ from: t.fromPseudo || '?', eur, kind: t.kind, asset: t.asset || null, msg: String(t.msg || '').slice(0, 120), at: Date.now() });
+        box.push({ id: crypto.randomBytes(5).toString('hex'), to: t.from, kind: 'thanks', eur, at: Date.now() });
+        log(`Claude a reçu ${eur} € de ${t.fromPseudo || '?'}${t.asset ? ' (' + t.asset + ')' : ''}${t.msg ? ' : « ' + String(t.msg).slice(0, 80) + ' »' : ''}`);
+      }
+      const nw = Math.round((g.cash + g.bets.filter(b => !b.res).reduce((s, b) => s + b.stake, 0)) * 100) / 100;
+      await updateDoc(claude.ref, { cb: g, nw, recv, outbox: box, updatedAt: Date.now() });
+    } catch (e) { log('virements de Claude', e.code || e.message); }
+  }
+
   // 🎲 Claude parie pour le fun avec les vrais cours : plus haut ou plus bas, 10 % de son argent, gain x2 (règles du jeu).
   // Un pari à la fois, d'au moins 20 min, réglé au passage suivant du serveur avec le cours du moment. Hors concours.
   const CLAUDE_PICKS = ['BTC', 'ETH', 'SOL', 'XRP', 'CAC40', 'SP500', 'NASDAQ', 'GOLD', 'TSLA', 'NVDA', 'AAPL', 'TTWO'];
@@ -284,7 +306,7 @@ async function main() {
   }
   async function tick(withPrices) {
     let sent = 0;
-    await claudeFriends();
+    await claudeFriends(); await claudeTransfers();
     const users = await loadUsers();
     const pseudo = {}; users.forEach(u => { pseudo[u.uid] = u.pseudo; });
     const subs = [];
@@ -327,6 +349,7 @@ async function main() {
         else if (m.kind === 'clanreq') msg = { title: `✋ ${from} veut rejoindre ton clan [${String(m.tag || '').slice(0, 5)}]`, body: 'Accepte sa demande dans l\'onglet Amis.', tag: 'clan', url: '?tab=social' };
         else if (m.kind === 'clanok') msg = { title: `🛡️ Bienvenue dans le clan [${String(m.tag || '').slice(0, 5)}] !`, body: `${from} a accepté ta demande. Ouvre le jeu pour entrer dans le clan.`, tag: 'clan', url: '?tab=social' };
         else if (m.kind === 'takeover') msg = { title: `🤝 ${from} a racheté ton ${String(m.biz || 'commerce').slice(0, 40)}`, body: `+${eur(m.eur || 0)} pour toi ! Ouvre Trad City pour encaisser… ou racheter un autre commerce.`, tag: 'takeover', url: '?tab=city' };
+      else if (m.kind === 'thanks') msg = { title: `🧡 Claude a bien reçu tes ${eur(m.eur || 0)}`, body: 'Merci beaucoup ! Je vais les faire fructifier avec mes paris 🎲', tag: 'thanks', url: '?tab=social' };
       else if (m.kind === 'duelinv') msg = { title: `⚔️ ${from} te défie en duel !`, body: '24 h pour gagner plus que lui : 100 € pour le vainqueur. Accepte dans l\'onglet Amis.', tag: 'duel', url: '?tab=social' };
         else if (m.kind === 'duelok') msg = { title: `⚔️ ${from} a accepté ton duel !`, body: 'C\'est parti pour 24 h : fais mieux que lui.', tag: 'duel', url: '?tab=social' };
         else if (m.kind === 'duelres') msg = { title: `⚔️ ${from} a gagné votre duel`, body: 'Prends ta revanche dans l\'onglet Amis !', tag: 'duel', url: '?tab=social' };
