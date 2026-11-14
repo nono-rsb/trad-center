@@ -1,0 +1,38 @@
+{
+  "id": "tradcity-v3-2026-11-14",
+  "emoji": "🏙️",
+  "title": "Trad City 3.0",
+  "tab": "city",
+  "items": [
+    {
+      "icon": "👥",
+      "title": "Tes amis en direct",
+      "text": "En balade, tu vois tes amis se promener et conduire en temps réel. Touche T (ou 💬) pour leur parler : ta bulle apparaît au-dessus de ta tête."
+    },
+    {
+      "icon": "🏗️",
+      "title": "Ta maison se construit",
+      "text": "Une nouvelle résidence passe par les fondations, les murs, le toit et les finitions, avec une notification à chaque étape. Tes amis voient le chantier avancer."
+    },
+    {
+      "icon": "🏢",
+      "title": "Résidence Trad Tower",
+      "text": "Achète un studio, un T2, un T3 ou le penthouse. Loue-le pour toucher un loyer, ou monte voir la vue en ascenseur."
+    },
+    {
+      "icon": "🏎️",
+      "title": "Karting, auto-tamponneuses, manège",
+      "text": "Course de 3 tours contre 2 pilotes (5 €), une minute de chocs (3 €), un tour de manège (2 €). Paiement au QR avec ton téléphone."
+    },
+    {
+      "icon": "✨",
+      "title": "Ville plus réaliste",
+      "text": "Vraies façades, voitures qui brillent avec plaques et jantes, piétons, passages piétons, feux tricolores, persos avec des doigts !"
+    }
+  ],
+  "button": "Je vais voir 🏙️",
+  "push": {
+    "title": "🏙️ Trad City 3.0",
+    "body": "Vois tes amis en direct et parle-leur, karting, auto-tamponneuses, appartements, et ta maison qui se construit !"
+  }
+}

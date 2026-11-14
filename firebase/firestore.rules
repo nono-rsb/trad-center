@@ -1,0 +1,85 @@
+rules_version = '2';
+// Règles de sécurité Firestore de Trad Center.
+// À copier dans : console Firebase → Firestore Database → Règles → Publier.
+service cloud.firestore {
+  match /databases/{db}/documents {
+    function signedIn() { return request.auth != null; }
+    function me() { return request.auth.uid; }
+    function pair(a, b) { return a < b ? a + '_' + b : b + '_' + a; }
+    function areFriends(a, b) { return exists(/databases/$(db)/documents/friendships/$(pair(a, b))); }
+    // Créateur du jeu (compte Loupdewallstreet) : peut consulter les parties et bloquer des joueurs
+    function isAdmin() { return signedIn() && request.auth.uid == 'elSOuyaP2GZqW4ARw3Wy5zUbtjl1'; }
+
+    // Pseudo -> uid (pseudos uniques)
+    match /usernames/{name} {
+      allow read: if true;
+      allow create: if signedIn()
+        && request.resource.data.uid == me()
+        && request.resource.data.keys().hasOnly(['uid'])
+        && name.matches('^[a-z0-9_]{3,16}$');
+      allow delete: if signedIn() && resource.data.uid == me();
+    }
+
+    // Profil public (pseudo, avatar, patrimoine, rang…)
+    match /users/{uid} {
+      allow read: if signedIn();
+      allow create: if signedIn() && uid == me()
+        && request.resource.data.pseudoLower is string
+        && getAfter(/databases/$(db)/documents/usernames/$(request.resource.data.pseudoLower)).data.uid == me();
+      allow update: if signedIn() && uid == me()
+        && request.resource.data.pseudoLower == resource.data.pseudoLower
+        && request.resource.data.pseudo == resource.data.pseudo;
+    }
+
+    // Sauvegarde privée de la partie
+    match /saves/{uid} {
+      allow read, write: if signedIn() && uid == me();
+      allow read: if isAdmin();
+    }
+
+    // Liste des joueurs bloqués (lue par tous, modifiée par le créateur seulement)
+    match /admin/{doc} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    // Demandes d'ami : id = <de>_<à>
+    match /friendRequests/{id} {
+      allow read: if signedIn() && (resource.data.from == me() || resource.data.to == me());
+      allow create: if signedIn()
+        && request.resource.data.from == me()
+        && request.resource.data.to != me()
+        && id == me() + '_' + request.resource.data.to;
+      allow delete: if signedIn() && (resource.data.from == me() || resource.data.to == me());
+    }
+
+    // Amitiés : id = uids triés, créée par celui qui accepte une demande existante
+    match /friendships/{id} {
+      allow read: if signedIn() && me() in resource.data.members;
+      allow create: if signedIn()
+        && request.resource.data.members.size() == 2
+        && request.resource.data.members[1] == me()
+        && id == pair(request.resource.data.members[0], me())
+        && exists(/databases/$(db)/documents/friendRequests/$(request.resource.data.members[0] + '_' + me()));
+      allow delete: if signedIn() && me() in resource.data.members;
+    }
+
+    // Envois d'argent / de crypto entre amis
+    match /transfers/{id} {
+      allow read: if signedIn() && (resource.data.from == me() || resource.data.to == me());
+      allow create: if signedIn()
+        && request.resource.data.from == me()
+        && request.resource.data.to != me()
+        && areFriends(me(), request.resource.data.to)
+        && request.resource.data.claimed == false
+        && request.resource.data.kind in ['cash', 'asset']
+        && request.resource.data.eur is number && request.resource.data.eur > 0
+        && request.resource.data.qty is number && request.resource.data.qty > 0;
+      allow update: if signedIn()
+        && resource.data.to == me()
+        && resource.data.claimed == false
+        && request.resource.data.claimed == true
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['claimed', 'claimedAt']);
+    }
+  }
+}
