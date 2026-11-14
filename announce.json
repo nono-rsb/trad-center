@@ -1,38 +1,38 @@
 {
-  "id": "tradcity-v2-2026-11-13",
+  "id": "tradcity-v3-2026-11-14",
   "emoji": "🏙️",
-  "title": "Trad City 2.0 : la ville à taille humaine",
+  "title": "Trad City 3.0",
   "tab": "city",
   "items": [
     {
-      "icon": "🧍",
-      "title": "Des vrais personnages",
-      "text": "Taille humaine, bras, mains, genoux qui bougent quand tu marches ou cours. Ton visage et ta tenue viennent de ton avatar."
+      "icon": "👥",
+      "title": "Tes amis en direct",
+      "text": "En balade, tu vois tes amis se promener et conduire en temps réel. Touche T (ou 💬) pour leur parler : ta bulle apparaît au-dessus de ta tête."
     },
     {
-      "icon": "👁️",
-      "title": "Vue à la 1re personne",
-      "text": "Touche V (ou 👁️ Vue) pour voir par les yeux de ton perso."
+      "icon": "🏗️",
+      "title": "Ta maison se construit",
+      "text": "Une nouvelle résidence passe par les fondations, les murs, le toit et les finitions, avec une notification à chaque étape. Tes amis voient le chantier avancer."
+    },
+    {
+      "icon": "🏢",
+      "title": "Résidence Trad Tower",
+      "text": "Achète un studio, un T2, un T3 ou le penthouse. Loue-le pour toucher un loyer, ou monte voir la vue en ascenseur."
     },
     {
       "icon": "🏎️",
-      "title": "Conduis tes véhicules achetés",
-      "text": "Trottinette, scooter, moto, citadine, SUV, supercar… chacun a sa silhouette et sa couleur. G pour le garage, F pour monter."
+      "title": "Karting, auto-tamponneuses, manège",
+      "text": "Course de 3 tours contre 2 pilotes (5 €), une minute de chocs (3 €), un tour de manège (2 €). Paiement au QR avec ton téléphone."
     },
     {
-      "icon": "🚪",
-      "title": "Entre vraiment dans les maisons",
-      "text": "E devant une maison : tu passes la porte, tu l'ouvres et la fermes. Chez toi, B pour poser des meubles que tes amis verront."
-    },
-    {
-      "icon": "🎡",
-      "title": "Fête foraine",
-      "text": "Grande roue (4 €) et stand de tir (3 €) : paie en scannant le QR avec ton téléphone. 12 cibles = une peluche géante !"
+      "icon": "✨",
+      "title": "Ville plus réaliste",
+      "text": "Vraies façades, voitures qui brillent avec plaques et jantes, piétons, passages piétons, feux tricolores, persos avec des doigts !"
     }
   ],
   "button": "Je vais voir 🏙️",
   "push": {
-    "title": "🏙️ Trad City 2.0 est là",
-    "body": "Ville à taille humaine, vue 1re personne, conduis tes voitures, entre dans les maisons, grande roue et stand de tir !"
+    "title": "🏙️ Trad City 3.0",
+    "body": "Vois tes amis en direct et parle-leur, karting, auto-tamponneuses, appartements, et ta maison qui se construit !"
   }
 }

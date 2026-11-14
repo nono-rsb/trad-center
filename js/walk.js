@@ -52,12 +52,14 @@
     const w = st();
     return `<div class="wk-hud">
       <div class="wk-top"><b>🚶 Trad City</b><span id="wk-cash">${fmt.eur(S().cash)}</span><span class="wk-en" id="wk-en"><i style="width:${Math.max(0, w.en)}%"></i><em>⚡ ${Math.round(w.en)}</em></span><span class="wk-gap"></span>
-        <button data-wkk="KeyV" title="Vue 1re / 3e personne (V)">👁️ Vue</button><button data-wkk="KeyG" title="Garage (G)">🔑 Garage</button><button data-wkk="KeyB" id="wk-deco" hidden title="Déco (B)">🛋️ Déco</button><button data-wkk="KeyI" title="Sac (I)">🎒 Sac</button><button data-wk="exit">✕ Quitter</button></div>
+        <span id="wk-friends" hidden></span><button data-wkk="KeyT" title="Parler à tes amis (T)">💬</button><button data-wkk="KeyV" title="Vue 1re / 3e personne (V)">👁️ Vue</button><button data-wkk="KeyG" title="Garage (G)">🔑 Garage</button><button data-wkk="KeyB" id="wk-deco" hidden title="Déco (B)">🛋️ Déco</button><button data-wkk="KeyI" title="Sac (I)">🎒 Sac</button><button data-wk="exit">✕ Quitter</button></div>
       <div class="wk-cross" id="wk-cross" hidden></div>
       <div class="wk-speed" id="wk-speed" hidden><b>0</b><small>km/h</small></div>
       <div class="wk-game" id="wk-game" hidden></div>
       <div class="wk-prompts" id="wk-prompts"></div>
-      <div class="wk-help" id="wk-help">${touch() ? '🕹️ Joystick pour marcher · glisse l\'écran pour regarder · touche les boutons qui apparaissent' : '<b>ZQSD</b> marcher · <b>Maj</b> courir · <b>clique</b> puis souris pour regarder · <b>V</b> vue 1re personne · <b>E</b> entrer · <b>F</b> véhicule · <b>G</b> garage · <b>I</b> sac · <b>Échap</b> libère la souris'}</div>
+      <div class="wk-chat" id="wk-chat"></div>
+      <div class="wk-say" id="wk-say" hidden><input maxlength="80" placeholder="Message à tes amis…" enterkeyhint="send"><button data-wk="say">Envoyer</button></div>
+      <div class="wk-help" id="wk-help">${touch() ? '🕹️ Joystick pour marcher · glisse l\'écran pour regarder · touche les boutons qui apparaissent' : '<b>ZQSD</b> marcher · <b>Maj</b> courir · <b>clique</b> puis souris pour regarder · <b>V</b> vue 1re personne · <b>E</b> entrer · <b>F</b> véhicule · <b>G</b> garage · <b>I</b> sac · <b>T</b> parler · <b>Échap</b> libère la souris'}</div>
       <div class="wk-joy" id="wk-joy"><i></i></div><button class="wk-run" data-wk="run">🏃</button><button class="wk-fire" data-wk="fire" hidden>🔫</button>
     </div>`;
   };
@@ -75,12 +77,13 @@
     v.onBump = sp => { sfx('bump', sp); };
     v.onDoor = open => sfx(open ? 'open' : 'close');
     clearInterval(tickT); tickT = setInterval(tick, 150);
+    clearInterval(presT); presT = setInterval(presTick, 1000); lastPub = { t: 0 };
     if (!st().seen2) { st().seen2 = 1; G.save(); TC.toast('🚶 Bienvenue à Trad City ! <b>V</b> : vue 1re personne · <b>F</b> : monter dans ta voiture · <b>E</b> devant une maison pour entrer.', 'info', 8000); }
   };
   W.stop = function () {
     if (!on) return; on = false; clearInterval(tickT); tickT = null;
-    document.body.classList.remove('wk-on'); engine(0, null);
-    const v = V(); if (v) v.walk(false);
+    document.body.classList.remove('wk-on'); engine(0, null); presStop();
+    const v = V(); if (v) { v.setOthers([]); v.walk(false); }
     G.save();
     if (TC.City) TC.City.render();
   };
@@ -88,28 +91,32 @@
   W.enterHouse = function (p) {
     const v = V(); if (!v || !TC.City || !TC.City.houseInfo) return;
     const info = TC.City.houseInfo(p);
+    if (info.building) return chantier(p);
     if (v.enterHouse(info)) { sfx('open'); setTimeout(() => sfx('close'), 650); TC.toast(info.me ? '🏠 Bienvenue chez toi ! <b>B</b> pour la déco, <b>E</b> près de la porte pour l\'ouvrir.' : `🏠 Chez ${esc(info.pseudo)}. <b>E</b> près de la porte pour ressortir.`, 'info', 5000); }
   };
 
   // invites à l'écran (et sur le téléphone : boutons)
   function prompts(v) {
     const k = v.walkState, out = [];
+    if (k.mode === 'drive' && k.lock) { out.push(['Escape', 'Échap', 'Abandonner']); return out; }
     if (k.mode === 'drive') { out.push(['KeyF', 'F', k.kmh > 11 ? 'Ralentis pour descendre' : 'Descendre du véhicule']); if (!touch()) out.push(['Space', '␣', 'Frein à main']); return out; }
-    if (k.mode === 'ride') { out.push(['Escape', 'Échap', 'Descendre de la grande roue']); return out; }
+    if (k.mode === 'ride') { out.push(['Escape', 'Échap', k.rideKind === 'manege' ? 'Descendre du manège' : 'Descendre de la grande roue']); return out; }
     if (k.mode === 'tir') return out;
     if (v.decoPlacing && v.decoPlacing()) { out.push(['KeyE', 'E', 'Poser ici'], ['KeyR', 'R', 'Tourner'], ['KeyX', 'X', 'Annuler']); return out; }
     const h = v.house && v.house();
     if (h) {
       if (k.nearDoor) out.push(['KeyE', 'E', v.doorOpen() ? 'Fermer la porte' : 'Ouvrir la porte']);
-      if (h.me) { out.push(['KeyB', 'B', 'Déco : poser un meuble']); if (v.decoNear() >= 0) out.push(['KeyX', 'X', 'Ranger cet objet']); }
+      if (h.me && !h.apt) { out.push(['KeyB', 'B', 'Déco : poser un meuble']); if (v.decoNear() >= 0) out.push(['KeyX', 'X', 'Ranger cet objet']); }
       return out;
     }
+    const nf = v.nearFriend && v.nearFriend(); if (nf) out.push(['KeyT', 'T', 'Parler à ' + ((friendsLive.get(nf) || {}).pseudo || 'ton ami') + ' 💬']);
     if (k.nearVeh) out.push(['KeyF', 'F', 'Monter : ' + (k.nearVeh.item.brand + ' ' + k.nearVeh.item.model)]);
     const n = v.nearInfo && v.nearInfo();
-    if (n && n.land) out.push(['KeyE', 'E', n.land === 'market' ? 'Entrer dans le Trad Market 🛒' : n.land === 'roue' ? 'Faire un tour de grande roue 🎡 (4 €)' : n.land === 'tir' ? 'Jouer au stand de tir 🎯 (3 €)' : 'Entrer dans ' + (NAMES[n.land] || 'le bâtiment')]);
+    if (n && n.land) out.push(['KeyE', 'E', n.land === 'market' ? 'Entrer dans le Trad Market 🛒' : n.land === 'roue' ? 'Faire un tour de grande roue 🎡 (4 €)' : n.land === 'tir' ? 'Jouer au stand de tir 🎯 (3 €)' : n.land === 'residence' ? 'Entrer dans la Résidence Trad Tower 🏢' : n.land === 'kart' ? 'Course de karting 🏎️ (5 €)' : n.land === 'manege' ? 'Tour de manège 🎠 (2 €)' : n.land === 'autos' ? 'Auto-tamponneuses 💥 (3 €)' : 'Entrer dans ' + (NAMES[n.land] || 'le bâtiment')]);
     else if (n && n.uid) {
       const me = n.uid === myUid(), p = TC.City && TC.City.roster && TC.City.roster().find(x => x.uid === n.uid);
-      out.push(['KeyE', 'E', me ? 'Entrer chez toi 🏠' : 'Entrer chez ' + (p && p.pseudo ? p.pseudo : 'ce joueur') + ' 🏠'], ['KeyR', 'R', me ? 'Ton terrain' : 'Infos du terrain']);
+      const bl = me ? TC.City.build() : (p && p.city && p.city.bld && p.city.bld.h === p.city.home && Date.now() < p.city.bld.s + p.city.bld.d);
+      if (bl) out.push(['KeyE', 'E', me ? 'Voir ton chantier 🏗️' : 'Chantier en cours 🏗️']); else out.push(['KeyE', 'E', me ? 'Entrer chez toi 🏠' : 'Entrer chez ' + (p && p.pseudo ? p.pseudo : 'ce joueur') + ' 🏠']); out.push(['KeyR', 'R', me ? 'Ton terrain' : 'Infos du terrain']);
     }
     return out;
   }
@@ -133,9 +140,12 @@
     const cash = $('#wk-cash'); if (cash) cash.textContent = fmt.eur(S().cash);
     const sp = $('#wk-speed'); if (sp) { sp.hidden = k.mode !== 'drive'; if (k.mode === 'drive') sp.querySelector('b').textContent = Math.round(k.kmh); }
     const cr = $('#wk-cross'); if (cr) cr.hidden = !(k.fp || k.mode === 'tir');
-    const dc = $('#wk-deco'); if (dc) { const h = v.house && v.house(); dc.hidden = !(h && h.me); }
+    const dc = $('#wk-deco'); if (dc) { const h = v.house && v.house(); dc.hidden = !(h && h.me && !h.apt); }
     const fire = document.querySelector('.wk-fire'); if (fire) fire.hidden = k.mode !== 'tir';
-    const gm = $('#wk-game'); if (gm) { gm.hidden = !(k.mode === 'ride' || k.mode === 'tir'); if (k.mode === 'ride') gm.innerHTML = `🎡 Grande roue · encore <b>${Math.ceil(k.rideLeft || 0)} s</b> · regarde la ville !`; }
+    const gm = $('#wk-game'); if (gm) { gm.hidden = !(k.mode === 'ride' || k.mode === 'tir' || k.lock); if (k.mode === 'ride') gm.innerHTML = k.rideKind === 'manege' ? `🎠 Manège · encore <b>${Math.ceil(k.rideLeft || 0)} s</b>` : `🎡 Grande roue · encore <b>${Math.ceil(k.rideLeft || 0)} s</b> · regarde la ville !`; }
+    const ri = v.raceInfo && v.raceInfo(), bi = v.bumpInfo && v.bumpInfo();
+    if (gm && ri) { gm.hidden = false; gm.innerHTML = ri.countdown ? `<span class="wk-big">${ri.countdown}</span>` : `🏁 Tour <b>${ri.lap}/${ri.laps}</b> · ${ri.pos}<sup>${ri.pos === 1 ? 'er' : 'e'}</sup>/${ri.count} · ⏱️ ${ri.time.toFixed(1)} s${ri.best ? ` · meilleur ${ri.best.toFixed(2)} s` : ''}`; }
+    if (gm && bi) { gm.hidden = false; gm.innerHTML = `💥 <b>${bi.hits}</b> chocs · ⏱️ ${bi.left} s`; }
     engine(k.mode === 'drive' ? k.kmh : 0, k.mode === 'drive' && k.veh ? k.veh.mesh.userData.vs : null);
     const pr = $('#wk-prompts'); if (!pr) return;
     const list = prompts(v), key = JSON.stringify(list) + touch();
@@ -148,6 +158,8 @@
     const k = v.walkState, h = v.house && v.house();
     if (code === 'KeyV') { v.setView(!k.fp); return; }
     if (code === 'KeyI') return W.bag();
+    if (code === 'KeyT') return chatOpen();
+    if (k.mode === 'drive' && k.lock) { if (code === 'Escape') { if (v.raceInfo()) v.raceEnd(true); else v.bumpEnd(); } return; }
     if (code === 'KeyG') return garage();
     if (k.mode === 'tir') { if (code === 'Space') shoot(); return; }
     if (k.mode === 'ride') { if (code === 'Escape') v.rideEnd(); return; }
@@ -161,8 +173,8 @@
     }
     if (h) {
       if (code === 'KeyE' && k.nearDoor) return v.toggleDoor();
-      if (code === 'KeyB' && h.me) return decoMenu();
-      if (code === 'KeyX' && h.me) { const i = v.decoNear(); if (i >= 0) removeDeco(i); }
+      if (code === 'KeyB' && h.me && !h.apt) return decoMenu();
+      if (code === 'KeyX' && h.me && !h.apt) { const i = v.decoNear(); if (i >= 0) removeDeco(i); }
       return;
     }
     if (code === 'KeyE') return W.use();
@@ -174,6 +186,10 @@
     if (n.land === 'market') return W.shop();
     if (n.land === 'roue') return roue();
     if (n.land === 'tir') return tirGame();
+    if (n.land === 'residence') return aptMenu();
+    if (n.land === 'kart') return kartGame();
+    if (n.land === 'manege') return manege();
+    if (n.land === 'autos') return autosGame();
     if (n.uid) { const p = TC.City.roster().find(x => x.uid === n.uid); if (p) return W.enterHouse(p); }
     v.openNear();
   };
@@ -329,6 +345,140 @@
     V().setDeco(list); sfx('place'); TC.toast(`${(decoById[d.k] || {}).e || '📦'} Rangé dans ta réserve (🛋️ Déco pour le reposer).`, 'info', 3500);
   }
 
+
+  /* ---------- 👥 Amis en direct + 💬 chat (seulement entre amis, seulement pendant la balade) ----------
+   * Ma position part dans mon profil (champ wk) toutes les 2,5 s quand je bouge (15 s sinon) ; je lis le profil de mes amis.
+   * Rien n'est écrit quand on ne se balade pas (forfait gratuit Firebase). */
+  let presT = null, unsubs = [], subKey = '', lastPub = { t: 0 }, seenMsg = {};
+  const friendsLive = new Map(), chat = [];
+  const r1 = v => Math.round(v * 10) / 10;
+  function online() { return !!(N && N.enabled && N.user && N.profile && N.db && N.db()); }
+  function myWk() {
+    const v = V(), k = v.walkState, h = v.house && v.house(), drv = k.mode === 'drive' && k.veh && !k.lock;
+    return { t: Date.now(), x: r1(k.x), z: r1(k.z), r: Math.round((drv ? k.veh.yaw : k.face) * 100) / 100, m: drv ? 'drive' : 'walk', v: drv ? [k.veh.mesh.userData.vs, k.veh.color || 0] : null, h: h || k.mode !== 'walk' && k.mode !== 'drive' || k.lock ? 1 : 0 };
+  }
+  function publish(force, msg) {
+    if (!online() || !on) return;
+    const w = myWk(), moved = Math.hypot(w.x - (lastPub.x || 0), w.z - (lastPub.z || 0)) > .6 || Math.abs(w.r - (lastPub.r || 0)) > .4 || w.m !== lastPub.m || w.h !== lastPub.h;
+    const age = Date.now() - lastPub.t;
+    if (!force && !(moved && age > 2500) && age < 15000) return;
+    if (msg) { w.msg = msg; w.mt = Date.now(); } else if (lastPub.msg && Date.now() - lastPub.mt < 12000) { w.msg = lastPub.msg; w.mt = lastPub.mt; }
+    lastPub = w;
+    N.db().collection('users').doc(N.user.uid).update({ wk: w }).catch(() => { });
+  }
+  function subscribe() {
+    const fr = (N.friends || []).map(f => f.uid).filter(Boolean).slice(0, 30), key = fr.join();
+    if (key === subKey) return; subKey = key;
+    unsubs.forEach(u => { try { u(); } catch (e) { } }); unsubs = []; friendsLive.clear();
+    for (let i = 0; i < fr.length; i += 10) {
+      const chunk = fr.slice(i, i + 10);
+      unsubs.push(N.db().collection('users').where(firebase.firestore.FieldPath.documentId(), 'in', chunk).onSnapshot(s => { s.docs.forEach(d => friendsLive.set(d.id, Object.assign({ uid: d.id }, d.data()))); }, e => console.warn('amis en direct', e)));
+    }
+  }
+  function presTick() {
+    const v = V(); if (!on || !v) return;
+    if (!online()) { v.setOthers([]); return; }
+    subscribe(); publish(false);
+    const now = Date.now(), list = [];
+    friendsLive.forEach(d => {
+      const w = d.wk; if (!w || !w.t || now - w.t > 30000 || w.h) return;
+      list.push({ uid: d.uid, pseudo: d.pseudo || d.displayName, avatar: d.avatar, look: d.look, x: +w.x || 0, z: +w.z || 0, r: +w.r || 0, m: w.m, v: w.v, msg: w.msg && clean(w.msg) ? w.msg : null, mt: w.mt });
+      if (w.msg && w.mt && !seenMsg[d.uid + w.mt] && now - w.mt < 20000) { seenMsg[d.uid + w.mt] = 1; if (clean(w.msg)) addChat(d.pseudo || '?', w.msg); }
+    });
+    v.setOthers(list);
+    const fc = $('#wk-friends'); if (fc) { fc.hidden = !list.length; fc.textContent = '👥 ' + list.length + ' ami' + (list.length > 1 ? 's' : '') + ' en ligne'; }
+  }
+  function presStop() { if (online() && lastPub.t) N.db().collection('users').doc(N.user.uid).update({ wk: { t: 0 } }).catch(() => { }); unsubs.forEach(u => { try { u(); } catch (e) { } }); unsubs = []; subKey = ''; friendsLive.clear(); lastPub = { t: 0 }; clearInterval(presT); presT = null; }
+  const clean = t => !(TC.Mayor && TC.Mayor.clean) || TC.Mayor.clean(t);
+  function addChat(who, msg) { chat.push({ who, msg, t: Date.now() }); if (chat.length > 30) chat.shift(); renderChat(); TC.sound('click'); }
+  function renderChat() { const el = $('#wk-chat'); if (!el) return; const now = Date.now(); el.innerHTML = chat.filter(c => now - c.t < 60000).slice(-5).map(c => `<div><b>${esc(c.who)}</b> ${esc(c.msg)}</div>`).join(''); }
+  function chatOpen() {
+    if (!online()) return TC.toast('👤 Crée un compte (onglet Amis) pour parler à tes amis en balade.', 'info', 5000);
+    if (!(N.friends || []).length) return TC.toast('Ajoute des amis (onglet Amis) : tu les verras se promener et tu pourras leur parler.', 'info', 5000);
+    exitLock(); const box = $('#wk-say'); if (!box) return; box.hidden = false; const i = box.querySelector('input'); i.value = ''; i.focus();
+  }
+  function chatSend() {
+    const box = $('#wk-say'), i = box && box.querySelector('input'); if (!i) return;
+    const txt = i.value.trim().slice(0, 80); box.hidden = true; i.blur(); if (!txt) return;
+    if (!clean(txt)) return TC.toast('🚫 Pas de gros mots dans le chat.', 'bad');
+    publish(true, txt); V().say(txt); addChat('Toi', txt);
+  }
+  setInterval(renderChat, 5000);
+
+  /* ---------- 🏢 Résidence Trad Tower : appartements (patrimoine + loyers) ---------- */
+  W.APTS = [
+    { k: 'studio', e: '🛋️', name: 'Studio · 3e étage', p: 25000, tier: 2 },
+    { k: 't2', e: '🏠', name: 'T2 · 9e étage', p: 70000, tier: 3 },
+    { k: 't3', e: '🏡', name: 'T3 · 15e étage, vue dégagée', p: 160000, tier: 4 },
+    { k: 'penthouse', e: '🌆', name: 'Penthouse · 22e étage', p: 650000, tier: 6 },
+  ];
+  const aptById = Object.fromEntries(W.APTS.map(a => [a.k, a]));
+  const RENT = .004; // loyer : 0,4 % du prix par jour si l'appartement est loué
+  const apts = () => S().apts || (S().apts = {});
+  const aptValue = () => Object.keys(apts()).reduce((t, k) => t + (aptById[k] ? aptById[k].p * .9 : 0), 0);
+  { const nw0 = G.netWorth; G.netWorth = () => nw0() + aptValue(); }
+  const rentDue = () => Object.entries(apts()).reduce((t, [k, a]) => t + (a.rent && aptById[k] ? aptById[k].p * RENT * (Date.now() - (a.rentAt || Date.now())) / 86400000 : 0), 0);
+  function aptMenu() {
+    exitLock();
+    const own = apts(), due = rentDue();
+    const md = TC.modal(`<div class="wk-shop"><h2>🏢 Résidence Trad Tower</h2><p class="muted">Achète un appartement : il compte dans ton patrimoine (repris à 90 %). Mets-le en location pour toucher un loyer (0,4 % par jour), ou monte y faire un tour en ascenseur 🛗.</p>
+      ${due >= .01 ? `<button class="btn btn-gold bk-full" id="wk-rent">💶 Encaisser les loyers : ${fmt.eur(due)}</button>` : ''}
+      <div class="wk-prods">${W.APTS.map(a => { const o = own[a.k]; return `<div class="wk-prod"><span class="wk-pe">${a.e}</span><div class="wk-pn"><b>${esc(a.name)}</b><small>${o ? (o.rent ? '🔑 loué · ' + fmt.eur(a.p * RENT) + ' / jour' : '✓ à toi') : fmt.eur(a.p)}</small></div>${o ? `<button class="btn btn-sm btn-gold" data-up="${a.k}">🛗 Monter</button><button class="btn btn-sm" data-rentt="${a.k}">${o.rent ? 'Arrêter la location' : 'Louer'}</button><button class="btn btn-sm btn-ghost" data-asell="${a.k}">Vendre</button>` : `<button class="btn btn-sm" data-abuy="${a.k}" ${S().cash >= a.p ? '' : 'disabled'}>Acheter</button>`}</div>`; }).join('')}</div>
+      <div class="modal-actions"><button class="btn" data-close>Fermer</button></div></div>`, { cls: 'wk-modal' });
+    const claim = () => { const d = rentDue(); if (d < .01) return; S().cash += d; Object.values(apts()).forEach(a => { if (a.rent) a.rentAt = Date.now(); }); S().log.unshift({ t: Date.now(), kind: 'rent', eur: Math.round(d * 100) / 100, asset: '🏢 Loyers Trad Tower' }); if (TC.Weekly && TC.Weekly.flow) { } G.save(true); };
+    const rb = md.el.querySelector('#wk-rent'); if (rb) rb.onclick = () => { claim(); TC.sound('kaching'); md.close(); aptMenu(); };
+    md.el.querySelectorAll('[data-abuy]').forEach(b => { b.onclick = async () => { const a = aptById[b.dataset.abuy]; md.close(); if (!(await TC.confirm(`${a.e} ${esc(a.name)}`, `Prix : <b>${fmt.eur(a.p)}</b>. Il compte dans ton patrimoine (repris à 90 %) et peut être loué.`, 'Acheter', 'btn-gold'))) return aptMenu(); if (S().cash < a.p) return TC.toast('Solde insuffisant.', 'bad'); S().cash -= a.p; apts()[a.k] = { at: Date.now(), rent: false }; S().log.unshift({ t: Date.now(), kind: 'item', eur: a.p, asset: '🏢 Appartement : ' + a.name }); G.save(true); TC.sound('kaching'); TC.confetti(120); TC.toast(`🔑 ${esc(a.name)} est à toi ! Monte le visiter (🛗).`, 'ok', 6000); if (TC.App && TC.App.after) TC.App.after(); aptMenu(); }; });
+    md.el.querySelectorAll('[data-rentt]').forEach(b => { b.onclick = () => { claim(); const o = apts()[b.dataset.rentt]; o.rent = !o.rent; o.rentAt = Date.now(); G.save(true); md.close(); aptMenu(); }; });
+    md.el.querySelectorAll('[data-asell]').forEach(b => { b.onclick = async () => { const a = aptById[b.dataset.asell]; md.close(); if (!(await TC.confirm('Vendre ' + esc(a.name) + ' ?', `Tu récupères <b>${fmt.eur(a.p * .9)}</b> (90 %).`, 'Vendre', 'btn-primary'))) return aptMenu(); claim(); delete apts()[a.k]; S().cash += a.p * .9; S().log.unshift({ t: Date.now(), kind: 'itemsell', eur: a.p * .9, asset: '🏢 Appartement : ' + a.name }); G.save(true); TC.sound('cash'); aptMenu(); }; });
+    md.el.querySelectorAll('[data-up]').forEach(b => { b.onclick = () => { const a = aptById[b.dataset.up]; md.close(); const mine = TC.Style ? TC.Style.mine() : {}; if (V().enterHouse({ uid: 'residence', apt: a.k, me: true, pseudo: 'toi', avatar: mine.avatar, look: mine.look, tier: a.tier, homeName: a.name, nw: 0, own: [], deco: [] })) { sfx('open'); setTimeout(() => sfx('close'), 650); TC.toast(`🛗 Ding ! ${esc(a.name)}. Regarde la vue par les fenêtres. <b>E</b> près de la porte pour redescendre.`, 'info', 6000); } }; });
+  }
+
+  /* ---------- 🏗️ Chantier ---------- */
+  function chantier(p) {
+    const b = p.me ? TC.City.build() : null;
+    if (!p.me) { const bl = p.city && p.city.bld, f = bl ? (Date.now() - bl.s) / bl.d : 1; return TC.toast(`🏗️ La maison de ${esc(p.pseudo || '?')} est en chantier (${Math.floor(Math.max(0, f) * 100)} %). Repasse plus tard !`, 'info', 5000); }
+    exitLock();
+    const h = TC.City.homeById[b.h], stg = TC.City.STAGES;
+    const md = TC.modal(`<div class="wk-shop"><h2>🏗️ Chantier : ${h.e} ${esc(h.name)}</h2>
+      <div class="wk-en big"><i style="width:${Math.floor(b.f * 100)}%"></i><em>${Math.floor(b.f * 100)} % · prête ${fmt.time(b.s + b.d)}</em></div>
+      <div class="bld-steps">${stg.map((x, i) => `<div class="${i < b.stage ? 'done' : i === b.stage ? 'cur' : ''}">${i < b.stage ? '✅' : i === b.stage ? '🔨' : '⬜'} ${x[1]}</div>`).join('')}<div>${'⬜'} 🔑 Remise des clés</div></div>
+      <p class="hint">Tu reçois une notification sur ton téléphone à chaque étape. Tes amis voient ton chantier avancer dans la ville.</p>
+      <div class="modal-actions"><button class="btn" data-close>OK</button><button class="btn btn-gold" id="wk-rush">⏩ Finir maintenant · ${fmt.eur(TC.City.rushCost())}</button></div></div>`, { cls: 'wk-modal' });
+    md.el.querySelector('#wk-rush').onclick = () => { md.close(); TC.City.rush(); };
+  }
+  let lastStage = null;
+  function buildWatch() {
+    const b = TC.City && TC.City.build ? TC.City.build() : null, key = b ? b.s + ':' + b.stage : 'none';
+    if (lastStage !== null && key !== lastStage) { if (b) TC.toast(`🏗️ Ton chantier avance : ${b.name} (${Math.floor(b.f * 100)} %)`, 'info', 5000); else if (lastStage !== 'none') { TC.toast('🔑 Ta nouvelle résidence est terminée ! Va la visiter.', 'ok', 7000); TC.confetti(120); } if (TC.City && on) TC.City.render(); }
+    lastStage = key;
+  }
+  setInterval(buildWatch, 20000);
+
+  /* ---------- 🏎️ Karting · 💥 Auto-tamponneuses · 🎠 Manège ---------- */
+  function kartGame() {
+    W.pay({ shop: 'Trad Kart', label: 'Course de 3 tours contre 2 pilotes', total: 5, onPaid: () => {
+      const v = V(); if (!v || !on) return;
+      if (!v.raceStart({ laps: 3, onLap: (n, t) => { sfx('ding'); TC.toast(`🏁 Tour ${n} : ${t.toFixed(2)} s`, 'info', 2500); }, onEnd: r => {
+        if (!r) return TC.toast('Course abandonnée.', 'info');
+        const w = st(), best = w.kartBest && w.kartBest < r.best ? w.kartBest : r.best, rec = !w.kartBest || r.best < w.kartBest; w.kartBest = best; G.save(true);
+        const xp = r.pos === 1 ? 50 : r.pos === 2 ? 25 : 10; if (TC.Progress && TC.Progress.xp) TC.Progress.xp(xp);
+        TC.modal(`<div class="center"><div class="big-emoji">${r.pos === 1 ? '🏆' : r.pos === 2 ? '🥈' : '🥉'}</div><h2>${r.pos === 1 ? 'Victoire !' : r.pos + 'e place'}</h2><p>Temps total <b>${r.time.toFixed(2)} s</b> · meilleur tour <b>${r.best.toFixed(2)} s</b>${rec ? ' · 🆕 record perso !' : ` (record : ${best.toFixed(2)} s)`}<br><b>+${xp} XP</b></p><div class="modal-actions"><button class="btn btn-gold" data-close>OK</button></div></div>`);
+        if (r.pos === 1) TC.confetti(160);
+      } })) return;
+      TC.toast('🏎️ ZQSD pour piloter, Espace pour freiner. 3 tours, bats les 2 autres pilotes !', 'ok', 6000);
+    } });
+  }
+  function autosGame() {
+    W.pay({ shop: 'Auto-tamponneuses', label: '1 minute d\'auto-tamponneuses', total: 3, onPaid: () => {
+      const v = V(); if (!v || !on) return;
+      v.bumpStart({ len: 60, onHit: () => sfx('bonk'), onEnd: r => { const xp = Math.min(40, r.hits * 3); if (xp && TC.Progress && TC.Progress.xp) TC.Progress.xp(xp); TC.modal(`<div class="center"><div class="big-emoji">💥</div><h2>${r.hits} chocs !</h2><p>${xp ? `<b>+${xp} XP</b>` : 'Fonce dans les autres la prochaine fois 😄'}</p><div class="modal-actions"><button class="btn btn-gold" data-close>OK</button></div></div>`); } });
+      TC.toast('💥 Fonce dans les autres voitures ! Chaque gros choc compte.', 'ok', 5000);
+    } });
+  }
+  function manege() {
+    W.pay({ shop: 'Manège', label: '1 tour de manège (40 s)', total: 2, onPaid: () => { const v = V(); if (v && on && v.carouselStart(() => TC.toast('🎠 Fin du tour !', 'info', 3000))) TC.toast('🎠 Hue dada ! Bouge la souris (ou glisse) pour regarder autour.', 'ok', 5000); } });
+  }
+
   /* ---------- 🎒 Sac ---------- */
   W.bag = function () {
     exitLock();
@@ -362,6 +512,7 @@
     else if (kind === 'close') { noise(c, .15, 220, 1, .4, 'lowpass'); tone(c, 120, 60, .15, .2); }
     else if (kind === 'door') { noise(c, .12, 300, 1, .35, 'lowpass'); }
     else if (kind === 'place') { noise(c, .1, 400, 1, .3, 'lowpass'); }
+    else if (kind === 'bonk') { tone(c, 160, 90, .25, .3, 'square'); noise(c, .2, 500, 1, .4, 'lowpass'); }
     else if (kind === 'bump') { noise(c, .3, 250, .6, Math.min(.8, (x || 10) / 30), 'lowpass'); }
   }
   function engine(kmh, vs) {
@@ -383,15 +534,16 @@
 
   /* ---------- Clavier, souris, joystick ---------- */
   const MOVE = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ShiftLeft', 'ShiftRight', 'Space'];
-  const ACT = ['KeyE', 'KeyF', 'KeyV', 'KeyG', 'KeyB', 'KeyX', 'KeyR', 'KeyI', 'Enter'];
+  const ACT = ['KeyE', 'KeyF', 'KeyV', 'KeyG', 'KeyB', 'KeyX', 'KeyR', 'KeyI', 'KeyT', 'Enter'];
   const typing = e => e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable);
   const modalOpen = () => { const m = $('#modal'); return !!(m && m.classList.contains('open')); };
   document.addEventListener('keydown', e => {
+    if (on && e.target && e.target.closest && e.target.closest('#wk-say')) { if (e.key === 'Enter') { e.preventDefault(); chatSend(); } else if (e.key === 'Escape') { $('#wk-say').hidden = true; e.target.blur(); } return; }
     if (!on || typing(e) || modalOpen()) return;
     const v = V(); if (!v || !v.walkState) return;
     if (e.code === 'Space') { e.preventDefault(); if (v.walkState.mode === 'tir') { if (!e.repeat) act('Space'); return; } }
     if (MOVE.includes(e.code)) { v.walkState.keys[e.code] = true; if (e.code.startsWith('Arrow')) e.preventDefault(); return; }
-    if (e.code === 'Escape') { if (v.walkState.mode === 'ride' || (v.decoPlacing && v.decoPlacing())) act('Escape'); return; }
+    if (e.code === 'Escape') { if (v.walkState.mode === 'ride' || v.walkState.lock || (v.decoPlacing && v.decoPlacing())) act('Escape'); return; }
     if (ACT.includes(e.code) && !e.repeat) { e.preventDefault(); act(e.code === 'Enter' ? 'KeyE' : e.code); }
   });
   document.addEventListener('keyup', e => { const v = V(); if (v && v.walkState) delete v.walkState.keys[e.code]; });
@@ -413,6 +565,7 @@
       if (a === 'exit') return W.stop();
       if (a === 'run') { const v = V(); if (v) { v.walkState.joy.run = !v.walkState.joy.run; b.classList.toggle('on', v.walkState.joy.run); } return; }
       if (a === 'fire') return shoot();
+      if (a === 'say') return chatSend();
     }
     const v = V();
     if (on && v && v.canvas && e.target === v.canvas()) {

@@ -53,16 +53,31 @@
   C.home = p => p && p.me ? C.myHome() : C.homeById[p && p.city && p.city.home] || C.HOMES[0];
   const interiorTier = h => h.b === 'manor' ? 5 : h.b;
   C.homeCost = id => Math.round((C.homeById[id].price - C.myHome().price * C.TRADE_IN) * 100) / 100; // négatif : on te rend la différence
+  /* 🏗️ Une nouvelle résidence ne sort pas de terre d'un coup : fondations, murs, toit, finitions (notification à chaque étape) */
+  C.BUILD_MS = { cabane: 10 * 60000, maison: 3600000, villa: 3 * 3600000, manoir: 8 * 3600000, immeuble: 12 * 3600000, tour: 24 * 3600000, gratteciel: 36 * 3600000, palais: 48 * 3600000, goat: 72 * 3600000 };
+  C.STAGES = [[0, '🧱 Fondations'], [.1, '🏗️ Murs'], [.45, '🪵 Toit'], [.75, '🎨 Finitions']];
+  C.build = () => { const b = S().build; if (!b || b.h !== S().home) return null; const f = (Date.now() - b.s) / b.d; if (f >= 1) return null; let st = 0; C.STAGES.forEach((x, i) => { if (f >= x[0]) st = i; }); return Object.assign({}, b, { f, stage: st, name: C.STAGES[st][1], left: b.s + b.d - Date.now() }); };
+  C.rushCost = () => { const b = C.build(); return b ? Math.max(1, Math.round(C.homeById[b.h].price * .15 * (1 - b.f))) : 0; };
+  C.rush = function () {
+    const b = C.build(); if (!b) return; const cost = C.rushCost();
+    if (S().cash < cost) return TC.toast(`Il te faut ${fmt.eur(cost)} pour payer les ouvriers.`, 'bad');
+    S().cash -= cost; S().build.d = Math.max(1000, Date.now() - S().build.s);
+    S().log.unshift({ t: Date.now(), kind: 'item', asset: '⏩ Fin des travaux express', eur: cost });
+    G.save(true); if (N && N.flush) N.flush(); TC.sound('kaching'); TC.confetti(140);
+    TC.toast(`🔑 Les ouvriers ont fini ! Ta ${esc(C.homeById[b.h].name.toLowerCase())} est prête.`, 'ok', 6000); after();
+  };
   C.buyHome = async function (id) {
     const h = C.homeById[id], cur = C.myHome(); if (!h || h === cur) return;
     const cost = C.homeCost(id);
     if (S().cash < cost) return TC.toast(`Il te faut ${fmt.eur(cost)} de cash`, 'bad');
     if (!(await TC.confirm(`${h.e} ${esc(h.name)}`, `Prix : <b>${fmt.eur(h.price)}</b>${cur.price ? `<br>Reprise de ta ${esc(cur.name.toLowerCase())} : −${fmt.eur(cur.price * C.TRADE_IN)}` : ''}<br><br>${cost >= 0 ? `À payer : <b>${fmt.eur(cost)}</b>` : `On te rend : <b>${fmt.eur(-cost)}</b>`}. Ta nouvelle résidence apparaît tout de suite sur la carte.`, cost >= 0 ? 'Acheter 🔑' : 'Déménager 🔑', 'btn-gold'))) return;
     S().cash -= cost; S().home = id; if (cost > 0) S().stats.spent = (S().stats.spent || 0) + cost;
+    S().build = cost > 0 && C.BUILD_MS[id] ? { h: id, s: Date.now(), d: C.BUILD_MS[id] } : null;
     S().log.unshift({ t: Date.now(), kind: cost >= 0 ? 'item' : 'itemsell', asset: `${h.e} Résidence : ${h.name}`, eur: Math.abs(cost) });
     G.save(true); if (N && N.flush) N.flush();
     TC.sound('kaching'); TC.confetti(160); TC.haptic && TC.haptic([30, 40, 30]);
-    TC.toast(`🔑 Bienvenue dans ton ${esc(h.name.toLowerCase())} !`, 'ok', 5000);
+    if (S().build) { const d = S().build.d, hrs = d >= 3600000 ? Math.round(d / 3600000) + ' h' : Math.round(d / 60000) + ' min'; TC.toast(`🏗️ Les travaux de ta ${esc(h.name.toLowerCase())} commencent ! Prête dans ${hrs}. Tu recevras une notification à chaque étape.`, 'ok', 8000); }
+    else TC.toast(`🔑 Bienvenue dans ton ${esc(h.name.toLowerCase())} !`, 'ok', 5000);
     after();
   };
   C.tier = nw => { let t = C.TIERS[0], i = 0; C.TIERS.forEach((x, k) => { if ((nw || 0) >= x[0]) { t = x; i = k; } }); return { e: t[1], name: t[2], i }; };
@@ -124,7 +139,8 @@
     const o = {}, at = {}; Object.entries(st().biz).forEach(([id, x]) => { o[id] = x.lvl; at[id] = x.at || 0; });
     const own = [...new Set(S().owned.slice().sort((a, b) => b.price - a.price).map(x => x.item))].slice(0, 16);
     const deco = (S().deco || []).slice(0, 40).map(d => [d.k, d.x, d.z, d.r || 0]);
-    return { biz: o, at, own, home: S().home || 'tente', deco };
+    const b = C.build();
+    return { biz: o, at, own, home: S().home || 'tente', deco, bld: b ? { h: b.h, s: b.s, d: b.d } : null };
   };
 
   /* ---------- Rachat du commerce d'un autre joueur ----------
@@ -348,7 +364,8 @@
 
   function homeHtml() {
     const cur = C.myHome();
-    return `<div class="panel home-p"><h3>🔑 Ma résidence <small>${cur.e} ${esc(cur.name)}</small></h3>
+    const bd = C.build();
+    return `<div class="panel home-p"><h3>🔑 Ma résidence <small>${cur.e} ${esc(cur.name)}</small></h3>${bd ? `<div class="bld-bar"><b>🏗️ En construction : ${bd.name}</b><div class="bk-lbar"><i style="width:${Math.floor(bd.f * 100)}%"></i></div><small>${Math.floor(bd.f * 100)} % · prête ${fmt.time(bd.s + bd.d)}</small> <button class="btn btn-sm" data-rush>⏩ Finir maintenant (${fmt.eur(C.rushCost(), true)})</button></div>` : ''}
       <p class="muted">C'est ta résidence qu'on voit sur la carte. En changeant, l'ancienne est reprise à 70 %.</p>
       <div class="homes">${C.HOMES.map(h => { const own = h === cur, cost = C.homeCost(h.id);
         return `<button class="home ${own ? 'own' : ''}" ${own ? 'disabled' : `data-home="${h.id}"`}><span>${h.e}</span><b>${esc(h.name)}</b><small>${own ? '✓ chez toi' : h.price ? fmt.eur(h.price, true) : 'gratuit'}</small>${own ? '' : cost >= 0 ? `<i class="${S().cash >= cost ? '' : 'down'}">à payer ${fmt.eur(cost, true)}</i>` : `<i>on te rend ${fmt.eur(-cost, true)}</i>`}</button>`; }).join('')}</div></div>`;
@@ -383,7 +400,7 @@
       const isCar = top && top.type === 'car';
       return { uid: p.uid, pseudo: p.pseudo || '?', tier: C.home(p).b, avatar: p.me ? (TC.Style ? TC.Style.mine().avatar : p.avatar) : p.avatar, biz: (p.city && p.city.biz) || {}, me: !!p.me, mayor: p.uid === C.mayorUid(), tag: p.clanTag || null,
         friend: !p.me && N && (N.friends || []).some(f => f.uid === p.uid), plus: TC.Style ? TC.Style.isPlus(p) : false,
-        look: p.me ? (TC.Style ? TC.Style.mine().look : p.look) : p.look,
+        look: p.me ? (TC.Style ? TC.Style.mine().look : p.look) : p.look, bld: p.me ? C.build() : (p.city && p.city.bld && p.city.bld.h === (p.city && p.city.home) ? p.city.bld : null),
         car: isCar ? { color: parseInt(String(top.grad && top.grad[0] || '#d00000').replace('#', ''), 16), style: TC.City3D && TC.City3D.vstyle ? TC.City3D.vstyle(top) : null } : null };
     });
     return { players, landmarks: LANDMARKS, biz: C.byId, night: nightNow() };
@@ -506,7 +523,8 @@
   C.houseInfo = function (p) {
     const own = p.me ? [...new Set(S().owned.slice().sort((a, b) => b.price - a.price).map(x => x.item))].slice(0, 16) : ((p.city && p.city.own) || (p.topItem ? [p.topItem] : []));
     const deco = p.me ? (S().deco || []) : ((p.city && p.city.deco) || []).map(a => Array.isArray(a) ? { k: a[0], x: a[1], z: a[2], r: a[3] } : a);
-    return { uid: p.uid, pseudo: p.pseudo || '?', avatar: p.me ? (TC.Style && TC.Style.mine().avatar) : p.avatar, look: p.me ? (TC.Style && TC.Style.mine().look) : p.look, tier: interiorTier(C.home(p)), homeName: C.home(p).name, nw: p.nw || 0, own, deco, me: !!p.me };
+    const bl = p.me ? C.build() : (p.city && p.city.bld && p.city.bld.h === p.city.home && Date.now() < p.city.bld.s + p.city.bld.d ? p.city.bld : null);
+    return { building: bl ? { f: (Date.now() - bl.s) / bl.d, left: bl.s + bl.d - Date.now() } : null, uid: p.uid, pseudo: p.pseudo || '?', avatar: p.me ? (TC.Style && TC.Style.mine().avatar) : p.avatar, look: p.me ? (TC.Style && TC.Style.mine().look) : p.look, tier: interiorTier(C.home(p)), homeName: C.home(p).name, nw: p.nw || 0, own, deco, me: !!p.me };
   };
   C.visit = function (p) {
     if (!TC.City3D || !TC.City3D.ready) return;
@@ -531,6 +549,7 @@
     const b = t.closest('[data-biz]'); if (b) return C.buy(b.dataset.biz);
     const s = t.closest('[data-bizsell]'); if (s) return C.sell(s.dataset.bizsell);
     if (t.closest('#city-collect')) { C.collect(); after(); }
+    if (t.closest('[data-rush]')) C.rush();
   });
   if (N && N.on) N.on(ev => { if (ev === 'linked') { players = null; C.checkTakeovers(); C.checkElection(); } });
   setInterval(() => { if (!document.hidden) { C.checkTakeovers(); C.checkElection(); } }, 5 * 60000);

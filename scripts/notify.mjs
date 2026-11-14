@@ -360,6 +360,23 @@ async function main() {
       }
     }
 
+    // 🏗️ Chantiers : une notification au joueur à chaque étape de la construction de sa résidence
+    try {
+      st.bld = st.bld || {};
+      const STG = [[.1, '🧱 Les fondations sont prêtes !', 'Les murs de ta nouvelle résidence commencent à monter.'], [.45, '🏗️ Les murs sont montés !', 'Les ouvriers posent le toit.'], [.75, '🪵 Le toit est posé !', 'Plus que les finitions et c\'est prêt.'], [1, '🔑 Ta nouvelle résidence est terminée !', 'Viens la visiter dans Trad City (🚶 Balade).']];
+      for (const u of users) {
+        const b = u.city && u.city.bld; if (!b || !b.s || !b.d || b.h !== u.city.home || Date.now() - b.s > b.d + 2 * 86400000) continue;
+        const f = (Date.now() - b.s) / b.d;
+        for (let i = 0; i < STG.length; i++) {
+          const key = u.uid + ':' + b.s + ':' + i; if (f < STG[i][0] || st.bld[key]) continue;
+          st.bld[key] = Date.now();
+          if (i < STG.length - 1 && f >= STG[i + 1][0]) continue; // étape déjà dépassée : on n'envoie que la plus récente
+          for (const s of subs.filter(s => s.uid === u.uid && !s.dead)) await push(s, { title: STG[i][1], body: STG[i][2], tag: 'build', url: '?tab=city' });
+        }
+      }
+      for (const k in st.bld) if (Date.now() - st.bld[k] > 10 * 86400000) delete st.bld[k];
+    } catch (e) { log('chantiers', e.message); }
+
     // Annonce à tous les joueurs abonnés (fichier announce.json, une seule fois par annonce)
     try {
       const ann = JSON.parse(fs.readFileSync(path.join(ROOT, 'announce.json'), 'utf8'));
