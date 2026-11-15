@@ -313,7 +313,8 @@
 
   A.player = async function (uid) {
     const u = users.find(x => x.uid === uid) || { uid };
-    const md = TC.modal(`<h2>🛡️ ${esc(u.pseudo || uid)}</h2><div id="adm-p" class="adm"><div class="empty">Chargement de la partie…</div></div>`, { cls: 'wide' });
+    const md = TC.modal(`<h2>🛡️ ${esc(u.pseudo || uid)}</h2><button class="btn btn-gold adm-phone" id="adm-phone">📱 Voir son écran (comme sur son tél)</button><div id="adm-p" class="adm"><div class="empty">Chargement de la partie…</div></div>`, { cls: 'wide' });
+    const phB = md.el.querySelector('#adm-phone'); if (phB) phB.onclick = () => { md.close(); A.phone(uid); };
     let st = null, err = null;
     try { const s = await N.db().collection('saves').doc(uid).get(); st = s.exists ? JSON.parse(s.data().state) : null; } catch (e) { err = e; }
     const ban = A.bans[uid], bb = A.botBlocked(uid);
@@ -402,4 +403,97 @@
       A.player(uid);
     };
   };
+  /* ---------- 📱 Voir le compte d'un joueur comme sur son téléphone (lecture seule) ----------
+   * Le créateur lit la sauvegarde privée du joueur (autorisé par les règles Firebase) et la ville/avatar via son profil public.
+   * Rien n'est modifié : c'est un miroir de ses écrans. Pour agir (donner/retirer, bloquer), on garde la fiche 🛡️. */
+  const PHONE_TABS = [['home', '🏠', 'Accueil'], ['pf', '📈', 'Portefeuille'], ['city', '🏙️', 'Ville'], ['coll', '🏆', 'Objets'], ['log', '📜', 'Relevé']];
+  const liveEur = id => { const q = TC.Data.prices[id]; return q && q.price != null && (q.status === 'live' || q.status === 'delayed') ? TC.Data.eur(id) : null; };
+  const RES = { car: 0.80, estate: 0.95, luxury: 0.85 };
+  const APTP = { studio: 25000, t2: 70000, t3: 160000, penthouse: 650000 };
+  function worth(st) {
+    const cash = st.cash || 0;
+    const spot = Object.entries(st.holdings || {}).reduce((t, [id, h]) => { const p = liveEur(id); return t + (p != null ? h.qty * p : (h.lastVal || 0)); }, 0);
+    const lev = (st.positions || []).reduce((t, p) => { const lp = liveEur(p.asset); let pnl = p.lastPnl || 0; if (lp != null) pnl = p.side === 'long' ? p.qty * (lp - p.entry) : p.qty * (p.entry - lp); return t + Math.max(0, p.margin + pnl); }, 0);
+    const bets = (st.bets || []).reduce((t, b) => t + (b.stake || 0), 0);
+    const items = (st.owned || []).reduce((t, o) => { const it = TC.shopById[o.item]; return t + (it ? o.price * (RES[it.type] || 0.8) : 0); }, 0);
+    const occ = ((st.occ && st.occ.inv) || []).reduce((t, x) => t + (x.status === 'own' || x.status === 'listed' || x.status === 'transit' ? (x.fake ? 0 : x.cote * 0.8) : x.status === 'sold' ? (x.soldPrice || 0) : 0), 0);
+    const apts = Object.keys(st.apts || {}).reduce((t, k) => t + (APTP[k] || 0) * 0.9, 0);
+    const city = Object.values((st.city && st.city.biz) || {}).reduce((t, x) => t + (x.inv || 0) * 0.7, 0);
+    const home = TC.City && st.home && TC.City.homeById[st.home] ? TC.City.homeById[st.home].price * 0.7 : 0;
+    return { cash, spot, lev, bets, items, occ, apts, city, home, total: cash + spot + lev + bets + items + occ + apts + city + home };
+  }
+  A.phone = async function (uid) {
+    const u = (users.find(x => x.uid === uid)) || { uid };
+    const md = TC.modal(`<div class="ph-wrap"><div class="ph"><div class="ph-load">📱 Chargement de son téléphone…</div></div></div>`, { cls: 'ph-modal' });
+    let st = null, err = null;
+    try { const s = await N.db().collection('saves').doc(uid).get(); st = s.exists ? JSON.parse(s.data().state) : null; } catch (e) { err = e; }
+    const ph = md.el.querySelector('.ph');
+    if (err) { ph.innerHTML = `<div class="ph-load">Impossible de lire sa partie.<br><small>${esc(N.errMsg(err))}</small></div>`; return; }
+    if (!st) { ph.innerHTML = `<div class="ph-load">Ce joueur n'a pas encore de partie enregistrée en ligne.</div>`; return; }
+    const pp = { uid, pseudo: u.pseudo, avatar: u.avatar, look: u.look, plusUntil: u.plusUntil, nw: 0, topItem: u.topItem, city: u.city };
+    const W = worth(st), nw = W.total, rank = TC.Game.rank(nw).r;
+    const S2 = TC.Style, fmt = TC.fmt, av = S2 ? S2.avatar(pp, 'xl') : '', badge = S2 ? S2.badge(pp) : '';
+    const money = v => fmt.eur(v);
+    let tab = 'home';
+    function home() {
+      const lvl = u.lvl || (st.prog && st.prog.lvl) || 0, streak = u.streak || (st.prog && st.prog.streak && st.prog.streak.n) || 0;
+      const hm = TC.City && st.home ? TC.City.homeById[st.home] : null;
+      return `<div class="ph-head">${av}<div><h3>${esc(u.pseudo || uid)} ${badge}</h3><small>${esc(rank[1])} · niveau ${lvl}${streak ? ' · série ' + streak + ' 🔥' : ''}</small></div></div>
+        <div class="ph-bal"><div><small>Patrimoine</small><b>${money(nw)}</b></div><div><small>Cash</small><b>${money(W.cash)}</b></div></div>
+        <div class="ph-break">${[['📈 Actifs', W.spot], ['⚡ Leviers', W.lev], ['🎲 Paris', W.bets], ['🏆 Objets', W.items], ['♻️ Occaz', W.occ], ['🏢 Apparts', W.apts], ['🏪 Commerces', W.city], ['🏠 Résidence', W.home]].filter(x => x[1] > 0).map(x => `<div><span>${x[0]}</span><b>${money(x[1])}</b></div>`).join('') || '<div class="muted">Que du cash.</div>'}</div>
+        <div class="ph-stats"><div><small>Ordres</small><b>${(st.stats || {}).trades || 0}</b></div><div><small>Paris G/P</small><b>${(st.stats || {}).betsWon || 0}/${(st.stats || {}).betsLost || 0}</b></div><div><small>Liquidations</small><b>${(st.stats || {}).liquidations || 0}</b></div><div><small>Résidence</small><b>${hm ? hm.e + ' ' + esc(hm.name) : '⛺'}</b></div></div>
+        ${Object.keys(st.cheats || {}).length ? `<div class="ph-note warn">Codes utilisés : ${esc(Object.keys(st.cheats).join(', '))}</div>` : ''}
+        <div class="ph-note">👁️ Lecture seule. Pour donner, retirer ou bloquer, reviens à la fiche 🛡️.</div>`;
+    }
+    function pf() {
+      const hold = Object.entries(st.holdings || {}).map(([id, h]) => { const p = liveEur(id); return { id, qty: h.qty, cost: h.cost, val: p != null ? h.qty * p : (h.lastVal || 0), live: p != null }; }).sort((a, b) => b.val - a.val);
+      const pos = (st.positions || []).map(p => { const lp = liveEur(p.asset); let pnl = p.lastPnl || 0; if (lp != null) pnl = p.side === 'long' ? p.qty * (lp - p.entry) : p.qty * (p.entry - lp); return { p, pnl, live: lp != null }; });
+      return `<h4>📦 Actifs</h4>${hold.length ? hold.map(h => `<div class="ph-row"><b>${esc(h.id)}</b><span>${fmt.qty(h.qty)}</span><span class="muted">payé ${money(h.cost)}</span><b>${money(h.val)}${h.live ? '' : ' <small>≈</small>'}</b></div>`).join('') : '<div class="muted ph-empty">Aucun actif.</div>'}
+        <h4>⚡ Positions à levier</h4>${pos.length ? pos.map(({ p, pnl, live }) => `<div class="ph-row"><b>${esc(p.asset)}</b><span class="${p.side === 'long' ? 'up' : 'down'}">${p.side === 'long' ? 'LONG' : 'SHORT'} x${p.lev}</span><span class="muted">marge ${money(p.margin)}</span><b class="${pnl >= 0 ? 'up' : 'down'}">${pnl >= 0 ? '+' : ''}${money(pnl)}${live ? '' : ' <small>≈</small>'}</b></div>`).join('') : '<div class="muted ph-empty">Aucune position.</div>'}
+        <h4>🎲 Paris en cours</h4>${(st.bets || []).length ? st.bets.map(b => `<div class="ph-row"><b>${esc(b.asset)}</b><span>${b.dir === 'up' ? '📈 hausse' : '📉 baisse'}</span><span class="muted">${money(b.stake)}</span><span>fin ${fmt.time(b.end)}</span></div>`).join('') : '<div class="muted ph-empty">Aucun pari.</div>'}
+        <h4>🏦 Prêt</h4>${st.loan ? `<div class="ph-row"><b>Emprunté ${money(st.loan.p)}</b><span class="down">reste ${money(Math.max(0, st.loan.due - st.loan.paid))}</span><span class="muted">${st.loan.late ? '⚠️ en retard' : 'échéance ' + fmt.time(st.loan.end)}</span></div>` : '<div class="muted ph-empty">Aucun prêt.</div>'}`;
+    }
+    function coll() {
+      const items = (st.owned || []).map(o => TC.shopById[o.item]).filter(Boolean);
+      const byType = { car: [], estate: [], luxury: [] }; items.forEach(it => (byType[it.type] || (byType[it.type] = [])).push(it));
+      const sec = (t, title) => byType[t] && byType[t].length ? `<h4>${title}</h4><div class="ph-items">${byType[t].map(it => `<div class="ph-item"><span>${it.emoji}</span><b>${esc(it.brand)}</b><small>${esc(it.model)}</small></div>`).join('')}</div>` : '';
+      return (sec('car', '🏎️ Véhicules') + sec('estate', '🏠 Immobilier') + sec('luxury', '💎 Luxe')) || '<div class="muted ph-empty">Aucun objet acheté.</div>';
+    }
+    function city() {
+      const hm = TC.City && st.home ? TC.City.homeById[st.home] : null, c = st.city || {};
+      const biz = Object.entries(c.biz || {}).filter(([id]) => TC.City && TC.City.byId[id]);
+      const apts = Object.keys(st.apts || {});
+      const bld = c.bld && c.bld.h === c.home && Date.now() < c.bld.s + c.bld.d ? Math.floor((Date.now() - c.bld.s) / c.bld.d * 100) : null;
+      return `<div class="ph-row big"><b>${hm ? hm.e + ' ' + esc(hm.name) : '⛺ Tente'}</b>${bld != null ? `<span class="warn">🏗️ chantier ${bld} %</span>` : ''}</div>
+        <button class="btn btn-gold ph-visit" id="ph-visit">🏠 Visiter sa maison en 3D</button>
+        <h4>🏪 Commerces</h4>${biz.length ? biz.map(([id, x]) => `<div class="ph-row"><b>${TC.City.byId[id].e} ${esc(TC.City.byId[id].name)}</b><span>${'★'.repeat(x.lvl || 1)}</span><span class="muted">investi ${money(x.inv || 0)}</span></div>`).join('') : '<div class="muted ph-empty">Aucun commerce.</div>'}
+        <h4>🏢 Appartements (Trad Tower)</h4>${apts.length ? apts.map(k => `<div class="ph-row"><b>${esc(k)}</b><span>${st.apts[k].rent ? '🔑 loué' : 'occupé'}</span></div>`).join('') : '<div class="muted ph-empty">Aucun.</div>'}
+        <h4>🛋️ Déco posée</h4><div class="muted">${(st.deco || []).length} meuble(s) chez lui.</div>`;
+    }
+    function logTab() {
+      const LBL = { shop: '🛒', loan: '🏦', repay: '🏦', fine: '🛡️', buy: '🟢', sell: '🔴', open: '⚡', close: '✅', liq: '💀', bet: '🎲', betres: '🎲', item: '🛍️', itemsell: '♻️', rent: '🏠', biz: '🏪', bonus: '🎁', send: '📤', recv: '📥' };
+      return `<div class="ph-log">${(st.log || []).slice(0, 80).map(l => `<div><small>${fmt.time(l.t)}</small> <b>${LBL[l.kind] || ''} ${esc(l.kind)}</b> <span>${esc(l.asset || (TC.shopById[l.item] ? TC.shopById[l.item].model : '') || l.who || '')}</span> <b class="${(l.eur || 0) >= 0 ? '' : 'down'}">${money(l.eur || 0)}</b></div>`).join('') || '<div class="muted ph-empty">Rien pour l\'instant.</div>'}</div>`;
+    }
+    function render() {
+      const body = { home, pf, city, coll, log: logTab }[tab]();
+      ph.innerHTML = `<div class="ph-top"><button id="ph-back">‹</button><span>📱 ${esc(u.pseudo || uid)}</span><span class="ph-live">${TC.Data.anySim && TC.Data.anySim() ? '〜 simulé' : '● live'}</span></div>
+        <div class="ph-body">${body}</div>
+        <nav class="ph-nav">${PHONE_TABS.map(([k, i, l]) => `<button data-pt="${k}" class="${tab === k ? 'on' : ''}"><i>${i}</i><span>${l}</span></button>`).join('')}</nav>`;
+      ph.querySelector('#ph-back').onclick = () => { md.close(); A.player(uid); };
+      ph.querySelectorAll('[data-pt]').forEach(b => b.onclick = () => { tab = b.dataset.pt; render(); });
+      const vb = ph.querySelector('#ph-visit');
+      if (vb) vb.onclick = () => { md.close(); visitHouse(pp); };
+    }
+    render();
+  };
+  // Visiter la maison du joueur en 3D (lecture seule) : on ouvre l'onglet Ville puis on entre dans sa maison
+  function visitHouse(pp) {
+    if (!(TC.City3D && TC.City3D.supported && TC.City3D.supported())) return TC.toast('La 3D n\'est pas disponible sur cet appareil.', 'bad');
+    TC.App.setTab('city');
+    let n = 0; const iv = setInterval(() => {
+      if (TC.City3D.ready && !TC.City3D.failed && document.querySelector('#city3d-host')) { clearInterval(iv); try { TC.City3D.enter(TC.City.houseInfo(pp)); TC.City.render(); TC.toast(`🏠 Maison de ${esc(pp.pseudo)} (visite). Touche ⬅️ Ville pour sortir.`, 'info', 6000); } catch (e) { TC.toast('Visite impossible.', 'bad'); } }
+      else if (++n > 40) { clearInterval(iv); TC.toast('La 3D met trop de temps à charger.', 'bad'); }
+    }, 150);
+  }
+
 })();
