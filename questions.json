@@ -1,5 +1,12 @@
 {
   "info": "Questions des joueurs sans réponse (anonymes). Réponses : answers.json sur main.",
-  "updated": 0,
-  "questions": []
+  "updated": 1794762789330,
+  "questions": [
+    {
+      "id": "BcqoVcmwi3fb9u",
+      "type": "bug",
+      "q": "Des que je rejoins le jeu il se recharge a l'infini sauf si j'enlève la conection",
+      "t": 1794762789330
+    }
+  ]
 }
