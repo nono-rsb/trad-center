@@ -62,6 +62,12 @@
   };
 
   const px = id => TC.Data.eur(id);
+  /* Cours fiables : en direct ou différé. Les cours simulés (réseau qui bloque les sources, Temps d'écran…) et le vieux cache
+   * ne servent qu'à l'affichage : on ne trade pas dessus, ils ne liquident rien, et le patrimoine garde la dernière valeur réelle. */
+  const real = id => { const q = TC.Data.prices[id]; return !!(q && q.price != null && (q.status === 'live' || q.status === 'delayed')); };
+  G.realPrice = real;
+  const pxv = id => { const q = TC.Data.prices[id]; return q && q.status === 'sim' ? null : px(id); };
+  const NOREAL = 'Cours en direct indisponible sur ton réseau (prix simulés) : impossible de trader pour l\'instant. Réessaie avec une autre connexion.';
   const uid = () => S().nextId++;
   function log(entry) {
     S().log.unshift(Object.assign({ t: Date.now() }, entry));
@@ -70,8 +76,8 @@
   function err(msg) { return { ok: false, msg }; }
 
   /* ---------------- VALORISATION ---------------- */
-  G.holdingValue = id => { const h = S().holdings[id]; const p = px(id); return h && p ? h.qty * p : (h ? h.lastVal || 0 : 0); };
-  G.posPnl = (pos, p) => { p = p == null ? px(pos.asset) : p; if (p == null) return pos.lastPnl || 0; return pos.side === 'long' ? pos.qty * (p - pos.entry) : pos.qty * (pos.entry - p); };
+  G.holdingValue = id => { const h = S().holdings[id]; const p = pxv(id); return h && p ? h.qty * p : (h ? h.lastVal || 0 : 0); };
+  G.posPnl = (pos, p) => { p = p == null ? pxv(pos.asset) : p; if (p == null) return pos.lastPnl || 0; return pos.side === 'long' ? pos.qty * (p - pos.entry) : pos.qty * (pos.entry - p); };
   G.posValue = pos => Math.max(0, pos.margin + G.posPnl(pos));
   G.itemResale = o => { const it = TC.shopById[o.item]; return o.price * (TC.SHOP_TYPES[it.type].resale); };
   G.spotValue = () => Object.keys(S().holdings).reduce((s, id) => s + G.holdingValue(id), 0);
@@ -87,6 +93,7 @@
   G.buy = function (id, eur) {
     const p = px(id); const a = TC.assetById[id];
     if (!p) return err('Prix indisponible pour le moment');
+    if (!real(id)) return err(NOREAL);
     eur = +eur;
     if (!(eur > 0)) return err('Montant invalide');
     if (eur < 0.1) return err('Montant minimum : 0,10 €');
@@ -108,6 +115,7 @@
     const p = px(id); const a = TC.assetById[id]; const h = S().holdings[id];
     if (!h || h.qty <= 0) return err('Vous ne détenez pas cet actif');
     if (!p) return err('Prix indisponible pour le moment');
+    if (!real(id)) return err(NOREAL);
     qty = +qty;
     if (!(qty > 0)) return err('Quantité invalide');
     if (qty >= h.qty * 0.9999) qty = h.qty;
@@ -130,6 +138,7 @@
   G.open = function (id, side, margin, lev, sl, tp) {
     const p = px(id); const a = TC.assetById[id];
     if (!p) return err('Prix indisponible pour le moment');
+    if (!real(id)) return err(NOREAL);
     margin = +margin; lev = Math.round(+lev);
     if (!(margin > 0)) return err('Marge invalide');
     if (margin < 0.5) return err('Marge minimum : 0,50 €');
@@ -155,6 +164,7 @@
     const i = S().positions.findIndex(p => p.id === posId); if (i < 0) return err('Position introuvable');
     const pos = S().positions[i]; const p = px(pos.asset);
     if (p == null) return err('Prix indisponible');
+    if (!real(pos.asset)) return err(NOREAL);
     let pnl = G.posPnl(pos, p);
     let back;
     if (reason === 'liq') { back = 0; pnl = -pos.margin; S().stats.liquidations++; }
@@ -174,7 +184,7 @@
     const res = [];
     S().positions.slice().forEach(pos => {
       if (assetId && pos.asset !== assetId) return;
-      const p = px(pos.asset); if (p == null) return;
+      const p = px(pos.asset); if (p == null || !real(pos.asset)) return;
       pos.lastPnl = G.posPnl(pos, p);
       const L = pos.side === 'long';
       if ((L && p <= pos.liq) || (!L && p >= pos.liq)) res.push(G.close(pos.id, 'liq'));
@@ -188,6 +198,7 @@
   G.bet = function (id, dir, stake, minutes) {
     const p = px(id); const a = TC.assetById[id]; const q = TC.Data.prices[id];
     if (!p) return err('Prix indisponible');
+    if (!real(id)) return err(NOREAL);
     if (q && q.closed) return err('Marché fermé : le prix ne bouge pas, pari impossible');
     stake = +stake;
     if (!(stake > 0)) return err('Mise invalide');
@@ -209,7 +220,7 @@
       resolving.add(b.id);
       let p = null;
       if (Date.now() - b.end > 90000) p = await TC.Data.priceAt(b.asset, b.end); // résolution exacte après une absence
-      if (p == null) p = px(b.asset);
+      if (p == null && real(b.asset)) p = px(b.asset);
       resolving.delete(b.id);
       if (p == null) continue;
       const i = S().bets.findIndex(x => x.id === b.id); if (i < 0) continue;
