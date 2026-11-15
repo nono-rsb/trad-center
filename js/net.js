@@ -244,6 +244,22 @@
 
   /* ---------------- Sauvegarde cloud ---------------- */
   function pristine(s) { return !s.log.length && !s.owned.length && Math.abs(s.cash - G.START_CASH) < 1e-9; }
+  /* Un seul appareil écrit la partie à la fois. Sinon deux appareils (ou deux onglets, ou le jeu et Trad Banque)
+   * écrasent chacun la sauvegarde de l'autre et l'argent fait le yo-yo (ex. 3 M puis 247 000) à chaque rechargement.
+   * Chaque page a son identifiant ; avant d'écrire, on vérifie (transaction) que personne d'autre n'a sauvegardé
+   * depuis la dernière version connue. Si c'est le cas, cette page se met en pause et propose de reprendre ici. */
+  const DEV = Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+  let knownAt = 0, passive = false;
+  function goPassive() {
+    if (passive) return; passive = true; clearTimeout(syncT); syncT = null; emit('passive');
+    if (document.getElementById('tc-passive')) return;
+    const d = document.createElement('div'); d.id = 'tc-passive';
+    d.style.cssText = 'position:fixed;inset:0;z-index:9999;display:grid;place-items:center;background:rgba(8,4,20,.88);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);padding:20px;font-family:inherit';
+    d.innerHTML = '<div style="max-width:420px;text-align:center;color:#fff;background:#1d1433;border:1px solid rgba(255,255,255,.15);border-radius:22px;padding:24px"><div style="font-size:46px">📱💻</div><h2 style="margin:8px 0">Ta partie est ouverte ailleurs</h2><p style="opacity:.85;line-height:1.5">Tu joues sur un autre appareil ou dans un autre onglet (ou dans Trad Banque). Pour que ton argent ne soit pas écrasé, cette page est en pause.</p><button id="tc-passive-go" style="margin-top:10px;padding:12px 22px;border-radius:14px;border:0;font-weight:800;font-size:16px;background:linear-gradient(135deg,#ffd23f,#ff9f1c);color:#2a1a00;cursor:pointer">Jouer ici</button></div>';
+    document.body.appendChild(d);
+    d.querySelector('#tc-passive-go').onclick = () => location.reload();
+  }
+  N.isPassive = () => passive;
   function applyCloud(state) {
     G.adopt(state);
     location.reload();
@@ -256,7 +272,7 @@
       G.state.owner = uid; linked = true; G.save(true); await N.flush(); startListeners(); emit('linked'); return;
     }
     const cloud = JSON.parse(snap.data().state);
-    cloud.owner = uid;
+    cloud.owner = uid; knownAt = snap.data().updatedAt || 0;
     if (local.owner === uid) {
       if ((cloud.updatedAt || 0) > (local.updatedAt || 0) + 1000) return applyCloud(cloud);
     } else if (local.owner || pristine(local)) {
@@ -286,12 +302,21 @@
   };
   N.flush = async function () {
     clearTimeout(syncT); syncT = null;
-    if (!linked || !N.user || !db) return;
+    if (!linked || !N.user || !db || passive) return;
     const s = G.state; const nw = G.netWorth();
     const top = s.owned.slice().sort((a, b) => b.price - a.price)[0];
     try {
       const json = JSON.stringify(s);
-      if (json !== lastJson) { await db.collection('saves').doc(N.user.uid).set({ state: json, updatedAt: s.updatedAt || Date.now(), nw }); lastJson = json; lastSave = Date.now(); }
+      if (json !== lastJson) {
+        const ref = db.collection('saves').doc(N.user.uid), at = Math.max(s.updatedAt || Date.now(), knownAt + 1);
+        const ok = await db.runTransaction(async tx => {
+          const d = await tx.get(ref), cur = d.exists ? d.data() : null;
+          if (cur && cur.dev !== DEV && (cur.updatedAt || 0) > knownAt) return false; // un autre appareil a sauvegardé entre-temps
+          tx.set(ref, { state: json, updatedAt: at, nw, dev: DEV }); return true;
+        });
+        if (!ok) { goPassive(); return; }
+        knownAt = at; lastJson = json; lastSave = Date.now();
+      }
       const pub = { nw, rank: G.rank(nw).r[1], items: s.owned.length, topItem: top ? top.item : null, updatedAt: Date.now() };
       if (TC.Weekly) pub[TC.Weekly.current().field] = TC.Weekly.gain();
       if (TC.Style) { const m = TC.Style.mine(); pub.look = m.look || {}; pub.plusUntil = m.plusUntil || 0; }
@@ -309,12 +334,14 @@
       N.lastSync = Date.now(); emit('synced');
     } catch (e) { console.warn('sync', e); }
   };
-  window.addEventListener('pagehide', () => { if (linked) N.flush(); });
+  window.addEventListener('pagehide', () => { if (linked && !passive) N.flush(); });
   document.addEventListener('visibilitychange', () => { if (document.hidden && linked) N.flush(); });
 
   /* ---------------- Écoutes temps réel ---------------- */
   function startListeners() {
     const uid = N.user.uid;
+    // un autre appareil sauvegarde une partie plus récente : on se met en pause tout de suite
+    unsubs.push(db.collection('saves').doc(uid).onSnapshot(snap => { const d = snap.exists ? snap.data() : null; if (d && d.dev !== DEV && (d.updatedAt || 0) > knownAt) goPassive(); }, e => console.warn(e)));
     unsubs.push(db.collection('friendships').where('members', 'array-contains', uid).onSnapshot(async snap => {
       const ids = snap.docs.map(d => d.data().members.find(m => m !== uid));
       N.friends = await loadProfiles(ids);
