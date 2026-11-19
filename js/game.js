@@ -38,7 +38,7 @@
   let saveT = null;
   G.save = function (now) {
     clearTimeout(saveT);
-    G.state.updatedAt = Date.now();
+    G.state.updatedAt = Math.max(Date.now(), G.state.updatedAt || 0); // jamais en arrière : deux horloges différentes (PC / tél) ne doivent pas se croire « plus anciennes » en boucle
     const w = () => { try { localStorage.setItem(KEY, JSON.stringify(G.state)); } catch (e) { } };
     if (TC.Net && TC.Net.queueSync) (now && TC.Net.flushSoon ? TC.Net.flushSoon : TC.Net.queueSync)();
     if (now) w(); else saveT = setTimeout(w, 400);
