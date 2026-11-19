@@ -15,6 +15,11 @@
       "a": "Les deux ! Le trésor est caché dans un des 8 monuments de Trad City, et tu peux fouiller en 2D comme en 3D : pendant la chasse, touche un monument (Bourse, Mairie, Parc…) pour le fouiller. Mauvais endroit = une devinette sur le bon. La cachette est différente pour chaque joueur, et il faut un vrai compte (pas invité) pour garder la prime.",
       "t": 1794589312002,
       "status": "reponse"
+    },
+    "BcqoVcmwi3fb9u": {
+      "a": "C'était un vrai bug : quand ton compte était ouvert en même temps sur ton PC et ton tél (ou dans Trad Banque), les deux se rechargeaient en boucle. C'est corrigé ✅. Maintenant une seule page reste active ; l'autre affiche « ouvert ailleurs », tu fermes l'autre appareil puis tu touches « Jouer ici ». Recharge le jeu pour avoir la mise à jour.",
+      "t": 1795098428034,
+      "status": "reponse"
     }
   }
 }
