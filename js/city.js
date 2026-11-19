@@ -535,7 +535,7 @@
   function landmark(id) {
     const l = LANDMARKS.find(x => x.id === id); if (!l) return;
     if (TC.Hunt && TC.Hunt.dig(id)) return; // chasse au trésor en cours : on fouille le monument
-    if (l.go === 'parc') { TC.toast(TC.season && TC.season.noel ? '🎄 Le sapin de la ville brille dans le parc !' : '🌳 Un banc, des pigeons… et tout le monde parle du Bitcoin.', 'info'); return; }
+    if (l.go === 'parc') { TC.toast(TC.season && TC.season.theme ? '🎄 Le sapin de la ville brille dans le parc !' : '🌳 Un banc, des pigeons… et tout le monde parle du Bitcoin.', 'info'); return; }
     if (l.go === 'mairie') return mairie();
     if (l.go === 'chest') { UI().shopType = 'chest'; TC.App.setTab('shop'); return; }
     TC.App.setTab(l.go);
