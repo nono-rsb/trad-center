@@ -37,7 +37,7 @@
       <button class="btn btn-gold btn-xl" data-soc="pseudo">Valider</button><p class="hint">3 à 16 caractères : lettres, chiffres, _</p>
       <button class="btn btn-ghost btn-sm" data-soc="logout">Se déconnecter</button></div>`;
     if (!N.profile) return `<div class="panel empty big">Chargement du profil…</div>`;
-    return profileCard() + (TC.Duel ? TC.Duel.block() : '') + (TC.Share && TC.Share.block ? TC.Share.block() : '') + (TC.Clan ? TC.Clan.block() : '') + inviteBlock() + friendsBlock() + boardBlock() + (TC.Admin && TC.Admin.claudeCard ? TC.Admin.claudeCard() : '') + (TC.Admin && TC.Admin.botCard ? TC.Admin.botCard() : '') + historyBlock();
+    return profileCard() + (TC.Duel ? TC.Duel.block() : '') + (TC.Share && TC.Share.block ? TC.Share.block() : '') + (TC.Clan ? TC.Clan.block() : '') + raceBlock() + inviteBlock() + friendsBlock() + boardBlock() + (TC.Admin && TC.Admin.claudeCard ? TC.Admin.claudeCard() : '') + (TC.Admin && TC.Admin.botCard ? TC.Admin.botCard() : '') + historyBlock();
   }
 
   function authForm() {
@@ -70,6 +70,49 @@
       <div class="pactions"><button class="btn btn-sm" data-soc="share">📤 Inviter</button><button class="btn btn-sm btn-ghost" data-soc="logout">Déconnexion</button></div>
     </div>`;
   }
+
+  /* ---------- Événement Parrainage : 20 amis = une récompense au choix (par e-mail au créateur) ---------- */
+  const refMine = () => { const E = N.REFEVENT; return (N.referrals || []).filter(x => x.real && x.at >= E.start && x.at < E.end); };
+  function raceBlock() {
+    const E = N.REFEVENT, now = Date.now();
+    if (now < E.start || now > E.end + 7 * 86400000) return '';
+    const ended = now >= E.end, mine = refMine(), n = mine.length, goal = E.goal, done = n >= goal;
+    if (N.loadRefBoard) N.loadRefBoard();
+    const rows = (N.refBoardRows || []).slice(0, 10), me = N.user && N.user.uid;
+    const pos = (N.refBoardRows || []).findIndex(x => x.uid === me);
+    const medal = i => ['🥇', '🥈', '🥉'][i] || (i + 1) + '.';
+    const pend = (N.referrals || []).filter(x => !(x.real && x.at >= E.start && x.at < E.end));
+    return `<div class="panel race"><div class="inv-top"><div class="big-emoji">🏆</div><div><h3>Événement Parrainage : invite ${goal} amis</h3>
+      <p>Envoie ton lien. Chaque ami qui <b>crée son compte</b> compte pour 1. À <b>${goal}</b>, tu <b>choisis ta récompense</b> en envoyant un mail au créateur.${ended ? ' <b>Événement terminé.</b>' : ` Jusqu'au 31 décembre.`}</p></div></div>
+      <div class="race-bar"><i style="width:${Math.min(100, n / goal * 100)}%"></i><b>${n} / ${goal}</b></div>
+      ${mine.length || pend.length ? `<div class="inv-list">${mine.map(x => `<span class="up">✅ ${esc(x.pseudo || '')}</span>`).join('')}${pend.map(x => `<span class="muted">⏳ ${esc(x.pseudo || '')} ${x.guest ? '(invité : il doit créer son compte)' : '(ne compte pas : double compte ou hors période)'}</span>`).join('')}</div>` : ''}
+      <div class="race-act">${done ? `<button class="btn btn-gold btn-xl" data-soc="refproof">🎁 Choisir ma récompense</button>` : `<button class="btn btn-gold" data-soc="share">📤 Inviter mes amis</button><button class="btn btn-ghost" data-soc="refproof">🧾 Ma preuve</button>`}</div>
+      <h4>🏅 Classement du parrainage</h4>
+      ${rows.length ? `<div class="race-board">${rows.map((p, i) => `<div class="${p.uid === me ? 'me' : ''}"><span class="rk">${medal(i)}</span>${TC.Style ? TC.Style.avatar(p, 's') : ''}<b>${esc(p.pseudo || '?')}${TC.Style ? TC.Style.badge(p) : ''}</b><em>${p.refN} ami${p.refN > 1 ? 's' : ''}</em></div>`).join('')}</div>
+        ${pos < 0 && n > 0 ? `<p class="hint">Tu as ${n} ami${n > 1 ? 's' : ''} : encore un petit effort pour entrer dans le classement !</p>` : pos >= 10 ? `<p class="hint">Tu es ${pos + 1}e avec ${n} ami${n > 1 ? 's' : ''}.</p>` : ''}`
+        : `<p class="hint">${N.refBoardRows ? 'Personne dans le classement pour l\'instant : sois le premier !' : 'Chargement du classement…'}</p>`}
+      <p class="hint">Le classement est un affichage ; le créateur recompte tes vrais filleuls avant de donner une récompense.</p></div>`;
+  }
+  function refModal() {
+    const E = N.REFEVENT, mine = refMine(), n = mine.length, done = n >= E.goal, me = N.profile.pseudo;
+    const pos = (N.refBoardRows || []).findIndex(x => x.uid === (N.user && N.user.uid));
+    const names = mine.map(x => x.pseudo).filter(Boolean);
+    const subject = 'Récompense Parrainage Trad Center : ' + me;
+    const body = `Bonjour,\n\nJe suis ${me} sur Trad Center. J'ai invité ${n} amis qui ont créé un compte avec mon lien (événement Parrainage) :\n${names.join(', ')}\n\nLa récompense que je choisis : …\n\nMerci !`;
+    const mailto = 'mailto:' + E.mail + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+    const md = TC.modal(`<div class="race-proof"><div class="big-emoji">${done ? '🎁' : '🧾'}</div><h2>${done ? 'Bravo, objectif atteint !' : 'Ma preuve de parrainage'}</h2>
+      <div class="proof-card"><div class="proof-top">${TC.Style ? TC.Style.avatar(Object.assign({}, N.profile, TC.Style.mine()), 'm') : ''}<div><b>${esc(me)}</b><small>Trad Center · Événement Parrainage</small></div><span class="proof-n">${n}<small>/${E.goal}</small></span></div>
+        <div class="proof-list">${names.length ? names.map(x => `<span>✅ ${esc(x)}</span>`).join('') : '<span class="muted">Aucun ami pour l\'instant.</span>'}</div>
+        <small class="muted">${fmtDate(Date.now())}${pos >= 0 ? ' · classement : ' + (pos + 1) + 'e' : ''}</small></div>
+      ${done ? `<p>Pour choisir ta récompense (dans le jeu), envoie un mail à <b>${esc(E.mail)}</b> avec ton pseudo et ce que tu veux. Le créateur vérifie tes ${E.goal} amis puis te répond.</p>
+        <a class="btn btn-gold btn-xl" href="${esc(mailto)}">📧 Ouvrir mon mail</a><button class="btn bk-full" id="ref-copy">📋 Copier le message</button>
+        <p class="hint">Si le bouton ne marche pas, copie le message et envoie-le à ${esc(E.mail)}. Ne donne que ton pseudo : pas ton nom ni ton adresse.</p>`
+        : `<p>Encore <b>${E.goal - n}</b> ami${E.goal - n > 1 ? 's' : ''} à inviter. Fais une capture de cet écran pour garder ta preuve !</p>`}
+      <div class="modal-actions"><button class="btn btn-ghost" data-close>Fermer</button></div></div>`, { cls: 'wide' });
+    const cp = md.el.querySelector('#ref-copy');
+    if (cp) cp.onclick = async () => { try { await navigator.clipboard.writeText(subject + '\n\n' + body); TC.toast('📋 Message copié : colle-le dans ton mail.', 'ok'); } catch (e) { TC.toast('Copie impossible : sélectionne le texte à la main.', 'bad'); } };
+  }
+  const fmtDate = t => new Date(t).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
 
   function inviteBlock() {
     const r = N.referrals || []; const ok = r.filter(x => x.ok).length;
@@ -220,6 +263,7 @@
     if (a === 'avatar') return avatarModal();
     if (a === 'rename') return renameModal();
     if (a === 'add') return busy(b, async () => { const r = await N.addFriend($('#f-add').value); $('#f-add').value = ''; TC.toast(r === 'accepted' ? '🤝 Vous êtes maintenant amis !' : '📨 Demande d\'ami envoyée.', 'ok'); });
+    if (a === 'refproof') return refModal();
     if (a === 'copy' || a === 'share' || a === 'copylink') {
       const url = N.inviteLink();
       const text = `Rejoins-moi sur Trad Center 📈 : pars de 10 € et deviens assez riche pour une Lamborghini ! Crée ton compte avec mon lien :`;

@@ -336,9 +336,10 @@
       if (TC.City) pub.city = TC.City.pub();
       if (TC.Progress) { pub.lvl = TC.Progress.level(); pub.streak = (s.prog && s.prog.streak && s.prog.streak.n) || 0; }
       if (TC.Duel) pub.dl = TC.Duel.pub();
+      if (N.refN != null) pub.refN = N.refN;
       if (TC.Xmas && TC.Xmas.raceGain() != null) { pub.xmasGain = TC.Xmas.raceGain(); pub.xmasYear = new Date().getFullYear(); }
       // profil public (classements, amis) : toutes les 5 min, ou tout de suite si l'apparence, la ville ou le rang changent
-      const key = JSON.stringify([pub.rank, pub.items, pub.topItem, pub.look, pub.plusUntil, pub.city, pub.lvl, pub.streak, pub.dl && [pub.dl.id, pub.dl.state, Math.round(pub.dl.g || 0), pub.dl.fin]]); // pendant un duel, le score part à chaque sauvegarde
+      const key = JSON.stringify([pub.rank, pub.items, pub.topItem, pub.look, pub.plusUntil, pub.city, pub.lvl, pub.streak, pub.dl && [pub.dl.id, pub.dl.state, Math.round(pub.dl.g || 0), pub.dl.fin], pub.refN]); // pendant un duel, le score part à chaque sauvegarde
       if (key !== lastPubKey || Date.now() - lastPub > PUB_EVERY || document.hidden) {
         await db.collection('users').doc(N.user.uid).update(pub); lastPub = Date.now(); lastPubKey = key;
         Object.assign(N.profile || {}, pub);
@@ -441,6 +442,11 @@
 
   /* ---------------- Parrainage ---------------- */
   N.REF_BONUS = 20;
+  /* Événement Parrainage : 20 amis qui créent un vrai compte avec mon lien → je choisis ma récompense par e-mail au créateur.
+   * Un filleul compte s'il a un vrai compte (ni invité, ni double compte, ni mon propre appareil) créé pendant l'événement.
+   * Le classement lit le champ public refN ; la preuve se recompte dans le mode créateur à partir des vrais comptes. */
+  N.REFEVENT = { goal: 20, start: new Date(2026, 10, 19).getTime(), end: new Date(2027, 0, 1).getTime(), mail: 'contact.nohamh@gmail.com' };
+  N.refEventOn = () => { const t = Date.now(); return t >= N.REFEVENT.start && t < N.REFEVENT.end; };
   N.inviteLink = () => location.origin + location.pathname + '?ref=' + encodeURIComponent(N.user.uid);
   // Nouveau joueur arrivé par un lien : on note le parrain et on lui envoie une demande d'ami
   async function applyReferral() {
@@ -473,7 +479,9 @@
       // Prime seulement pour un vrai compte (pas un invité anonyme, créé sans limite) qui n'a pas servi sur un de mes appareils
       const myDevs = (N.profile && N.profile.devs) || [];
       const valid = x => !x.guest && !x.bot && !(x.dupOf && x.dupOf.length) && !(x.devs || []).some(v => myDevs.includes(v));
-      N.referrals = snap.docs.map(d => ({ uid: d.id, pseudo: prof(d.id, d.data()).pseudo, ok: !!d.data().refOk && valid(d.data()), guest: !!d.data().guest, paid: !!paid[d.id] }));
+      N.referrals = snap.docs.map(d => ({ uid: d.id, pseudo: prof(d.id, d.data()).pseudo, ok: !!d.data().refOk && valid(d.data()), guest: !!d.data().guest, paid: !!paid[d.id], real: valid(d.data()), at: d.data().createdAt || 0, notif: !!d.data().refOk }));
+      const E = N.REFEVENT; N.refN = N.referrals.filter(x => x.real && x.at >= E.start && x.at < E.end).length; // filleuls de l'événement
+      if (N.profile && N.profile.refN !== N.refN && N.flushSoon) N.flushSoon(); // publie le compteur (classement) sans attendre
       for (const d of snap.docs) {
         if (!d.data().refOk || paid[d.id] || !valid(d.data())) continue;
         paid[d.id] = Date.now();
@@ -484,6 +492,15 @@
       }
       emit('change');
     } catch (e) { console.warn('ref', e); }
+  };
+  N.loadRefBoard = async function () {
+    if (!db || !N.user || N._refLoading || (N.refBoardRows && Date.now() - (N.refBoardAt || 0) < 120000)) return;
+    N._refLoading = true; N.refBoardAt = Date.now();
+    try {
+      const snap = await db.collection('users').where('refN', '>', 0).orderBy('refN', 'desc').limit(40).get();
+      N.refBoardRows = snap.docs.map(d => prof(d.id, d.data())).filter(u => !u.bot && !u.deleted && u.uid !== TC.ADMIN_UID && u.uid !== TC.CLAUDE_UID && !(TC.Admin && TC.Admin.isBanned(u.uid)));
+    } catch (e) { console.warn('classement parrainage', e); N.refBoardRows = N.refBoardRows || []; }
+    N._refLoading = false; emit('change');
   };
   N.on(t => { if (t === 'linked') { N.checkReferrals(); applyReferral(); } });
   setInterval(() => { if (!document.hidden) N.checkReferrals(); }, 10 * 60000);
