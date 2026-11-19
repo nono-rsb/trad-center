@@ -190,7 +190,7 @@
   /* ---------------- Neige (thème de Noël) ---------------- */
   function snow(force) {
     if (document.getElementById('snow')) return;
-    if ((!TC.season.noel && !force) || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if ((!TC.season.theme && !force) || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const c = document.createElement('canvas'); c.id = 'snow'; document.body.appendChild(c);
     const ctx = c.getContext('2d'); let W, H, flakes = [];
     const resize = () => { const r = devicePixelRatio || 1; W = innerWidth; H = innerHeight; c.width = W * r; c.height = H * r; c.style.width = W + 'px'; c.style.height = H + 'px'; ctx.setTransform(r, 0, 0, r, 0, 0); };
@@ -423,7 +423,8 @@
     if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => { });
     TC.onImages(() => { if (['shop', 'collection'].includes(UI.tab)) UI.refreshTab(); UI.header(); });
     gta(); setInterval(gta, 1000); snow();
-    if (TC.season.noel) { setTimeout(noelWelcome, 1800); const tc = document.querySelector('meta[name=theme-color]'); if (tc) tc.content = '#0b1d1a'; }
+    if (TC.season.noel) setTimeout(noelWelcome, 1800); // fenêtre de l'événement : décembre seulement
+    if (TC.season.theme) { const tc = document.querySelector('meta[name=theme-color]'); if (tc) tc.content = '#0b1d1a'; }
     setTimeout(() => TC.loadImages(), 300);
     try { const s = localStorage.getItem('tradcenter.sel'); if (s && TC.assetById[s]) UI.sel = s; } catch (e) { }
     // liens ouverts depuis une notification : ?a=BTC ou ?tab=social
