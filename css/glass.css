@@ -841,3 +841,20 @@ body.gated #sh-chip { display: none; }
 .ph-nav { display: flex; border-top: 1px solid rgba(255,255,255,.08); background: rgba(0,0,0,.2); }
 .ph-nav button { flex: 1; background: none; border: 0; color: inherit; padding: 9px 2px calc(9px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; opacity: .55; }
 .ph-nav button.on { opacity: 1; } .ph-nav i { font-size: 19px; font-style: normal; } .ph-nav span { font-size: 10px; font-weight: 700; }
+
+/* 🏆 Événement Parrainage : progression, classement, preuve */
+.race { border: 1px solid rgba(255,210,63,.35); background: linear-gradient(135deg, rgba(255,210,63,.10), rgba(255,122,26,.06)); }
+.race h4 { margin: 14px 0 8px; font-size: 14px; }
+.race-bar { position: relative; height: 26px; border-radius: 13px; background: rgba(127,127,127,.22); overflow: hidden; margin: 10px 0; }
+.race-bar i { position: absolute; inset: 0 auto 0 0; background: linear-gradient(90deg, #ffd23f, #ff7a1a); border-radius: 13px; transition: width .5s; }
+.race-bar b { position: relative; display: block; text-align: center; line-height: 26px; font-size: 13px; text-shadow: 0 1px 2px rgba(0,0,0,.5); }
+.race-act { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0 4px; } .race-act .btn-xl { width: 100%; }
+.race-board { display: flex; flex-direction: column; gap: 5px; }
+.race-board > div { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: 12px; background: rgba(127,127,127,.12); }
+.race-board > div.me { background: rgba(255,210,63,.22); outline: 1px solid rgba(255,210,63,.6); }
+.race-board .rk { width: 28px; text-align: center; font-weight: 800; } .race-board b { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .race-board em { font-style: normal; font-weight: 800; opacity: .9; }
+.race-proof { text-align: center; } .race-proof .btn-xl, .race-proof .bk-full { display: block; width: 100%; margin-top: 8px; text-align: center; box-sizing: border-box; }
+.proof-card { text-align: left; margin: 12px 0; padding: 14px; border-radius: 18px; background: linear-gradient(135deg, #2b1b57, #14213d); border: 1px solid rgba(255,210,63,.45); color: #fff; }
+.proof-top { display: flex; align-items: center; gap: 10px; } .proof-top > div { flex: 1; } .proof-top small { display: block; opacity: .7; font-size: 11px; }
+.proof-n { font: 900 30px/1 system-ui, sans-serif; color: #ffd23f; } .proof-n small { display: inline; font-size: 14px; opacity: .7; color: #fff; }
+.proof-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0; } .proof-list span { padding: 4px 9px; border-radius: 999px; background: rgba(255,255,255,.12); font-size: 12px; }

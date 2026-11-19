@@ -327,6 +327,18 @@
         <div class="adm-actions"><input id="adm-geur" type="number" min="1" step="1" placeholder="Montant en €" inputmode="decimal"><input id="adm-gmsg" placeholder="Message (facultatif)" maxlength="120"><button class="btn btn-gold" id="adm-gift">Envoyer</button></div></div>
       <div class="adm-gift"><b>➖ Retirer de l'argent</b> <small>(sur son cash, à sa prochaine ouverture du jeu, sans alerte ; une ligne « Correction du créateur » apparaît dans son relevé)</small>
         <div class="adm-actions"><input id="adm-feur" type="number" min="1" step="1" placeholder="Montant en €" inputmode="decimal"><input id="adm-freason" placeholder="Raison (pour toi)" maxlength="120"><button class="btn btn-sell" id="adm-fine">Retirer</button></div></div>`;
+    { // 👥 Parrainage (événement) : on recompte les vrais filleuls, sans croire le chiffre affiché par le joueur
+      const E = N.REFEVENT, myDevs = u.devs || [];
+      const rows = users.filter(x => x.referredBy === uid).map(x => {
+        const why = x.guest ? '🧪 invité' : (x.dupOf && x.dupOf.length) ? '👥 double compte' : (x.devs || []).some(v => myDevs.includes(v)) ? '📱 même appareil que lui' : !((x.createdAt || 0) >= E.start && (x.createdAt || 0) < E.end) ? '🗓️ hors période' : '';
+        return { x, why, ok: !why };
+      });
+      if (rows.length || u.refN) {
+        const okN = rows.filter(r => r.ok).length, decl = u.refN || 0;
+        html += `<div class="nbox ${okN >= E.goal ? 'ok' : 'warn'}"><b>🏆 Parrainage (événement) : ${okN} filleul(s) vérifié(s) sur ${E.goal}</b> · chiffre affiché par le joueur : ${decl}${decl > okN ? ' ⚠️ <b>écart : il annonce plus que les comptes réels</b>' : ''}${okN >= E.goal ? '<br>✅ Objectif atteint : la récompense est méritée.' : ''}
+          <div class="adm-log">${rows.map(r => `<div>${r.ok ? '✅' : '❌'} <b>${esc(r.x.pseudo || '?')}</b> <small>créé le ${r.x.createdAt ? new Date(r.x.createdAt).toLocaleDateString('fr-FR') : '?'}${r.x.refOk ? ' · 🔔 notifications' : ''}</small> ${r.why ? '<i>' + r.why + '</i>' : ''}</div>`).join('') || '<small>Aucun filleul trouvé.</small>'}</div></div>`;
+      }
+    }
     if (err) html += `<div class="nbox warn">Impossible de lire sa partie (${esc(N.errMsg(err))}). As-tu publié les nouvelles règles Firebase ?</div>`;
     else if (!st) html += `<div class="nbox">Pas de partie enregistrée en ligne.</div>`;
     else {
