@@ -262,11 +262,19 @@
   N.isPassive = () => passive;
   // Adopter la version du cloud. On recharge une fois pour tout réafficher, mais jamais en boucle :
   // si on a déjà rechargé plusieurs fois en quelques secondes, on se met en pause au lieu de recharger encore.
+  // Renvoie true si la page est en train de se recharger.
+  // Une version du cloud n'est adoptée avec rechargement qu'UNE fois par session : si on revient avec la même version
+  // (stockage plein, horloges décalées…), on garde la partie en mémoire et on continue sans recharger.
   function applyCloud(state) {
+    const key = (N.user ? N.user.uid : '') + ':' + (state.updatedAt || 0);
+    let seen = null; try { seen = sessionStorage.getItem('tc.applied'); } catch (e) { }
     G.adopt(state);
+    if (seen === key) return false;
+    try { sessionStorage.setItem('tc.applied', key); } catch (e) { }
     let n = 0; try { const now = Date.now(); const rec = (JSON.parse(sessionStorage.getItem('tc.reloads') || '[]')).filter(x => now - x < 15000); rec.push(now); sessionStorage.setItem('tc.reloads', JSON.stringify(rec)); n = rec.length; } catch (e) { }
-    if (n > 2) return goPassive();
+    if (n > 2) { goPassive(); return true; }
     location.reload();
+    return true;
   }
   async function linkSave() {
     const uid = N.user.uid; const local = G.state;
@@ -277,15 +285,10 @@
     }
     const cloud = JSON.parse(snap.data().state);
     const d = snap.data(); cloud.owner = uid; knownAt = d.updatedAt || 0;
-    // Un autre appareil a écrit tout récemment : il est encore ouvert. On se met en pause ici au lieu de se
-    // recharger en boucle (le compte PC et le compte tél, c'est le même ; un seul reste actif à la fois).
-    const otherActive = d.dev && d.dev !== DEV && Date.now() - (d.updatedAt || 0) < 120000;
     if (local.owner === uid) {
-      if (otherActive && (cloud.updatedAt || 0) > (local.updatedAt || 0) + 1000) return goPassive();
-      if ((cloud.updatedAt || 0) > (local.updatedAt || 0) + 1000) return applyCloud(cloud);
+      if ((cloud.updatedAt || 0) > (local.updatedAt || 0) + 1000 && applyCloud(cloud)) return;
     } else if (local.owner || pristine(local)) {
-      if (otherActive) return goPassive();
-      return applyCloud(cloud);
+      if (applyCloud(cloud)) return;
     } else {
       const choice = await emitAsk(cloud, local);
       if (choice === 'cloud') return applyCloud(cloud);
@@ -324,7 +327,7 @@
           tx.set(ref, { state: json, updatedAt: at, nw, dev: DEV }); return true;
         });
         if (!ok) { goPassive(); return; }
-        knownAt = at; lastJson = json; lastSave = Date.now();
+        knownAt = at; s.updatedAt = Math.max(s.updatedAt || 0, at); lastJson = json; lastSave = Date.now();
       }
       const pub = { nw, rank: G.rank(nw).r[1], items: s.owned.length, topItem: top ? top.item : null, updatedAt: Date.now() };
       if (TC.Weekly) pub[TC.Weekly.current().field] = TC.Weekly.gain();
