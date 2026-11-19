@@ -251,17 +251,21 @@
   const DEV = Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
   let knownAt = 0, passive = false;
   function goPassive() {
-    if (passive) return; passive = true; clearTimeout(syncT); syncT = null; emit('passive');
+    if (passive) return; passive = true; clearTimeout(syncT); syncT = null; try { sessionStorage.setItem('tc.passive', '1'); } catch (e) { } emit('passive');
     if (document.getElementById('tc-passive')) return;
     const d = document.createElement('div'); d.id = 'tc-passive';
     d.style.cssText = 'position:fixed;inset:0;z-index:9999;display:grid;place-items:center;background:rgba(8,4,20,.88);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);padding:20px;font-family:inherit';
-    d.innerHTML = '<div style="max-width:420px;text-align:center;color:#fff;background:#1d1433;border:1px solid rgba(255,255,255,.15);border-radius:22px;padding:24px"><div style="font-size:46px">📱💻</div><h2 style="margin:8px 0">Ta partie est ouverte ailleurs</h2><p style="opacity:.85;line-height:1.5">Tu joues sur un autre appareil ou dans un autre onglet (ou dans Trad Banque). Pour que ton argent ne soit pas écrasé, cette page est en pause.</p><button id="tc-passive-go" style="margin-top:10px;padding:12px 22px;border-radius:14px;border:0;font-weight:800;font-size:16px;background:linear-gradient(135deg,#ffd23f,#ff9f1c);color:#2a1a00;cursor:pointer">Jouer ici</button></div>';
+    d.innerHTML = '<div style="max-width:420px;text-align:center;color:#fff;background:#1d1433;border:1px solid rgba(255,255,255,.15);border-radius:22px;padding:24px"><div style="font-size:46px">📱💻</div><h2 style="margin:8px 0">Ta partie est ouverte ailleurs</h2><p style="opacity:.85;line-height:1.5">C’est le même compte, ouvert aussi sur un autre appareil, un autre onglet, ou dans Trad Banque. Pour que ton argent ne soit pas écrasé, cette page est en pause ici.<br><br>Ferme le jeu sur l’autre appareil, puis touche « Jouer ici ».</p><button id="tc-passive-go" style="margin-top:10px;padding:12px 22px;border-radius:14px;border:0;font-weight:800;font-size:16px;background:linear-gradient(135deg,#ffd23f,#ff9f1c);color:#2a1a00;cursor:pointer">Jouer ici</button></div>';
     document.body.appendChild(d);
     d.querySelector('#tc-passive-go').onclick = () => location.reload();
   }
   N.isPassive = () => passive;
+  // Adopter la version du cloud. On recharge une fois pour tout réafficher, mais jamais en boucle :
+  // si on a déjà rechargé plusieurs fois en quelques secondes, on se met en pause au lieu de recharger encore.
   function applyCloud(state) {
     G.adopt(state);
+    let n = 0; try { const now = Date.now(); const rec = (JSON.parse(sessionStorage.getItem('tc.reloads') || '[]')).filter(x => now - x < 15000); rec.push(now); sessionStorage.setItem('tc.reloads', JSON.stringify(rec)); n = rec.length; } catch (e) { }
+    if (n > 2) return goPassive();
     location.reload();
   }
   async function linkSave() {
@@ -272,10 +276,15 @@
       G.state.owner = uid; linked = true; G.save(true); await N.flush(); startListeners(); emit('linked'); return;
     }
     const cloud = JSON.parse(snap.data().state);
-    cloud.owner = uid; knownAt = snap.data().updatedAt || 0;
+    const d = snap.data(); cloud.owner = uid; knownAt = d.updatedAt || 0;
+    // Un autre appareil a écrit tout récemment : il est encore ouvert. On se met en pause ici au lieu de se
+    // recharger en boucle (le compte PC et le compte tél, c'est le même ; un seul reste actif à la fois).
+    const otherActive = d.dev && d.dev !== DEV && Date.now() - (d.updatedAt || 0) < 120000;
     if (local.owner === uid) {
+      if (otherActive && (cloud.updatedAt || 0) > (local.updatedAt || 0) + 1000) return goPassive();
       if ((cloud.updatedAt || 0) > (local.updatedAt || 0) + 1000) return applyCloud(cloud);
     } else if (local.owner || pristine(local)) {
+      if (otherActive) return goPassive();
       return applyCloud(cloud);
     } else {
       const choice = await emitAsk(cloud, local);
