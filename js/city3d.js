@@ -760,7 +760,7 @@
       const water = mesh(new T.CylinderGeometry(2.8, 2.8, .2, 28), new T.MeshStandardMaterial({ color: 0x46b8ff, emissive: 0x0c4a7a, emissiveIntensity: .4, roughness: .1 }), 0, .85, 0, false); g.add(water);
       const jet = mesh(new T.ConeGeometry(.6, 3, 12, 1, true), new T.MeshStandardMaterial({ color: 0xbfe9ff, transparent: true, opacity: .7 }), 0, 2.4, 0, false); g.add(jet);
       animated.push(t => { jet.scale.y = 1 + Math.sin(t * 4) * .15; });
-      const xm = TC.season && TC.season.theme;
+      const xm = TC.season && TC.season.noel;
       [[-7, -7], [7, -7], [-7, 7], [7, 7], [0, -8], [-8, 0], [8, 0]].forEach(([x, z], i) => tree(g, x, z, 1 + (i % 3) * .2));
       if (xm) { tree(g, 0, 6, 2.2, true); const st = emojiSprite('⭐', 2.5); st.position.set(0, 13.5, 6); g.add(st); }
       [[-4, 6], [4, -6]].forEach(([x, z]) => g.add(box(2.4, .5, .8, col(0x8b5a2b), x, .4, z)));
@@ -890,7 +890,8 @@
     clearWorld();
     world = new T.Group(); scene.add(world);
     night = forcedNight != null ? forcedNight : data.night;
-    const noel = !!(TC.season && TC.season.theme);
+    const noel = !!(TC.season && TC.season.noel && !TC.season.briques), brick = !!(TC.season && TC.season.briques);
+    let studs = null; const studMat = () => studs || (studs = (() => { const t = canvasTex(64, 64, (g, w, h) => { g.fillStyle = '#1fae4c'; g.fillRect(0, 0, w, h); g.fillStyle = 'rgba(0,0,0,.18)'; g.beginPath(); g.arc(32, 33.5, 15, 0, 6.3); g.fill(); g.fillStyle = '#37cc68'; g.beginPath(); g.arc(32, 32, 14, 0, 6.3); g.fill(); g.fillStyle = 'rgba(255,255,255,.35)'; g.beginPath(); g.arc(27, 27, 4, 0, 6.3); g.fill(); }); t.wrapS = t.wrapT = T.RepeatWrapping; t.repeat.set(10, 10); return new T.MeshStandardMaterial({ map: t, roughness: .6 }); })());
     const items = [{ land: 'bourse' }, { land: 'market' }];
     // monuments mélangés aux plus riches, comme sur la carte 2D
     let li = 1; const L = data.landmarks;
@@ -914,7 +915,7 @@
       const a = mesh(new T.PlaneGeometry(W, 1.2), roadMat, 0, .06, c, false); a.rotation.x = -Math.PI / 2; a.receiveShadow = true; world.add(a);
       const b = mesh(new T.PlaneGeometry(W, 1.2), roadMat, c, .06, 0, false); b.rotation.x = -Math.PI / 2; b.rotation.z = Math.PI / 2; b.receiveShadow = true; world.add(b);
     }
-    const walk = col(0xc9ccd2), grass = col(noel ? 0xeef3f8 : 0x4caf50, { roughness: 1 }), plaza = col(0xe6dfd0);
+    const walk = col(0xc9ccd2), grass = brick ? studMat() : col(noel ? 0xeef3f8 : 0x4caf50, { roughness: 1 }), plaza = col(0xe6dfd0);
     // lampadaires aux carrefours
     const lampMat = new T.MeshBasicMaterial({ color: night ? 0xfff0b0 : 0xdddddd });
     for (let i = 0; i <= N; i++) for (let j = 0; j <= N; j++) {

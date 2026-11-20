@@ -858,3 +858,100 @@ body.gated #sh-chip { display: none; }
 .proof-top { display: flex; align-items: center; gap: 10px; } .proof-top > div { flex: 1; } .proof-top small { display: block; opacity: .7; font-size: 11px; }
 .proof-n { font: 900 30px/1 system-ui, sans-serif; color: #ffd23f; } .proof-n small { display: inline; font-size: 14px; opacity: .7; color: #fff; }
 .proof-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0; } .proof-list span { padding: 4px 9px; border-radius: 999px; background: rgba(255,255,255,.12); font-size: 12px; }
+
+/* =====================================================================
+   🧱 Thème « Expo Briques » (du 19 novembre au 10 janvier) : ciel bleu, plots de briques, jaune / rouge / bleu
+   Il remplace le thème de Noël : même principe (fond, bandeau, boutons), couleurs de l'affiche de l'expo.
+   ===================================================================== */
+html.briques {
+  --bg: #0b3d91; --bg2: rgba(6,32,90,.40); --panel: rgba(6,32,90,.52); --panel2: rgba(6,32,90,.68);
+  --line: rgba(255,255,255,.26); --muted: rgba(255,255,255,.80);
+  --accent: #ffd500; --accent2: #ff3b30; --teal: #31c4ff; --violet: #2a6fdb;
+  --glass: linear-gradient(145deg, rgba(14,60,150,.62), rgba(14,60,150,.38));
+  --glass-shadow: 0 10px 30px rgba(0,20,70,.45);
+  --sunset: linear-gradient(100deg, #e3000b 0%, #ff8a00 45%, #ffd500 100%);
+}
+html.briques body::before, html.briques:not(.noel) body::before {
+  background:
+    radial-gradient(ellipse 150px 46px at 12% 10%, rgba(255,255,255,.55) 60%, transparent 63%),
+    radial-gradient(ellipse 100px 36px at 19% 12.5%, rgba(255,255,255,.5) 60%, transparent 63%),
+    radial-gradient(ellipse 170px 50px at 78% 7%, rgba(255,255,255,.5) 60%, transparent 63%),
+    radial-gradient(ellipse 110px 38px at 86% 10%, rgba(255,255,255,.45) 60%, transparent 63%),
+    radial-gradient(ellipse 140px 44px at 55% 30%, rgba(255,255,255,.28) 60%, transparent 63%),
+    linear-gradient(180deg, #0b3d91 0%, #1565c0 42%, #2a8bea 100%);
+}
+html.briques body::after { /* rangée de plots tout en bas, comme une plaque de construction */
+  display: block; transform: none; opacity: 1; height: 24px; mask-image: none; -webkit-mask-image: none;
+  background:
+    radial-gradient(circle at 50% 8px, rgba(255,255,255,.6) 0 3.6px, rgba(0,0,0,.14) 4px 5.4px, transparent 6px) 0 0 / 28px 24px,
+    linear-gradient(90deg, #e3000b 0 25%, #ffd500 25% 50%, #0a84e0 50% 75%, #1fa64a 75% 100%) 0 0 / 112px 24px;
+  box-shadow: 0 -3px 0 rgba(0,0,0,.2);
+}
+html.briques .gta::before { background: linear-gradient(100deg, rgba(227,0,11,.5), rgba(255,213,0,.3) 50%, rgba(10,132,224,.45)); }
+html.briques .topbar::after { /* rangée de plots de couleur au lieu de la guirlande */
+  content: ''; position: absolute; left: 24px; right: 24px; top: -4px; height: 8px; pointer-events: none;
+  background: radial-gradient(circle, #e3000b 0 3px, transparent 3.5px) 0 0 / 48px 8px repeat-x,
+              radial-gradient(circle, #ffd500 0 3px, transparent 3.5px) 12px 0 / 48px 8px repeat-x,
+              radial-gradient(circle, #0a84e0 0 3px, transparent 3.5px) 24px 0 / 48px 8px repeat-x,
+              radial-gradient(circle, #1fa64a 0 3px, transparent 3.5px) 36px 0 / 48px 8px repeat-x;
+  filter: drop-shadow(0 1px 0 rgba(0,0,0,.35));
+}
+html.briques .icon-btn.gold::after { content: '🧱'; margin-left: 2px; font-size: 11px; }
+
+/* =====================================================================
+   🧱 Habillages « Briques » de la carte bancaire (créatures en briques, plots, reflet holographique)
+   ===================================================================== */
+.cc-art, .cc-foil { display: none; }
+.cc-tools { display: flex; justify-content: center; margin-top: 8px; }
+.cc-promo { display: flex; align-items: center; gap: 8px; width: 100%; margin-top: 10px; padding: 10px 14px; border-radius: 16px; border: 2px solid #ffd500; background: linear-gradient(135deg, #1b5fc2, #2f9bff); color: #fff; font-weight: 700; font-size: 13px; cursor: pointer; text-align: left; box-shadow: 0 6px 18px rgba(0,30,110,.35); }
+.cc-promo b { color: #ffe100; } .cc-promo span { flex: 1; } .cc-promo em { font-style: normal; font-weight: 900; color: #ffe100; white-space: nowrap; }
+.cc.sk-orange, .cc-mini.sk-orange { --c1: #ffb24a; --c2: #f0600f; --ink: #3a1500; --acc: #a82d00; }
+.cc.sk-blue, .cc-mini.sk-blue { --c1: #55b8ff; --c2: #1565d8; --ink: #ffffff; --acc: #ffe14d; }
+.cc.sk-yellow, .cc-mini.sk-yellow { --c1: #ffe766; --c2: #f4a000; --ink: #3a2a00; --acc: #c62828; }
+.cc.sk-brick .cc-face, .cc-mini.sk-brick {
+  background-image: radial-gradient(circle at 50% 50%, rgba(255,255,255,.34) 0 2.5px, rgba(0,0,0,.14) 3px 4.6px, transparent 5px), linear-gradient(135deg, var(--c1), var(--c2));
+  background-size: 17px 17px, 100% 100%; border-color: rgba(255,255,255,.6);
+}
+.cc.sk-brick .cc-front::after { background: none; }
+.cc.sk-brick .cc-tier { background: rgba(255,255,255,.92); color: #1b1b1b; }
+.cc.sk-brick .cc-num { text-shadow: 0 1px 0 rgba(255,255,255,.4); } .cc.sk-blue .cc-num { text-shadow: 0 1px 3px rgba(0,30,90,.5); }
+.cc.sk-brick .cc-art { display: block; position: absolute; right: 5%; top: 13%; width: 23%; aspect-ratio: 13 / 15; pointer-events: none; filter: drop-shadow(0 5px 5px rgba(0,0,0,.3)); transform-origin: 50% 100%; }
+.cc-art svg { width: 100%; height: 100%; display: block; }
+.cc-art.pop { animation: brickpop .75s cubic-bezier(.2,1.4,.4,1); }
+@keyframes brickpop { 0% { transform: translateY(16px) scale(.55); opacity: 0; } 100% { transform: none; opacity: 1; } }
+.cc-art i { position: absolute; font-style: normal; color: #fff; font-size: 13px; text-shadow: 0 0 7px rgba(255,255,255,.95); opacity: 0; animation: brickspark 2.6s ease-in-out infinite; }
+.cc-art i:nth-of-type(1) { left: -16%; top: 6%; } .cc-art i:nth-of-type(2) { right: -14%; top: 28%; animation-delay: .7s; }
+.cc-art i:nth-of-type(3) { left: -8%; bottom: 14%; animation-delay: 1.3s; } .cc-art i:nth-of-type(4) { right: -6%; top: -8%; animation-delay: 1.9s; }
+@keyframes brickspark { 0%, 100% { opacity: 0; transform: scale(.3) rotate(0); } 50% { opacity: 1; transform: scale(1.15) rotate(25deg); } }
+/* reflet holographique : la bande arc-en-ciel suit l'inclinaison de la carte, et un éclat la traverse de temps en temps */
+.cc.sk-brick .cc-foil, .cc-mini.sk-brick .cc-foil { display: block; position: absolute; inset: 0; pointer-events: none; mix-blend-mode: color-dodge; opacity: .65; overflow: hidden;
+  background: linear-gradient(115deg, transparent 18%, rgba(255,60,160,.6) 30%, rgba(255,230,60,.6) 38%, rgba(60,255,180,.6) 46%, rgba(60,170,255,.6) 54%, rgba(170,90,255,.55) 62%, transparent 74%);
+  background-size: 260% 260%; background-position: var(--sx, 50%) var(--sy, 50%); }
+.cc-foil::after { content: ''; position: absolute; top: -25%; bottom: -25%; width: 22%; left: -40%; transform: skewX(-18deg); background: linear-gradient(90deg, transparent, rgba(255,255,255,.75), transparent); animation: brickglint 4.2s ease-in-out infinite; }
+@keyframes brickglint { 0%, 55% { left: -40%; } 100% { left: 135%; } }
+@media (prefers-reduced-motion: reduce) { .cc-foil::after, .cc-art i, .cc-art.pop { animation: none; } .cc-art i { opacity: .8; } }
+/* choix de l'habillage */
+.skin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 12px 0; }
+.skin-opt { text-align: left; padding: 8px; border-radius: 16px; border: 2px solid rgba(127,127,127,.3); background: rgba(127,127,127,.1); color: inherit; cursor: pointer; display: flex; flex-direction: column; gap: 2px; }
+.skin-opt.on { border-color: #ffd500; background: rgba(255,213,0,.14); } .skin-opt small { opacity: .7; font-size: 11px; }
+.cc-mini { position: relative; aspect-ratio: 1.586; border-radius: 12px; overflow: hidden; margin-bottom: 6px; background: linear-gradient(135deg, #2b3a67, #10162e); border: 1px solid rgba(255,255,255,.25); }
+.cc-mini .cc-art { display: block; position: absolute; right: 10%; top: 14%; width: 36%; aspect-ratio: 13 / 15; filter: drop-shadow(0 3px 3px rgba(0,0,0,.3)); }
+.cc-mini .cc-mini-tc { position: absolute; right: 12%; bottom: 14%; font: italic 900 22px system-ui; color: #8fb3ff; }
+
+/* =====================================================================
+   📣 Pub : Expo Briques d'Alès
+   ===================================================================== */
+.modal-card.expo-modal { max-width: 440px; padding: 0; overflow: hidden; border: 0; color: #0c2f86; background: radial-gradient(ellipse 140px 40px at 15% 6%, rgba(255,255,255,.8) 60%, transparent 63%), radial-gradient(ellipse 120px 36px at 85% 14%, rgba(255,255,255,.7) 60%, transparent 63%), linear-gradient(180deg, #2f9bff 0%, #7cc8ff 55%, #cfeaff 100%); }
+.expo-modal .modal-x { color: #0c2f86; z-index: 3; }
+.expo { position: relative; padding: 20px 18px 14px; text-align: center; }
+.expo-ad { position: absolute; top: 12px; left: 14px; font-size: 10px; font-weight: 800; background: rgba(255,255,255,.85); color: #0c2f86; padding: 2px 9px; border-radius: 999px; }
+.expo-title { margin: 14px 0 0; font: 900 clamp(26px, 8.4vw, 38px)/1.05 'Arial Black', Impact, system-ui, sans-serif; color: #ffe100; paint-order: stroke fill; -webkit-text-stroke: 6px #1a4fd0; text-shadow: 0 4px 0 #0c2f86; letter-spacing: .01em; }
+.expo-date { margin-top: 6px; font: 900 clamp(24px, 7.6vw, 34px)/1.05 'Arial Black', Impact, system-ui, sans-serif; color: #e3000b; paint-order: stroke fill; -webkit-text-stroke: 5px #ffe100; text-shadow: 0 3px 0 rgba(0,0,0,.25); }
+.expo-art { display: flex; align-items: flex-end; justify-content: center; gap: 6px; margin: 12px 0 6px; }
+.expo-art > div { width: 28%; filter: drop-shadow(0 6px 6px rgba(0,40,120,.35)); } .expo-art > .big { width: 36%; }
+.expo-art svg { width: 100%; display: block; }
+.expo-town { display: inline-block; margin: 2px auto 8px; padding: 5px 28px; background: #fff; color: #111; font: 900 24px/1 'Arial Black', Impact, system-ui, sans-serif; border: 5px solid #e3000b; border-radius: 6px; letter-spacing: .14em; box-shadow: 0 4px 0 rgba(0,0,0,.2); }
+.expo-info { margin: 4px 0 12px; font-size: 15px; line-height: 1.55; font-weight: 600; } .expo-info b { color: #0c2f86; font-weight: 900; }
+.expo .btn-xl { width: 100%; }
+.expo-note { display: block; margin: 8px 0 4px; font-size: 11px; color: #0c2f86; opacity: .8; }
+.expo .btn-ghost { color: #0c2f86; border-color: rgba(12,47,134,.35); }
