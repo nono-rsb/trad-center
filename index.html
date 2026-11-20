@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Trad Center — De 10 € à la Bugatti</title>
+  <meta name="description" content="Jeu de trading avec les vrais cours du Bitcoin, d'Ethereum, du CAC 40, des actions et des devises. Partez de 10 € et achetez Porsche, Lamborghini, Ferrari et villas.">
+  <meta name="theme-color" content="#1b0b2e">
+  <link rel="icon" type="image/svg+xml" href="icons/logo.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <script>/* icône d'écran d'accueil choisie (membres vérifiés) : appliquée avant que le navigateur lise le manifeste */try{var ik=localStorage.getItem('tradcenter.icon');if(ik&&/^[a-z]+$/.test(ik)){document.querySelector('link[rel=manifest]').href='manifest-icon-'+ik+'.webmanifest';document.querySelector('link[rel=apple-touch-icon]').href='icons/alt/'+ik+'-180.png';}}catch(e){}</script>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Trad Center">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta property="og:title" content="Trad Center — De 10 € à la Bugatti">
+  <meta property="og:description" content="Tradez Bitcoin, CAC 40, Tesla… avec les vrais cours et offrez-vous une Lamborghini.">
+  <meta property="og:image" content="icons/icon-512.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/glass.css">
+  <link rel="stylesheet" href="css/walk.css">
+</head>
+<body>
+  <div class="gta" id="gta" title="Sortie de Grand Theft Auto VI : 19 novembre 2026"></div>
+
+  <header class="topbar">
+    <div class="brand" title="Trad Center">
+      <img class="logo" src="icons/logo.svg" alt="" width="40" height="40">
+      <div class="brand-name">TRAD<span>CENTER</span></div>
+    </div>
+    <button class="nw" id="nw-box" title="Voir le détail de mon argent">
+      <span class="nw-c cash"><label>💵 Cash</label><b id="s-cash">—</b><small>à dépenser</small></span>
+      <span class="nw-c pat"><label>🏦 Patrimoine</label><b id="s-nw">—</b><small>tout compris<i id="s-sim" class="simpill" hidden title="Certaines sources sont injoignables : prix simulés">SIM</i></small></span>
+    </button>
+    <div class="top-actions">
+      <button class="icon-btn" id="b-prog" data-prog title="Missions et série">🔥<span></span></button>
+      <button class="icon-btn gold" id="b-bonus" title="Bonus quotidien">🎁<span></span></button>
+      <button class="icon-btn" id="b-notif" title="Notifications">🔔</button>
+      <button class="icon-btn avatar-btn" id="b-account" title="Mon compte" hidden>👤</button>
+      <button class="icon-btn" id="b-qa" data-qa title="Questions">❓</button>
+      <button class="icon-btn" id="b-settings" title="Réglages">⚙️</button>
+      <button id="b-sound" hidden></button><button id="b-help" hidden></button><button id="b-install" hidden></button>
+    </div>
+  </header>
+
+  <div class="goalbar" id="goalbar"></div>
+
+  <nav class="tabs" id="tabs">
+    <button data-tab="markets" class="active"><i class="ti">📈</i><span>Marchés</span></button>
+    <button data-tab="portfolio"><i class="ti">💼</i><span>Portefeuille</span><i class="badge" id="nb-pos"></i></button>
+    <button data-tab="shop"><i class="ti">🏎️</i><span>Boutique</span></button>
+    <button data-tab="city"><i class="ti">🗺️</i><span>Ville</span></button>
+    <button data-tab="social"><i class="ti">👥</i><span>Amis</span><i class="badge" id="nb-social"></i></button>
+    <button data-tab="collection"><i class="ti">🏆</i><span>Collection</span><i class="badge" id="nb-rent"></i></button>
+  </nav>
+
+  <main>
+    <!-- ================= MARCHÉS ================= -->
+    <section class="tab-pane active" id="tab-markets">
+      <div class="markets">
+        <aside class="panel mlist">
+          <div class="mlist-head">
+            <input id="m-search" type="search" placeholder="Rechercher (BTC, Tesla, CAC…)" autocomplete="off">
+            <div class="chips" id="m-cats"></div>
+          </div>
+          <div class="mlist-body" id="m-list"></div>
+        </aside>
+
+        <section class="panel chartp">
+          <div class="chart-head" id="c-head"></div>
+          <div class="chart-tools">
+            <div class="seg" id="c-tf"></div>
+            <div class="seg" id="c-type"><button data-type="candle" class="active" title="Bougies">🕯️</button><button data-type="area" title="Courbe">〰️</button></div>
+          </div>
+          <div class="chart-wrap"><div id="chart"></div><div class="chart-note" id="c-note"></div><div class="chart-loading" id="c-loading">Chargement…</div></div>
+          <div class="chart-foot" id="c-foot"></div>
+        </section>
+
+        <aside class="panel order" id="order"></aside>
+      </div>
+    </section>
+
+    <!-- ================= PORTEFEUILLE ================= -->
+    <section class="tab-pane" id="tab-portfolio"></section>
+
+    <!-- ================= BOUTIQUES ================= -->
+    <section class="tab-pane" id="tab-shop"></section>
+    <section class="tab-pane" id="tab-collection"></section>
+    <section class="tab-pane" id="tab-social"></section>
+    <section class="tab-pane" id="tab-city"></section>
+  </main>
+
+  <footer class="foot">
+    Données réelles : <b>Binance</b> (crypto, temps réel) · <b>Yahoo Finance</b> (bourse, indices, matières premières, devises — délai possible de 0 à 15 min) · <b>BCE / Frankfurter</b> (devises).
+    Photos : <a href="https://commons.wikimedia.org/" target="_blank" rel="noopener">Wikipedia / Wikimedia Commons</a> (licences libres, cliquez ⓘ pour la source). Graphiques : <a href="https://www.tradingview.com/" target="_blank" rel="noopener">TradingView Lightweight Charts</a>. Jeu de simulation : aucun argent réel n'est engagé. Ceci n'est pas un conseil en investissement. <a href="confidentialite.html">Confidentialité et conditions</a>.
+  </footer>
+
+  <div id="toasts"></div>
+  <div id="modal" class="modal"></div>
+  <canvas id="confetti"></canvas>
+
+  <script src="js/vendor/lightweight-charts.standalone.production.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/catalog.js"></script>
+  <script src="js/util.js"></script>
+  <script src="js/music.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/images.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/loan.js"></script>
+  <script src="js/events.js"></script>
+  <script src="js/tax.js"></script>
+  <script src="js/playtime.js"></script>
+  <script src="js/chart.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/net.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/social.js"></script>
+  <script src="js/notify.js"></script>
+  <script src="js/xmas.js"></script>
+  <script src="js/weekly.js"></script>
+  <script src="js/cheats.js"></script>
+  <script src="js/chest.js"></script>
+  <script src="js/style.js"></script>
+  <script src="js/avatar.js"></script>
+  <script src="js/appicon.js"></script>
+  <script src="js/plusgift.js"></script>
+  <script src="js/teddy.js"></script>
+  <script src="js/quiz.js"></script>
+  <script src="js/bot.js"></script>
+  <script src="js/admin.js"></script>
+  <script src="js/qa.js"></script>
+  <script src="js/progress.js"></script>
+  <script src="js/duel.js"></script>
+  <script src="js/city3d.js"></script>
+  <script src="js/city.js"></script>
+  <script src="js/walk.js"></script>
+  <script src="js/hunt.js"></script>
+  <script src="js/mayor.js"></script>
+  <script src="js/clan.js"></script>
+  <script src="js/card.js"></script>
+  <script src="js/bankinstall.js"></script>
+  <script src="js/share.js"></script>
+</body>
+</html>
