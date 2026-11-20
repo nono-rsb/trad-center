@@ -53,10 +53,95 @@
   window.addEventListener('deviceorientation', orient); // Android : marche souvent sans rien demander
   { const once = () => { document.removeEventListener('touchend', once); document.removeEventListener('click', once); K.motion(); }; document.addEventListener('touchend', once, { passive: true }); document.addEventListener('click', once); }
   const snap = v => Math.round((v - 14) / 180) * 180 + 14; // face avant ou arrière, légèrement inclinée
+  /* ---------- Habillages « Briques » : créatures en briques (dessins originaux), plots, reflet holographique ----------
+   * Inspiré de l'Expo Briques d'Alès (9 et 10 janvier) : des sculptures en briques, vues de face, symétriques.
+   * Chaque créature est une grille de « briques » (une lettre = une couleur), dessinée en SVG avec un plot sur chaque brique. */
+  const mirror = half => half.map(r => r + r.slice(0, -1).split('').reverse().join('')); // 7 colonnes -> 13, symétrique
+  const ART = {
+    orange: { // petit dino à crêtes
+      pal: { o: '#ff8a1f', y: '#ffd23f', b: '#ffe3b0', w: '#ffffff', k: '#1b1b1b', r: '#ff5d7a' },
+      rows: mirror(['...y..y', '...y..y', '..ooooo', '.oooooo', '.ookooo', '.ookooo', '.oooooo', '.oorrrr', '.oowrwr', '..orrrr', '..ooooo', '.oobbbb', '.oobbbb', '.oobbbb', '..oo...']),
+    },
+    blue: { // orque ronde
+      pal: { n: '#2f9bff', a: '#1b5fc2', b: '#ffffff', w: '#ffffff', k: '#1b1b1b', r: '#ff7a9a' },
+      rows: mirror(['.....nn', '...nnnn', '..nnnnn', '.nnnnnn', '.nnknnn', '.nnknnn', '.nnnnnn', '.nnnnrr', '.nnnnnn', '..nbbbb', '.nnbbbb', 'annbbbb', 'annbbbb', '.nnbbbb', '..nnn..']),
+    },
+    yellow: { // poussin
+      pal: { y: '#ffd93d', g: '#f2a500', o: '#ff7a1a', w: '#ffffff', k: '#1b1b1b', p: '#ff7a9a' },
+      rows: mirror(['....y.y', '....yyy', '..yyyyy', '.yyyyyy', '.yykyyy', '.yykyyy', '.yyyyyy', '.pyyooo', '.yyyyoo', '..yyyyy', '.yyyyyy', 'gyyyyyy', 'gyyyyyy', '.gyyyyy', '..oo...']),
+    },
+  };
+  function brickSvg(a) { // une brique = un carré de 10 avec un plot en relief ; l'ensemble donne un effet « sculpture »
+    const S = 10, h = a.rows.length, w = a.rows[0].length; let out = '';
+    a.rows.forEach((r, y) => r.split('').forEach((c, x) => {
+      const col = a.pal[c]; if (!col) return;
+      const X = x * S, Y = y * S;
+      out += `<rect x="${X}" y="${Y}" width="${S}" height="${S}" fill="${col}" stroke="rgba(0,0,0,.22)" stroke-width=".7"/>` +
+        `<rect x="${X + .35}" y="${Y + S - 2}" width="${S - .7}" height="1.65" fill="rgba(0,0,0,.2)"/>` +
+        `<circle cx="${X + S / 2}" cy="${Y + S / 2 - .3}" r="2.7" fill="rgba(255,255,255,.3)" stroke="rgba(0,0,0,.2)" stroke-width=".6"/>` +
+        `<circle cx="${X + S / 2 - .8}" cy="${Y + S / 2 - 1.2}" r=".9" fill="rgba(255,255,255,.6)"/>`;
+    }));
+    return `<svg viewBox="0 0 ${w * S} ${h * S}" shape-rendering="geometricPrecision" aria-hidden="true">${out}</svg>`;
+  }
+
+  /* ---------- Choix de l'habillage de la carte + pub de l'Expo Briques ---------- */
+  K.SKINS = [
+    { id: '', name: 'Classique', sub: 'Selon ton niveau' },
+    { id: 'orange', name: 'Briques Orange', sub: 'Le petit dino' },
+    { id: 'blue', name: 'Briques Bleu', sub: "L'orque" },
+    { id: 'yellow', name: 'Briques Jaune', sub: 'Le poussin' },
+  ];
+  K.skin = () => { const s = S().cardSkin; return ART[s] ? s : ''; };
+  K.setSkin = function (id) {
+    S().cardSkin = ART[id] ? id : ''; G.save(true);
+    document.querySelectorAll('.cc').forEach(c => skinCard(c)); // toutes les cartes visibles (Portefeuille, Trad Banque…)
+    if (id) { TC.sound('ach'); TC.confetti(90); }
+  };
+  function skinCard(card) {
+    const sk = K.skin(), key = sk || '-';
+    if (card.dataset.skin === key) return;
+    card.dataset.skin = key;
+    ['orange', 'blue', 'yellow'].forEach(x => card.classList.toggle('sk-' + x, x === sk));
+    card.classList.toggle('sk-brick', !!sk);
+    const art = card.querySelector('.cc-art'); if (!art) return;
+    art.innerHTML = sk ? brickSvg(ART[sk]) + '<i>✦</i><i>✦</i><i>✦</i><i>✦</i>' : '';
+    if (sk) { art.classList.remove('pop'); void art.offsetWidth; art.classList.add('pop'); } // les briques « s'assemblent »
+  }
+  K.skinPicker = function () {
+    const cur = K.skin();
+    const md = TC.modal(`<div class="skin-pick"><h2>🎨 Style de ma carte</h2><p class="muted">Gratuit pour tout le monde : la carte garde ton niveau (${esc(K.tier(G.netWorth()).name)}), seul son habillage change.</p>
+      <div class="skin-grid">${K.SKINS.map(s => `<button class="skin-opt ${s.id === cur ? 'on' : ''}" data-skin="${s.id}">
+        <div class="cc-mini ${s.id ? 'sk-brick sk-' + s.id : ''}"><div class="cc-art">${s.id ? brickSvg(ART[s.id]) : '<span class="cc-mini-tc">TC</span>'}</div>${s.id ? '<div class="cc-foil"></div>' : ''}</div>
+        <b>${esc(s.name)}</b><small>${esc(s.sub)}</small></button>`).join('')}</div>
+      <div class="modal-actions"><button class="btn" data-close>Fermer</button></div></div>`, { cls: 'wide' });
+    md.el.querySelectorAll('[data-skin]').forEach(b => { b.onclick = () => { K.setSkin(b.dataset.skin); md.el.querySelectorAll('[data-skin]').forEach(x => x.classList.toggle('on', x === b)); }; });
+  };
+
+  // Pub : Expo Briques d'Alès (informations de l'affiche de l'événement)
+  K.EXPO = { name: "L'Expo Briques", when: '9 & 10 janvier', place: 'Alès', venue: 'Espace Alès Cazot', hours: '10h – 18h', price: 'Entrée 4 €', end: new Date(2027, 0, 11).getTime() };
+  K.promoOn = () => Date.now() < K.EXPO.end;
+  K.expo = function () {
+    const E = K.EXPO;
+    const md = TC.modal(`<div class="expo"><span class="expo-ad">📣 Publicité</span>
+      <h1 class="expo-title">${esc(E.name.toUpperCase())}</h1>
+      <div class="expo-date">${esc(E.when.toUpperCase())}</div>
+      <div class="expo-art"><div>${brickSvg(ART.orange)}</div><div class="big">${brickSvg(ART.blue)}</div><div>${brickSvg(ART.yellow)}</div></div>
+      <div class="expo-town">${esc(E.place.toUpperCase())}</div>
+      <p class="expo-info"><b>${esc(E.hours)}</b> · ${esc(E.venue)}<br><b>${esc(E.price)}</b></p>
+      <button class="btn btn-gold btn-xl" id="expo-skin">🎨 Habiller ma carte en briques</button>
+      <small class="expo-note">Des sculptures géantes en briques à voir en vrai. Vérifie les infos sur l'affiche officielle avant d'y aller.</small>
+      <div class="modal-actions"><button class="btn btn-ghost" data-close>Fermer</button></div></div>`, { cls: 'expo-modal' });
+    md.el.querySelector('#expo-skin').onclick = () => { md.close(); K.skinPicker(); };
+  };
+  document.addEventListener('click', e => {
+    if (e.target.closest('[data-expo]')) return K.expo();
+    if (e.target.closest('[data-skinpick]')) return K.skinPicker();
+  });
+
   function build() {
     const zone = document.createElement('div'); zone.id = 'card-zone';
     zone.innerHTML = `<div class="cc-stage"><div class="cc" id="cc">
-        <div class="cc-face cc-front"><div class="cc-shine"></div>
+        <div class="cc-face cc-front"><div class="cc-shine"></div><div class="cc-art"></div><div class="cc-foil"></div>
           <div class="cc-top"><b class="cc-brand">TRAD<span>CENTER</span></b><span class="cc-tier" id="cc-tier"></span></div>
           <div class="cc-chip"></div><span class="cc-nfc">)))</span>
           <div class="cc-num" id="cc-num"></div>
@@ -67,7 +152,8 @@
           <div class="cc-info"><div><small>Cash disponible</small><b id="cc-cash"></b></div><div><small>Patrimoine</small><b id="cc-nw"></b></div></div>
           <div class="cc-next" id="cc-next"></div>
         </div></div></div>
-      <p class="cc-hint">☝️ Glisse pour la faire tourner · touche pour la retourner</p>`;
+      <p class="cc-hint">☝️ Glisse pour la faire tourner · touche pour la retourner</p>
+      <div class="cc-tools"><button class="btn btn-sm" data-skinpick>🎨 Style de la carte</button></div>${K.promoOn() ? `<button class="cc-promo" data-expo>🧱 <span><b>Expo Briques</b> · 9 &amp; 10 janvier · Alès</span> <em>Voir →</em></button>` : ''}`;
     const card = zone.querySelector('#cc');
     const apply = () => { const X = rx + (drag ? 0 : tilt.x), Y = ry + (drag ? 0 : tilt.y); card.style.transform = `rotateX(${X.toFixed(2)}deg) rotateY(${Y.toFixed(2)}deg)`; card.style.setProperty('--sx', (50 + Y * 1.2) + '%'); card.style.setProperty('--sy', (50 - X * 1.5) + '%'); };
     tilt.apply = () => { if (!drag && zone.isConnected && Date.now() - flipT > 650) { card.classList.add('tilting'); apply(); } };
@@ -106,6 +192,7 @@
     const nw = G.netWorth(), t = K.tier(nw), n = next(t);
     const card = el.querySelector('#cc');
     K.TIERS.forEach(x => card.classList.toggle('t-' + x.id, x === t));
+    skinCard(card);
     el.querySelector('#cc-tier').textContent = t.icon + ' ' + t.name.toUpperCase();
     el.querySelector('#cc-num').textContent = number();
     el.querySelector('#cc-holder').textContent = holder();

@@ -1,33 +1,24 @@
 {
-  "id": "parrainage-2026-11-19",
-  "emoji": "🏆",
-  "title": "Événement Parrainage : invite 20 amis !",
-  "tab": "social",
+  "id": "expo-briques-2026-11-20",
+  "emoji": "🧱",
+  "title": "Thème Expo Briques !",
+  "tab": "portfolio",
   "items": [
     {
-      "icon": "📤",
-      "title": "Envoie ton lien à 20 amis",
-      "text": "Onglet Amis : copie ou partage ton lien d'invitation. Chaque ami qui crée son compte avec ton lien compte pour 1."
+      "icon": "🧱",
+      "title": "Le jeu passe aux briques",
+      "text": "Ciel bleu, plots de couleur, jaune, rouge et bleu : le thème de Noël laisse la place au thème Expo Briques."
     },
     {
-      "icon": "🎁",
-      "title": "20 amis = tu choisis ta récompense",
-      "text": "Une fois à 20, tu m'envoies un mail avec ton pseudo et ce que tu veux. Je vérifie tes 20 amis puis je te réponds."
+      "icon": "🎨",
+      "title": "Ta carte en briques",
+      "text": "Onglet Portefeuille → « Style de la carte » : choisis le petit dino, l'orque ou le poussin, tous en briques avec un reflet holographique. C'est gratuit."
     },
     {
-      "icon": "🥇",
-      "title": "Classement du parrainage",
-      "text": "Vois qui a invité le plus d'amis. Tu as aussi une carte « Ma preuve » à garder en capture d'écran."
-    },
-    {
-      "icon": "⏳",
-      "title": "Jusqu'au 31 décembre",
-      "text": "Les comptes invités, les doubles comptes et ton propre appareil ne comptent pas : il faut de vrais amis."
+      "icon": "📣",
+      "title": "L'Expo Briques à Alès",
+      "text": "9 & 10 janvier, de 10h à 18h, Espace Alès Cazot. Entrée 4 €. Des sculptures géantes en briques à voir en vrai !"
     }
   ],
-  "button": "Voir l'événement 🏆",
-  "push": {
-    "title": "🏆 Événement Parrainage",
-    "body": "Invite 20 amis qui créent un compte et choisis ta récompense ! Classement et preuve dans l'onglet Amis."
-  }
+  "button": "Voir ma carte 🧱"
 }

@@ -44,19 +44,20 @@
   };
 
   /* ---------- Saison ----------
-   * theme : l'ambiance visuelle de Noël (neige, couleurs, guirlande, ville enneigée), du 19 novembre au 31 décembre.
-   * noel  : l'événement de Noël (calendrier de l'Avent, cadeaux, course, bonus doublé, objets limités), du 1er au 31 décembre.
-   * Aperçu de l'événement : ?theme=noel (rien n'est crédité). */
-  const THEME_FROM = [10, 19]; // [mois (0 = janvier), jour] : début du thème
+   * briques : le thème « Expo Briques » (ciel bleu, plots, jaune / rouge / bleu), du 19 novembre au 10 janvier. Il remplace le thème de Noël.
+   * noel    : l'événement de Noël (calendrier de l'Avent, cadeaux, course, bonus doublé, objets limités), du 1er au 31 décembre.
+   * Aperçus : ?theme=noel (thème et événement de Noël, rien n'est crédité) ; ?theme=briques. */
+  const BRICK = [new Date(2026, 10, 19).getTime(), new Date(2027, 0, 11).getTime()]; // début et fin du thème Briques
   TC.season = (() => {
     let q = null, j = 0; try { const u = new URLSearchParams(location.search); q = u.get('theme'); j = +u.get('jour') || 0; } catch (e) { }
     const now = new Date();
     // aperçu : ?theme=noel&jour=N (rien n'est crédité)
-    if (q === 'noel') return { noel: true, theme: true, preview: true, day: j >= 1 && j <= 31 ? j : (now.getMonth() === 11 ? now.getDate() : 1) };
-    const m = now.getMonth(), theme = m === 11 || (m === THEME_FROM[0] && now.getDate() >= THEME_FROM[1]);
-    return { noel: m === 11, theme, preview: false, get day() { const d = new Date(); return d.getMonth() === 11 ? d.getDate() : 0; } };
+    if (q === 'noel') return { noel: true, briques: false, preview: true, day: j >= 1 && j <= 31 ? j : (now.getMonth() === 11 ? now.getDate() : 1) };
+    if (q === 'briques') return { noel: false, briques: true, preview: false, day: 0 };
+    const m = now.getMonth(), t = +now;
+    return { noel: m === 11, briques: t >= BRICK[0] && t < BRICK[1], preview: false, get day() { const d = new Date(); return d.getMonth() === 11 ? d.getDate() : 0; } };
   })();
-  if (TC.season.theme) document.documentElement.classList.add('noel'); // la classe CSS « noel » porte tout le thème visuel
+  if (TC.season.briques) document.documentElement.classList.add('briques'); else if (TC.season.noel) document.documentElement.classList.add('noel'); // une classe CSS = un thème visuel
 
   TC.esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   TC.$ = (s, r = document) => r.querySelector(s);
