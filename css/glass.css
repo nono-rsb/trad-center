@@ -964,3 +964,7 @@ html.briques .icon-btn.gold::after { content: '🧱'; margin-left: 2px; font-siz
 .cc.sk-poster .cc-brand, .cc.sk-poster .cc-num, .cc.sk-poster .cc-bot b, .cc.sk-poster .cc-bot small, .cc.sk-poster .cc-logo { text-shadow: 0 2px 5px rgba(0,0,0,.8); }
 .expo-poster { display: block; width: 100%; max-height: 62vh; object-fit: contain; margin: 22px auto 10px; border-radius: 14px; box-shadow: 0 8px 22px rgba(0,30,110,.4); }
 .cc-promo-img { width: 34px; height: 48px; object-fit: cover; object-position: top; border-radius: 6px; border: 1px solid rgba(255,255,255,.7); flex: none; }
+
+/* 💬 Bloc Discord */
+.disc { border: 1px solid rgba(88,101,242,.55); background: linear-gradient(135deg, rgba(88,101,242,.22), rgba(88,101,242,.08)); }
+.disc .btn-xl { display: block; width: 100%; text-align: center; box-sizing: border-box; margin-top: 10px; }

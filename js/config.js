@@ -7,6 +7,7 @@
 window.TC = window.TC || {};
 // Compte du créateur (mode créateur) : Loupdewallstreet
 TC.ADMIN_UID = "elSOuyaP2GZqW4ARw3Wy5zUbtjl1";
+TC.DISCORD = "https://discord.gg/6QfD3xJWTK"; // serveur Discord de la communauté
 
 TC.FIREBASE = {
   apiKey: "AIzaSyBJW_UDJMEYtZ5c8zxeQwamwAvPHaKe3Vk",
