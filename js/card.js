@@ -90,10 +90,11 @@
     { id: 'orange', name: 'Briques Orange', sub: 'Le petit dino' },
     { id: 'blue', name: 'Briques Bleu', sub: "L'orque" },
     { id: 'yellow', name: 'Briques Jaune', sub: 'Le poussin' },
+    { id: 'affiche', name: "Affiche de l'expo", sub: 'Les vraies sculptures' },
   ];
-  K.skin = () => { const s = S().cardSkin; return ART[s] ? s : ''; };
+  K.skin = () => { const s = S().cardSkin; return (ART[s] || s === 'affiche') ? s : ''; };
   K.setSkin = function (id) {
-    S().cardSkin = ART[id] ? id : ''; G.save(true);
+    S().cardSkin = (ART[id] || id === 'affiche') ? id : ''; G.save(true);
     document.querySelectorAll('.cc').forEach(c => skinCard(c)); // toutes les cartes visibles (Portefeuille, Trad Banque…)
     if (id) { TC.sound('ach'); TC.confetti(90); }
   };
@@ -102,16 +103,16 @@
     if (card.dataset.skin === key) return;
     card.dataset.skin = key;
     ['orange', 'blue', 'yellow'].forEach(x => card.classList.toggle('sk-' + x, x === sk));
-    card.classList.toggle('sk-brick', !!sk);
+    card.classList.toggle('sk-brick', !!ART[sk]); card.classList.toggle('sk-poster', sk === 'affiche');
     const art = card.querySelector('.cc-art'); if (!art) return;
-    art.innerHTML = sk ? brickSvg(ART[sk]) + '<i>✦</i><i>✦</i><i>✦</i><i>✦</i>' : '';
-    if (sk) { art.classList.remove('pop'); void art.offsetWidth; art.classList.add('pop'); } // les briques « s'assemblent »
+    art.innerHTML = ART[sk] ? brickSvg(ART[sk]) + '<i>✦</i><i>✦</i><i>✦</i><i>✦</i>' : '';
+    if (ART[sk]) { art.classList.remove('pop'); void art.offsetWidth; art.classList.add('pop'); } // les briques « s'assemblent »
   }
   K.skinPicker = function () {
     const cur = K.skin();
     const md = TC.modal(`<div class="skin-pick"><h2>🎨 Style de ma carte</h2><p class="muted">Gratuit pour tout le monde : la carte garde ton niveau (${esc(K.tier(G.netWorth()).name)}), seul son habillage change.</p>
       <div class="skin-grid">${K.SKINS.map(s => `<button class="skin-opt ${s.id === cur ? 'on' : ''}" data-skin="${s.id}">
-        <div class="cc-mini ${s.id ? 'sk-brick sk-' + s.id : ''}"><div class="cc-art">${s.id ? brickSvg(ART[s.id]) : '<span class="cc-mini-tc">TC</span>'}</div>${s.id ? '<div class="cc-foil"></div>' : ''}</div>
+        <div class="cc-mini ${s.id === 'affiche' ? 'sk-poster' : s.id ? 'sk-brick sk-' + s.id : ''}"><div class="cc-art">${ART[s.id] ? brickSvg(ART[s.id]) : s.id ? '' : '<span class="cc-mini-tc">TC</span>'}</div>${s.id ? '<div class="cc-foil"></div>' : ''}</div>
         <b>${esc(s.name)}</b><small>${esc(s.sub)}</small></button>`).join('')}</div>
       <div class="modal-actions"><button class="btn" data-close>Fermer</button></div></div>`, { cls: 'wide' });
     md.el.querySelectorAll('[data-skin]').forEach(b => { b.onclick = () => { K.setSkin(b.dataset.skin); md.el.querySelectorAll('[data-skin]').forEach(x => x.classList.toggle('on', x === b)); }; });
@@ -123,13 +124,10 @@
   K.expo = function () {
     const E = K.EXPO;
     const md = TC.modal(`<div class="expo"><span class="expo-ad">📣 Publicité</span>
-      <h1 class="expo-title">${esc(E.name.toUpperCase())}</h1>
-      <div class="expo-date">${esc(E.when.toUpperCase())}</div>
-      <div class="expo-art"><div>${brickSvg(ART.orange)}</div><div class="big">${brickSvg(ART.blue)}</div><div>${brickSvg(ART.yellow)}</div></div>
-      <div class="expo-town">${esc(E.place.toUpperCase())}</div>
-      <p class="expo-info"><b>${esc(E.hours)}</b> · ${esc(E.venue)}<br><b>${esc(E.price)}</b></p>
-      <button class="btn btn-gold btn-xl" id="expo-skin">🎨 Habiller ma carte en briques</button>
-      <small class="expo-note">Des sculptures géantes en briques à voir en vrai. Vérifie les infos sur l'affiche officielle avant d'y aller.</small>
+      <img class="expo-poster" src="icons/expo-poster.jpg" alt="Affiche de ${esc(E.name)} à ${esc(E.place)}, les 9 et 10 janvier">
+      <p class="expo-info"><b>${esc(E.when)}</b> · ${esc(E.place)}<br>${esc(E.hours)} · ${esc(E.venue)} · <b>${esc(E.price)}</b></p>
+      <button class="btn btn-gold btn-xl" id="expo-skin">🎨 Habiller ma carte aux couleurs de l'expo</button>
+      <small class="expo-note">Affiche de l'événement. Vérifie les infos auprès des organisateurs avant d'y aller.</small>
       <div class="modal-actions"><button class="btn btn-ghost" data-close>Fermer</button></div></div>`, { cls: 'expo-modal' });
     md.el.querySelector('#expo-skin').onclick = () => { md.close(); K.skinPicker(); };
   };
@@ -153,7 +151,7 @@
           <div class="cc-next" id="cc-next"></div>
         </div></div></div>
       <p class="cc-hint">☝️ Glisse pour la faire tourner · touche pour la retourner</p>
-      <div class="cc-tools"><button class="btn btn-sm" data-skinpick>🎨 Style de la carte</button></div>${K.promoOn() ? `<button class="cc-promo" data-expo>🧱 <span><b>Expo Briques</b> · 9 &amp; 10 janvier · Alès</span> <em>Voir →</em></button>` : ''}`;
+      <div class="cc-tools"><button class="btn btn-sm" data-skinpick>🎨 Style de la carte</button></div>${K.promoOn() ? `<button class="cc-promo" data-expo><img class="cc-promo-img" src="icons/expo-poster.jpg" alt=""> <span><b>Expo Briques</b> · 9 &amp; 10 janvier · Alès</span> <em>Voir →</em></button>` : ''}`;
     const card = zone.querySelector('#cc');
     const apply = () => { const X = rx + (drag ? 0 : tilt.x), Y = ry + (drag ? 0 : tilt.y); card.style.transform = `rotateX(${X.toFixed(2)}deg) rotateY(${Y.toFixed(2)}deg)`; card.style.setProperty('--sx', (50 + Y * 1.2) + '%'); card.style.setProperty('--sy', (50 - X * 1.5) + '%'); };
     tilt.apply = () => { if (!drag && zone.isConnected && Date.now() - flipT > 650) { card.classList.add('tilting'); apply(); } };
