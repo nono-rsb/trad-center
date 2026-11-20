@@ -37,7 +37,7 @@
       <button class="btn btn-gold btn-xl" data-soc="pseudo">Valider</button><p class="hint">3 à 16 caractères : lettres, chiffres, _</p>
       <button class="btn btn-ghost btn-sm" data-soc="logout">Se déconnecter</button></div>`;
     if (!N.profile) return `<div class="panel empty big">Chargement du profil…</div>`;
-    return profileCard() + (TC.Duel ? TC.Duel.block() : '') + (TC.Share && TC.Share.block ? TC.Share.block() : '') + (TC.Clan ? TC.Clan.block() : '') + raceBlock() + inviteBlock() + friendsBlock() + boardBlock() + (TC.Admin && TC.Admin.claudeCard ? TC.Admin.claudeCard() : '') + (TC.Admin && TC.Admin.botCard ? TC.Admin.botCard() : '') + historyBlock();
+    return profileCard() + (TC.Duel ? TC.Duel.block() : '') + (TC.Share && TC.Share.block ? TC.Share.block() : '') + (TC.Clan ? TC.Clan.block() : '') + discordBlock() + raceBlock() + inviteBlock() + friendsBlock() + boardBlock() + (TC.Admin && TC.Admin.claudeCard ? TC.Admin.claudeCard() : '') + (TC.Admin && TC.Admin.botCard ? TC.Admin.botCard() : '') + historyBlock();
   }
 
   function authForm() {
@@ -114,6 +114,13 @@
   }
   const fmtDate = t => new Date(t).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
 
+  function discordBlock() {
+    if (!TC.DISCORD) return '';
+    return `<div class="panel disc"><div class="inv-top"><div class="big-emoji">💬</div><div><h3>Rejoins le Discord de Trad Center</h3>
+      <p>Pose tes questions, trouve des amis et suis les événements.</p></div></div>
+      <a class="btn btn-gold btn-xl" href="${esc(TC.DISCORD)}" target="_blank" rel="noopener">💬 Rejoindre le Discord</a>
+      <p class="hint">Ne donne jamais ton mot de passe ni ton adresse e-mail sur Discord.</p></div>`;
+  }
   function inviteBlock() {
     const r = N.referrals || []; const ok = r.filter(x => x.ok).length;
     return `<div class="panel invite"><div class="inv-top"><div class="big-emoji">🎁</div><div><h3>Invite tes amis : +${N.REF_BONUS} € par ami</h3>
