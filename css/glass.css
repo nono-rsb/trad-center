@@ -924,7 +924,7 @@ html.briques .icon-btn.gold::after { content: '🧱'; margin-left: 2px; font-siz
 .cc-art i:nth-of-type(3) { left: -8%; bottom: 14%; animation-delay: 1.3s; } .cc-art i:nth-of-type(4) { right: -6%; top: -8%; animation-delay: 1.9s; }
 @keyframes brickspark { 0%, 100% { opacity: 0; transform: scale(.3) rotate(0); } 50% { opacity: 1; transform: scale(1.15) rotate(25deg); } }
 /* reflet holographique : la bande arc-en-ciel suit l'inclinaison de la carte, et un éclat la traverse de temps en temps */
-.cc.sk-brick .cc-foil, .cc-mini.sk-brick .cc-foil { display: block; position: absolute; inset: 0; pointer-events: none; mix-blend-mode: color-dodge; opacity: .65; overflow: hidden;
+.cc.sk-brick .cc-foil, .cc-mini.sk-brick .cc-foil, .cc.sk-poster .cc-foil, .cc-mini.sk-poster .cc-foil { display: block; position: absolute; inset: 0; pointer-events: none; mix-blend-mode: color-dodge; opacity: .65; overflow: hidden;
   background: linear-gradient(115deg, transparent 18%, rgba(255,60,160,.6) 30%, rgba(255,230,60,.6) 38%, rgba(60,255,180,.6) 46%, rgba(60,170,255,.6) 54%, rgba(170,90,255,.55) 62%, transparent 74%);
   background-size: 260% 260%; background-position: var(--sx, 50%) var(--sy, 50%); }
 .cc-foil::after { content: ''; position: absolute; top: -25%; bottom: -25%; width: 22%; left: -40%; transform: skewX(-18deg); background: linear-gradient(90deg, transparent, rgba(255,255,255,.75), transparent); animation: brickglint 4.2s ease-in-out infinite; }
@@ -955,3 +955,12 @@ html.briques .icon-btn.gold::after { content: '🧱'; margin-left: 2px; font-siz
 .expo .btn-xl { width: 100%; }
 .expo-note { display: block; margin: 8px 0 4px; font-size: 11px; color: #0c2f86; opacity: .8; }
 .expo .btn-ghost { color: #0c2f86; border-color: rgba(12,47,134,.35); }
+
+/* 📸 Habillage « Affiche de l'expo » : les vraies sculptures de l'affiche en fond de carte */
+.cc.sk-poster, .cc-mini.sk-poster { --ink: #fff; --acc: #ffe100; }
+.cc.sk-poster .cc-face, .cc-mini.sk-poster { background-image: linear-gradient(180deg, rgba(0,0,0,.3) 0%, transparent 26%, transparent 52%, rgba(5,20,60,.78) 100%), url(../icons/expo-card.jpg); background-size: 100% 100%, cover; background-position: center; border-color: rgba(255,255,255,.75); }
+.cc.sk-poster .cc-front::after { background: none; }
+.cc.sk-poster .cc-tier { background: rgba(255,255,255,.92); color: #1b1b1b; }
+.cc.sk-poster .cc-brand, .cc.sk-poster .cc-num, .cc.sk-poster .cc-bot b, .cc.sk-poster .cc-bot small, .cc.sk-poster .cc-logo { text-shadow: 0 2px 5px rgba(0,0,0,.8); }
+.expo-poster { display: block; width: 100%; max-height: 62vh; object-fit: contain; margin: 22px auto 10px; border-radius: 14px; box-shadow: 0 8px 22px rgba(0,30,110,.4); }
+.cc-promo-img { width: 34px; height: 48px; object-fit: cover; object-position: top; border-radius: 6px; border: 1px solid rgba(255,255,255,.7); flex: none; }
