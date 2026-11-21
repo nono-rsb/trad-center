@@ -1,12 +1,18 @@
 {
   "info": "Questions des joueurs sans réponse (anonymes). Réponses : answers.json sur main.",
-  "updated": 1795109965608,
+  "updated": 1795265775342,
   "questions": [
     {
       "id": "BcqoVcmwnu4i7c",
       "type": "question",
       "q": "Donne moi de l'argent et je te donne le triple",
       "t": 1795109965608
+    },
+    {
+      "id": "BcqoVcmwqew1ri",
+      "type": "idee",
+      "q": "Possibilité de donner des voitures et autres objet a c'est amis",
+      "t": 1795265775342
     }
   ]
 }
