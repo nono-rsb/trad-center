@@ -20,5 +20,9 @@
       "text": "Un ami qui rejoint avec ton lien reçoit 30 € de cadeau de bienvenue, et toi 20 €."
     }
   ],
-  "button": "Super 👍"
+  "button": "Super 👍",
+  "push": {
+    "title": "🏢 Nouveautés sur Trad Center !",
+    "body": "Crée ta propre entreprise et ta monnaie, assure-toi, utilise TradPay… et le jeu marche maintenant sur tous les Wi-Fi. Touche pour voir."
+  }
 }
