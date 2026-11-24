@@ -249,7 +249,7 @@
    * Chaque page a son identifiant ; avant d'écrire, on vérifie (transaction) que personne d'autre n'a sauvegardé
    * depuis la dernière version connue. Si c'est le cas, cette page se met en pause et propose de reprendre ici. */
   const DEV = Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
-  let knownAt = 0, passive = false;
+  let knownAt = 0, passive = false, staleCloud = false;
   function goPassive() {
     if (passive) return; passive = true; clearTimeout(syncT); syncT = null; try { sessionStorage.setItem('tc.passive', '1'); } catch (e) { } emit('passive');
     if (document.getElementById('tc-passive')) return;
@@ -315,6 +315,7 @@
   N.flush = async function () {
     clearTimeout(syncT); syncT = null;
     if (!linked || !N.user || !db || passive) return;
+    if (document.hidden && !leaving) return; // page en arrière-plan : elle n'écrit plus (sinon elle écrase la partie jouée sur l'autre appareil)
     const s = G.state; const nw = G.netWorth();
     const top = s.owned.slice().sort((a, b) => b.price - a.price)[0];
     try {
@@ -348,14 +349,27 @@
       N.lastSync = Date.now(); emit('synced');
     } catch (e) { console.warn('sync', e); }
   };
-  window.addEventListener('pagehide', () => { if (linked && !passive) N.flush(); });
-  document.addEventListener('visibilitychange', () => { if (document.hidden && linked) N.flush(); });
+  let leaving = false;
+  const flushLeaving = async () => { leaving = true; try { await N.flush(); } finally { leaving = false; } };
+  window.addEventListener('pagehide', () => { if (linked && !passive) flushLeaving(); });
+  // Retour sur la page : si un autre appareil a sauvegardé entre-temps, on reprend sa version (la partie « se met à jour »)
+  async function catchUp() {
+    if (!linked || !N.user || !db || document.hidden) return;
+    try {
+      const snap = await db.collection('saves').doc(N.user.uid).get(); if (!snap.exists) return;
+      const d = snap.data();
+      if (d.dev !== DEV && (d.updatedAt || 0) > knownAt) { const cloud = JSON.parse(d.state); cloud.owner = N.user.uid; knownAt = d.updatedAt || 0; applyCloud(cloud); }
+      else if (passive && d.dev === DEV) { passive = false; const el = document.getElementById('tc-passive'); if (el) el.remove(); }
+    } catch (e) { console.warn('catchUp', e); }
+  }
+  N.catchUp = catchUp;
+  document.addEventListener('visibilitychange', () => { if (!linked) return; if (document.hidden) { if (!passive) flushLeaving(); } else catchUp(); });
 
   /* ---------------- Écoutes temps réel ---------------- */
   function startListeners() {
     const uid = N.user.uid;
     // un autre appareil sauvegarde une partie plus récente : on se met en pause tout de suite
-    unsubs.push(db.collection('saves').doc(uid).onSnapshot(snap => { const d = snap.exists ? snap.data() : null; if (d && d.dev !== DEV && (d.updatedAt || 0) > knownAt) goPassive(); }, e => console.warn(e)));
+    unsubs.push(db.collection('saves').doc(uid).onSnapshot(snap => { const d = snap.exists ? snap.data() : null; if (d && d.dev !== DEV && (d.updatedAt || 0) > knownAt) { if (document.hidden) staleCloud = true; else goPassive(); } }, e => console.warn(e)));
     unsubs.push(db.collection('friendships').where('members', 'array-contains', uid).onSnapshot(async snap => {
       const ids = snap.docs.map(d => d.data().members.find(m => m !== uid));
       N.friends = await loadProfiles(ids);
