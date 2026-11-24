@@ -169,7 +169,12 @@
     } catch (e) { console.warn('doublon', e); }
     A.enforce();
   };
-  N.on(t => { if (t === 'linked') { A.loadBans().then(A.checkDup); A.checkGifts(); } });
+  // Préchargement : à la connexion du créateur, la liste des joueurs est lue en arrière-plan pour que l'onglet s'ouvre tout de suite
+  A.warm = async function () {
+    if (!A.isAdmin() || A._cache || !N.db()) return;
+    try { const sn = await N.db().collection('users').get(); if (!A._cache) A._cache = { users: sn.docs.map(d => N.prof(d.id, d.data())).filter(u => !u.bot).sort((a, b) => (b.nw || 0) - (a.nw || 0)), mod: [], modDone: {}, decided: {} }; } catch (e) { }
+  };
+  N.on(t => { if (t === 'linked') { A.loadBans().then(A.checkDup); A.checkGifts(); setTimeout(A.warm, 4000); } });
   setInterval(() => { if (!document.hidden) { A.loadBans(); A.checkGifts(); } }, 5 * 60000);
 
   /* ---------- Cadeaux du créateur (ex. rendre l'argent d'un compte perdu) ----------
@@ -235,19 +240,22 @@
   A.open = async function () {
     if (!A.isAdmin()) return;
     const md = TC.modal(`<h2>🛡️ Mode créateur</h2><div class="adm"><div class="adm-bar"><input id="adm-q" placeholder="Rechercher un joueur…" value="${esc(filter)}"><button class="btn btn-sm" id="adm-reload">↻</button><button class="btn btn-sm" data-qadmin>❓ Questions</button></div><div id="adm-list" class="adm-list"><div class="empty">Chargement…</div></div></div>`, { cls: 'wide' });
+    // Chargement rapide : la liste du dernier passage s'affiche tout de suite, puis les lectures partent EN PARALLÈLE (avant : une dizaine d'allers-retours l'un après l'autre)
     const load = async () => {
+      const c = A._cache; if (c) { users = c.users; mod = c.mod; modDone = c.modDone; decided = c.decided; render(); }
       try {
-        await A.loadBans();
-        const s = await N.db().collection('users').get();
-        users = s.docs.map(d => N.prof(d.id, d.data())).filter(u => !u.bot).sort((a, b) => (b.nw || 0) - (a.nw || 0));
+        const db = N.db(), safe = p => p.catch(() => null);
+        const [us, sv, m, gs] = await Promise.all([db.collection('users').get(), A.botUid ? safe(db.collection('saves').doc(A.botUid).get()) : null, safe(modRef().get()), safe(giftRef().get()), safe(A.loadBans())]);
+        users = us.docs.map(d => N.prof(d.id, d.data())).filter(u => !u.bot).sort((a, b) => (b.nw || 0) - (a.nw || 0));
         // ménage : les joueurs qui ont changé de pseudo après un blocage « nouveau pseudo » sont débloqués pour de bon
         const done = Object.keys(A.bans).filter(id => A.renamedAway(id, A.bans[id]));
         if (done.length) { const upd = {}; done.forEach(id => { upd[id] = firebase.firestore.FieldValue.delete(); delete A.bans[id]; }); banRef().set({ users: upd }, { merge: true }).catch(() => { }); }
-        try { const sv = A.botUid ? await N.db().collection('saves').doc(A.botUid).get() : null; mod = (sv && sv.exists && sv.data().modReports) || []; } catch (e) { mod = []; }
-        try { const m = await modRef().get(); modDone = (m.exists && m.data().done) || {}; } catch (e) { modDone = {}; }
-        try { const gs = await giftRef().get(); decided = {}; ((gs.exists && gs.data().list) || []).forEach(g => { if (g.claim) decided[g.claim] = 1; }); } catch (e) { }
+        mod = (sv && sv.exists && sv.data().modReports) || [];
+        modDone = (m && m.exists && m.data().done) || {};
+        decided = {}; ((gs && gs.exists && gs.data().list) || []).forEach(g => { if (g.claim) decided[g.claim] = 1; });
+        A._cache = { users, mod, modDone, decided };
         render();
-      } catch (e) { $('#adm-list').innerHTML = `<div class="empty">Erreur : ${esc(N.errMsg(e))}</div>`; }
+      } catch (e) { if (!c) $('#adm-list').innerHTML = `<div class="empty">Erreur : ${esc(N.errMsg(e))}</div>`; }
     };
     let decided = {}, mod = [], modDone = {};
     const modSeen = () => G.state.modSeen || (G.state.modSeen = {});
