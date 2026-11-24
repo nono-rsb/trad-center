@@ -370,7 +370,10 @@
       N.outgoing = snap.docs.map(d => Object.assign({ id: d.id }, d.data())); emit('change');
     }, e => console.warn(e)));
     unsubs.push(db.collection('transfers').where('to', '==', uid).where('claimed', '==', false).onSnapshot(snap => {
-      snap.docChanges().forEach(ch => { if (ch.type === 'added') claim(ch.doc.ref); });
+      snap.docChanges().forEach(ch => { if (ch.type === 'added') claimWhen(ch.doc); });
+    }, e => console.warn(e)));
+    unsubs.push(db.collection('transfers').where('from', '==', uid).where('claimed', '==', false).onSnapshot(snap => { // mes virements encore en route
+      N.sentLater = snap.docs.map(d => d.data()).filter(x => (x.availAt || 0) > Date.now()); emit('change');
     }, e => console.warn(e)));
     const t = setInterval(() => { if (N.friends.length && !document.hidden) loadProfiles(N.friends.map(f => f.uid)).then(f => { N.friends = f; emit('change'); }); }, 5 * 60000);
     unsubs.push(() => clearInterval(t));
@@ -379,7 +382,16 @@
     const out = await Promise.all(ids.map(id => db.collection('users').doc(id).get().then(s => s.exists ? prof(id, s.data()) : null).catch(() => null)));
     return out.filter(Boolean).sort((a, b) => (b.nw || 0) - (a.nw || 0));
   }
-  const claiming = new Set();
+  const claiming = new Set(), waiting = new Set();
+  // virement avec délai : l'argent n'est encaissé qu'à l'heure d'arrivée (mémorisé en N.incomingLater pour l'affichage)
+  function claimWhen(doc) {
+    const a = doc.data().availAt || 0, wait = a - Date.now();
+    if (wait <= 0) return claim(doc.ref);
+    if (waiting.has(doc.id)) return; waiting.add(doc.id);
+    (N.incomingLater = N.incomingLater || {})[doc.id] = { at: a, eur: doc.data().eur, from: doc.data().fromPseudo };
+    emit('change');
+    setTimeout(() => { waiting.delete(doc.id); if (N.incomingLater) delete N.incomingLater[doc.id]; claim(doc.ref); }, Math.min(wait + 500, 2e9));
+  }
   async function claim(ref) {
     if (claiming.has(ref.id)) return; claiming.add(ref.id);
     try {
@@ -423,19 +435,24 @@
   N.removeFriend = uid => db.collection('friendships').doc(pairId(uid, N.user.uid)).delete();
 
   /* ---------------- Envois ---------------- */
-  N.send = async function (friend, kind, asset, amount, msg) {
+  // opts.mode (virements en €) : 'sepa' = gratuit mais reçu en 1 jour ouvré ; 'instant' = tout de suite pour 1 % de frais ; rien = tout de suite, gratuit (Trad Drop)
+  N.send = async function (friend, kind, asset, amount, msg, opts) {
     if (TC.haptic) TC.haptic([25]); // « tic » dès qu'on appuie sur Envoyer
+    const q = kind === 'cash' && TC.Fr && opts && opts.mode ? TC.Fr.quote(+amount, opts.mode) : { fee: 0, availAt: 0 };
+    if (q.fee > 0 && +amount + q.fee > G.state.cash + 1e-9) throw userErr('Cash insuffisant (frais de virement instantané : ' + TC.fmt.eur(q.fee) + ')');
     const t = G.takeForTransfer(kind, asset, amount);
     if (!t.ok) throw userErr(t.msg);
     try {
       await db.collection('transfers').add({
         from: N.user.uid, to: friend.uid, fromPseudo: N.profile.pseudo, fromAvatar: N.profile.avatar, toPseudo: friend.pseudo,
-        kind: t.kind, asset: t.asset, qty: t.qty, eur: t.eur, msg: (msg || '').slice(0, 120), createdAt: Date.now(), claimed: false,
+        kind: t.kind, asset: t.asset, qty: t.qty, eur: t.eur, msg: (msg || '').slice(0, 120), createdAt: Date.now(), claimed: false, ...(q.availAt ? { availAt: q.availAt } : {}),
       });
     } catch (e) { G.refundTransfer(t); throw e; }
     G.logSent(t, friend.pseudo);
+    if (q.fee > 0) TC.Fr.charge(q.fee);
+    t.availAt = q.availAt; t.fee = q.fee;
     N.flush();
-    N.notifyPlayer(friend.uid, 'transfer', { asset: t.asset || null, qty: t.qty, eur: t.eur, msg: (msg || '').slice(0, 120) });
+    if (!q.availAt) N.notifyPlayer(friend.uid, 'transfer', { asset: t.asset || null, qty: t.qty, eur: t.eur, msg: (msg || '').slice(0, 120) });
     if (TC.haptic) TC.haptic([40, 60, 40]); // argent parti : double vibration
     return t;
   };

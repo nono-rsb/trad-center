@@ -14,7 +14,7 @@
 
   /* ---------- Relevé : sens et libellé de chaque opération ---------- */
   const IN = { loan: 1, sell: 1, itemsell: 1, rent: 1, biz: 1, recv: 1, close: 1, liq: 1, betres: 1 };
-  const LBL = { tax: '🏛️ Impôt', shop: '🛒 Courses', loan: '🏦 Prêt reçu', repay: '🏦 Remboursement', fine: '🛡️ Correction', buy: '📈 Achat', sell: '📉 Vente', open: '⚡ Position levier', close: '✅ Clôture levier', liq: '💀 Liquidation', bet: '🎲 Pari', betres: '🎲 Pari terminé', item: '🛍️ Achat', itemsell: '♻️ Revente', rent: '🏠 Loyers', biz: '🏪 Commerces', bonus: '🎁 Bonus', send: '📤 Virement émis', recv: '📥 Virement reçu' };
+  const LBL = { tax: '🏛️ Impôt', shop: '🛒 Courses', loan: '🏦 Prêt reçu', repay: '🏦 Remboursement', fine: '🛡️ Correction', buy: '📈 Achat', sell: '📉 Vente', open: '⚡ Position levier', close: '✅ Clôture levier', liq: '💀 Liquidation', bet: '🎲 Pari', betres: '🎲 Pari terminé', item: '🛍️ Achat', itemsell: '♻️ Revente', rent: '🏠 Loyers', biz: '🏪 Commerces', bonus: '🎁 Bonus', send: '📤 Virement émis', recv: '📥 Virement reçu', fr: '🇫🇷 Vie quotidienne' };
   function op(l) {
     let sign = IN[l.kind] ? 1 : -1;
     if (l.kind === 'bonus') sign = (l.eur || 0) >= 0 ? 1 : -1;
@@ -41,7 +41,7 @@
     return `<div class="bk-hello">Bonjour ${esc(pseudo())} 👋</div>
       <div id="bk-card"></div>
       <div class="bk-bal"><div><small>Solde disponible</small><b>${fmt.eur(S().cash)}</b></div><div><small>Patrimoine total</small><b>${fmt.eur(nw)}</b></div></div>
-      <div class="bk-quick"><button data-go="send">💸<span>Virement</span></button><button data-go="drop">📲<span>Trad Drop</span></button><button data-go="scan">📷<span>Payer</span></button><button data-go="history">📜<span>Relevé</span></button><button data-go="advisor">💬<span>Conseiller</span></button></div>
+      <div class="bk-quick"><button data-go="send">💸<span>Virement</span></button><button data-go="drop">📲<span>Trad Drop</span></button><button data-go="scan">📷<span>Payer</span></button><button data-go="history">📜<span>Relevé</span></button><button data-go="advisor">💬<span>Conseiller</span></button><button data-fr="pay">💙<span>TradPay</span></button></div>
       ${TC.Loan ? TC.Loan.panel() : ''}
       <div class="bk-panel"><h3>7 derniers jours</h3><div class="bk-flow"><div><small>Entrées</small><b class="in">+${fmt.eur(tin)}</b></div><div><small>Sorties</small><b class="out">−${fmt.eur(tout)}</b></div></div></div>
       <div class="bk-panel"><h3>Dernières opérations <button class="bk-link" data-go="history">Tout voir</button></h3>${ops.length ? ops.map(opRow).join('') : '<div class="empty">Aucune opération pour l\'instant.</div>'}</div>
@@ -58,8 +58,9 @@
         <small class="muted">Disponible : ${fmt.eur(S().cash)}</small>
         <div class="bk-qamt">${[10, 50, 100, 500].map(v => `<button data-amt="${v}">${v} €</button>`).join('')}</div>
         <input id="bk-msg" maxlength="120" placeholder="Message (facultatif)" class="bk-msg"></div>
+      <div class="bk-panel"><h3>Délai</h3><div class="bk-modes"><button class="${B.mode === 'instant' ? '' : 'on'}" data-mode="sepa">🕐 Classique<small>Gratuit · 1 jour ouvré</small></button><button class="${B.mode === 'instant' ? 'on' : ''}" data-mode="instant">⚡ Instantané<small>1 % (0,50 € min)</small></button></div></div>
       <button class="btn btn-gold btn-xl bk-full" id="bk-send">Envoyer le virement</button>
-      <p class="hint">Le virement est instantané : ton ami reçoit l'argent et une notification.</p>`;
+      <p class="hint">Classique : l'argent arrive le jour ouvré suivant (pas le week-end : lundi 9 h). Instantané : ton ami le reçoit tout de suite, avec une notification. ${(N.sentLater || []).length ? '<br>📤 En route : ' + N.sentLater.map(x => fmt.eur(x.eur) + ' → ' + esc(x.toPseudo) + ' (' + new Date(x.availAt).toLocaleString('fr-FR', { weekday: 'short', hour: '2-digit', minute: '2-digit' }) + ')').join(' · ') : ''}</p>`;
   }
   function history() {
     const ops = S().log.slice(0, 150).map(op);
@@ -494,6 +495,7 @@
         const nav = t.closest('[data-tab]'); if (nav) { stopScan(); B.tab = nav.dataset.tab; if (B.tab !== 'drop' && drop) await stopDrop(true); render(); window.scrollTo(0, 0); return; }
     const go = t.closest('[data-go]'); if (go) { stopScan(); B.tab = go.dataset.go; render(); if (B.tab === 'scan') startScan(); window.scrollTo(0, 0); return; }
     const ben = t.closest('[data-ben]'); if (ben) { B.to = ben.dataset.ben; render(); return; }
+    const md = t.closest('[data-mode]'); if (md) { B.mode = md.dataset.mode; render(); return; }
     const qa = t.closest('[data-amt]'); if (qa) { $('#bk-amt').value = qa.dataset.amt; return; }
     const a = t.closest('[data-ask]'); if (a) return ask(a.dataset.ask, a.textContent);
     const b = t.closest('button'); if (!b || !b.id) return;
@@ -501,9 +503,10 @@
     if (b.id === 'bk-send') return busy(async () => {
       const f = (N.friends || []).find(x => x.uid === B.to); if (!f) throw new Error('Choisis un bénéficiaire.');
       const amt = +$('#bk-amt').value; if (!(amt > 0)) throw new Error('Entre un montant.');
-      if (!(await TC.confirm('Confirmer le virement', `<b>${fmt.eur(amt)}</b> à <b>${esc(f.pseudo)}</b>`, 'Envoyer', 'btn-gold'))) return;
-      await N.send(f, 'cash', null, amt, $('#bk-msg').value);
-      TC.sound('kaching'); TC.toast(`✅ Virement de ${fmt.eur(amt)} envoyé à ${esc(f.pseudo)}`, 'ok', 6000); B.tab = 'home'; render();
+      const mode = B.mode === 'instant' ? 'instant' : 'sepa', q = TC.Fr.quote(amt, mode);
+      if (!(await TC.confirm('Confirmer le virement', `<b>${fmt.eur(amt)}</b> à <b>${esc(f.pseudo)}</b><br><small>${mode === 'instant' ? `⚡ Instantané : frais ${fmt.eur(q.fee)}` : `🕐 Classique : arrive ${TC.Fr.fmtWhen(q.availAt)}`}</small>`, 'Envoyer', 'btn-gold'))) return;
+      await N.send(f, 'cash', null, amt, $('#bk-msg').value, { mode });
+      TC.sound('kaching'); TC.toast(mode === 'instant' ? `⚡ ${fmt.eur(amt)} envoyés à ${esc(f.pseudo)}` : `🕐 Virement de ${fmt.eur(amt)} programmé : ${esc(f.pseudo)} le reçoit ${TC.Fr.fmtWhen(q.availAt)}`, 'ok', 8000); B.tab = 'home'; render();
     });
     if (b.id === 'bk-add') return busy(async () => { const r = await N.addFriend($('#bk-addp').value); TC.toast(r === 'accepted' ? '🤝 Bénéficiaire ajouté' : '✉️ Demande envoyée : il apparaîtra dès qu\'il aura accepté', 'ok', 6000); });
     if (b.id === 'bk-drecv') return busy(startRecv);

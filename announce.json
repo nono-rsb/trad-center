@@ -1,24 +1,29 @@
 {
-  "id": "discord-2026-11-20",
-  "emoji": "💬",
-  "title": "Rejoins le Discord !",
-  "tab": "social",
+  "id": "vie-france-2026-11-24",
+  "emoji": "🇫🇷",
+  "title": "La vie comme en France !",
+  "tab": "portfolio",
   "items": [
     {
-      "icon": "👥",
-      "title": "La communauté de Trad Center",
-      "text": "Pose tes questions, trouve des amis, suis les événements et les nouveautés."
+      "icon": "🏛️",
+      "title": "Taxe foncière",
+      "text": "Chaque semaine, un avis pour tes biens immobiliers : 7 jours pour payer, sinon +10 % et compte bloqué. Prélèvement automatique possible."
     },
     {
-      "icon": "🔒",
-      "title": "Reste prudent",
-      "text": "Ne donne jamais ton mot de passe ni ton adresse e-mail sur Discord."
+      "icon": "🛡️",
+      "title": "Assurances habitation et auto",
+      "text": "Cambriolages, incendies, accrochages arrivent au hasard. Assuré, tu ne paies que la franchise. 24 h de carence."
+    },
+    {
+      "icon": "🕐",
+      "title": "Virements avec délai",
+      "text": "Virement classique gratuit : il arrive en 1 jour ouvré (lundi 9 h le week-end). Instantané : 1 % de frais."
+    },
+    {
+      "icon": "💙",
+      "title": "TradPay, comme PayPal",
+      "text": "Un portefeuille en ligne : alimente-le, envoie à tes amis gratuitement, retire vers ton compte (1 jour ouvré ou tout de suite pour 1,5 %)."
     }
   ],
-  "button": "Rejoindre le Discord 💬",
-  "url": "https://discord.gg/6QfD3xJWTK",
-  "push": {
-    "title": "💬 Le Discord de Trad Center",
-    "body": "Rejoins la communauté : questions, amis, événements. Touche pour voir le lien."
-  }
+  "button": "Découvrir 🇫🇷"
 }

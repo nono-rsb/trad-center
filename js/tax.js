@@ -29,19 +29,19 @@
   X.DELAY = 3 * 86400000; X.LATE = 0.10;
   const S = () => TC.Game.state;
   const bills = () => (S().taxBills || (S().taxBills = []));
-  X.owe = function (amt, what) {
+  X.owe = function (amt, what, delay) { // delay : délai de paiement propre à cet avis (taxe foncière : 7 jours), sinon 3 jours
     amt = Math.round(amt * 100) / 100; if (!(amt > 0)) return;
     const today = new Date().toDateString(), b = bills();
     const last = b[b.length - 1];
-    if (last && !last.late && new Date(last.at).toDateString() === today) last.amt = Math.round((last.amt + amt) * 100) / 100; // un avis par jour
-    else b.push({ amt, at: Date.now(), what: what || 'revenus' });
+    if (!delay && last && !last.late && !last.d && new Date(last.at).toDateString() === today) last.amt = Math.round((last.amt + amt) * 100) / 100; // un avis par jour
+    else b.push(delay ? { amt, at: Date.now(), what: what || 'revenus', d: delay } : { amt, at: Date.now(), what: what || 'revenus' });
     TC.Game.save(); X.bar();
   };
   X.due = () => Math.round(bills().reduce((t, b) => t + b.amt, 0) * 100) / 100;
-  X.deadline = () => bills().length ? Math.min(...bills().map(b => b.at)) + X.DELAY : null;
+  X.deadline = () => bills().length ? Math.min(...bills().map(b => b.at + (b.d || X.DELAY))) : null;
   X.blocked = function () {
     let changed = false;
-    bills().forEach(b => { if (!b.late && Date.now() > b.at + X.DELAY) { b.late = true; b.amt = Math.round(b.amt * (1 + X.LATE) * 100) / 100; changed = true; } });
+    bills().forEach(b => { if (!b.late && Date.now() > b.at + (b.d || X.DELAY)) { b.late = true; b.amt = Math.round(b.amt * (1 + X.LATE) * 100) / 100; changed = true; } });
     if (changed) { TC.Game.save(true); setTimeout(X.bar, 0); }
     return bills().some(b => b.late);
   };
@@ -64,7 +64,7 @@
       <div class="kv"><span>À payer</span><b>${fmt.eur(due)}</b>${!bl && dl ? `<span>Avant le</span><b>${new Date(dl).toLocaleString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}</b>` : ''}<span>Cash disponible</span><b>${fmt.eur(S().cash)}</b><span>Déjà payés</span><b>${fmt.eur(X.paid(S()))}</b></div>
       ${bills().length ? `<div class="tax-bills">${bills().map(b => `<div><span>${new Date(b.at).toLocaleDateString('fr-FR')} · ${TC.esc(b.what)}${b.late ? ' <i class="down">en retard +10 %</i>' : ''}</span><b>${fmt.eur(b.amt)}</b></div>`).join('')}</div>` : '<p class="muted">Tu ne dois rien aux impôts 👍</p>'}
       ${due && S().cash < due ? `<p class="hint">Il te manque ${fmt.eur(due - S().cash)} : revends des actifs, des objets ou un commerce pour avoir du cash.</p>` : ''}
-      <p class="hint">Les impôts portent sur les recettes des commerces et les loyers (taux ${X.pct(X.rate())} pour ton patrimoine). Tu as 3 jours pour payer chaque avis.</p>
+      <p class="hint">Les impôts portent sur les recettes des commerces et les loyers (taux ${X.pct(X.rate())} pour ton patrimoine). Tu as 3 jours pour payer chaque avis (7 jours pour la taxe foncière).</p>
       <div class="modal-actions"><button class="btn btn-ghost" data-close>Fermer</button>${due ? `<button class="btn btn-gold" id="tax-pay" ${S().cash > 0 ? '' : 'disabled'}>${S().cash >= due ? 'Payer ' + fmt.eur(due) : 'Payer ce que je peux (' + fmt.eur(S().cash) + ')'}</button>` : ''}</div></div>`);
     const b = md.el.querySelector('#tax-pay');
     if (b) b.onclick = () => { const r = X.payAll(); md.close(); if (r.ok && r.paid) { TC.sound('kaching'); TC.toast(r.rest ? `🏛️ ${fmt.eur(r.paid)} payés, reste ${fmt.eur(r.rest)}` : `✅ Impôts payés (${fmt.eur(r.paid)}). Merci !`, 'ok', 5000); } else if (!r.ok) TC.toast(r.msg, 'bad'); if (TC.App) TC.App.after(); if (TC.Bank && TC.Bank.refresh) TC.Bank.refresh(); };
