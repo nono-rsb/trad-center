@@ -491,6 +491,20 @@ async function main() {
       const done = adm.done || {}, undo = adm.undo || {}, strikes = st.mod.strikes || (st.mod.strikes = {});
       const byUid = Object.fromEntries(live.map(u => [u.uid, u]));
       let changed = reports.length > 0; const acted = [];
+      // Levée générale demandée par le créateur (fichier mod-clear.json : { "id": "...", "all": true }), appliquée une seule fois par id :
+      // toutes les sanctions du robot sont levées, les signalements en attente sont classés sans suite et les récidives remises à zéro.
+      // Les blocages posés à la main par le créateur (admin/bans) ne sont pas touchés.
+      let clearedId = null;
+      try {
+        const c = JSON.parse(fs.readFileSync(path.join(ROOT, 'mod-clear.json'), 'utf8'));
+        if (c && c.id && c.all && st.mod.clearId !== c.id && md.modClearId !== c.id) { // mémorisé aussi dans le profil du robot : une perte du cache ne rejoue pas la levée
+          const names = Object.values(blocks).map(b => b.pseudo).filter(Boolean);
+          Object.keys(blocks).forEach(k => delete blocks[k]);
+          all.forEach(r => { if (!r.acted) { r.acted = now; r.action = 'Annulé par le créateur'; } });
+          st.mod.strikes = {}; st.mod.clearId = c.id; clearedId = c.id; changed = true;
+          log('sanctions levées pour tous :', names.length, names.length ? '(' + names.join(', ') + ')' : '');
+        }
+      } catch (e) { }
       for (const r of all) {
         if (r.acted || done[r.id] || now - r.at < AUTO) continue;
         r.acted = now; changed = true;
@@ -516,7 +530,7 @@ async function main() {
       if (changed || md.modReports || !md.modRound || now - md.modRound > 3600000) {
         const b = writeBatch(db);
         if (changed || md.modReports) b.set(svRef, { modReports: all, updatedAt: now }, { merge: true });
-        b.update(meRef, { modBlocks: blocks, modReports: null, modRound: now, modTotal: (md.modTotal || 0) + reports.length, updatedAt: now });
+        b.update(meRef, { modBlocks: blocks, ...(clearedId ? { modClearId: clearedId } : {}), modReports: null, modRound: now, modTotal: (md.modTotal || 0) + reports.length, updatedAt: now });
         await b.commit();
       }
       const admin = TC.ADMIN_UID;
