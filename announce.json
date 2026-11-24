@@ -1,29 +1,24 @@
 {
-  "id": "vie-france-2026-11-24",
-  "emoji": "🇫🇷",
-  "title": "La vie comme en France !",
+  "id": "entrepreneur-2026-11-24",
+  "emoji": "🏢",
+  "title": "Deviens entrepreneur !",
   "tab": "portfolio",
   "items": [
     {
-      "icon": "🏛️",
-      "title": "Taxe foncière",
-      "text": "Chaque semaine, un avis pour tes biens immobiliers : 7 jours pour payer, sinon +10 % et compte bloqué. Prélèvement automatique possible."
+      "icon": "📄",
+      "title": "Crée ta vraie entreprise",
+      "text": "Secteur, nom unique, statut (micro, SASU, SAS), capital, dépôt au greffe et Kbis après 12 h."
     },
     {
-      "icon": "🛡️",
-      "title": "Assurances habitation et auto",
-      "text": "Cambriolages, incendies, accrochages arrivent au hasard. Assuré, tu ne paies que la franchise. 24 h de carence."
+      "icon": "📒",
+      "title": "Gère-la comme un patron",
+      "text": "Salariés, produit, marketing, TVA, impôts à chaque clôture, cyberattaques, buzz… Trésorerie négative : liquidation !"
     },
     {
-      "icon": "🕐",
-      "title": "Virements avec délai",
-      "text": "Virement classique gratuit : il arrive en 1 jour ouvré (lundi 9 h le week-end). Instantané : 1 % de frais."
-    },
-    {
-      "icon": "💙",
-      "title": "TradPay, comme PayPal",
-      "text": "Un portefeuille en ligne : alimente-le, envoie à tes amis gratuitement, retire vers ton compte (1 jour ouvré ou tout de suite pour 1,5 %)."
+      "icon": "🪙",
+      "title": "Ta propre monnaie",
+      "text": "En SAS, lance ta monnaie : ses prix suivent ta boîte et tes amis peuvent investir."
     }
   ],
-  "button": "Découvrir 🇫🇷"
+  "button": "Créer mon entreprise 🏢"
 }

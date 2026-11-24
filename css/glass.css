@@ -987,3 +987,20 @@ html.briques .icon-btn.gold::after { content: '🧱'; margin-left: 2px; font-siz
 .bk-modes button { flex: 1; padding: 10px 6px; border-radius: 12px; border: 1px solid rgba(128,128,128,.4); background: transparent; color: inherit; font-weight: 700; }
 .bk-modes button small { display: block; font-weight: 400; opacity: .75; margin-top: 2px; }
 .bk-modes button.on { border-color: #f5b400; background: rgba(245,180,0,.18); }
+
+/* 🏢 Entrepreneur */
+.corp-panel button { margin: 4px 4px 0 0; }
+.corp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0; }
+.corp-opt { text-align: left; padding: 10px; border-radius: 12px; border: 1px solid rgba(128,128,128,.4); background: rgba(255,255,255,.06); color: inherit; display: flex; flex-direction: column; gap: 2px; }
+.corp-opt span { font-size: 1.6rem; } .corp-opt small { opacity: .75; font-size: .75rem; }
+.corp-opt.on { border-color: #f5b400; background: rgba(245,180,0,.18); }
+.kbis { padding: 12px; border-radius: 12px; border: 2px double rgba(245,180,0,.7); background: rgba(245,180,0,.08); margin: 8px 0; }
+.kbis b { display: block; font-size: 1.05rem; letter-spacing: .04em; } .kbis small { opacity: .8; }
+.kbis.dead { border-color: #888; filter: grayscale(.7); }
+.corp-row { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
+.corp-log { max-height: 190px; overflow: auto; font-size: .85rem; display: flex; flex-direction: column; gap: 4px; margin: 6px 0; }
+.corp-log small { opacity: .6; margin-right: 4px; }
+.corp-tab { width: 100%; font-size: .8rem; border-collapse: collapse; } .corp-tab th, .corp-tab td { padding: 4px 3px; text-align: right; } .corp-tab th:first-child, .corp-tab td:first-child { text-align: left; }
+.corp-co { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,.1); }
+.corp-co small { display: block; opacity: .75; }
+.corp-modal .frin input[type=text], .corp-modal .frin input:not([type]) { flex: 1; }
