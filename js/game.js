@@ -5,8 +5,17 @@
   G.FEE_SPOT = 0.001;    // 0,1 % par ordre au comptant
   G.FEE_LEV = 0.0005;    // 0,05 % du notionnel à l'ouverture et à la clôture
   // Frais réellement appliqués : taux de base (éventuellement changé par le Maire) × effet « fees » des événements (js/events.js)
-  G.feeSpot = () => G.FEE_SPOT * (TC.Events ? TC.Events.mult('fees') : 1);
-  G.feeLev = () => G.FEE_LEV * (TC.Events ? TC.Events.mult('fees') : 1);
+  /* Grande fortune : plus on est riche, plus le jeu est dur. Rien avant 1 Md€, puis de plus en plus (niveau 1 vers 32 Md€).
+   *  - frais de trading multipliés jusqu'à ×5 ;
+   *  - impact sur le marché : un gros ordre fait bouger le prix contre soi (jusqu'à 8 % de l'ordre) ;
+   *  - paris : au-delà de 10 M€, le gain d'un pari réussi baisse (jusqu'à x1,1) ;
+   *  - impôt quotidien sur la fortune (js/tax.js). */
+  G.rich = () => { const nw = G.netWorth(); return nw < 1e9 ? 0 : Math.min(1, Math.log10(nw / 1e9) / 1.5); };
+  G.impact = eur => { const r = G.rich(); return r > 0 ? Math.min(0.08, (eur || 0) / 2e10 * (1 + 2 * r)) : 0; };
+  const evFees = () => (TC.Events ? TC.Events.mult('fees') : 1);
+  G.feeSpot = eur => G.FEE_SPOT * evFees() * (1 + 4 * G.rich()) + G.impact(eur);
+  G.feeLev = notional => G.FEE_LEV * evFees() * (1 + 4 * G.rich()) + G.impact(notional) / 2;
+  G.betPayout = stake => { const r = G.rich(); return r > 0 && stake > 1e7 ? Math.max(1.1, G.BET_PAYOUT - 0.45 * Math.log10(stake / 1e7) * (0.5 + r / 2)) : G.BET_PAYOUT; };
   G.MAINT = 0.9;         // liquidation quand la perte atteint 90 % de la marge
   G.BET_PAYOUT = 2;      // gain x2 sur un pari réussi (mise doublée)
   G.BET_DURATIONS = [[1, '1 min'], [5, '5 min'], [15, '15 min'], [60, '1 h']];
@@ -99,7 +108,7 @@
     if (eur < 0.1) return err('Montant minimum : 0,10 €');
     if (eur > S().cash + 1e-9) return err('Fonds insuffisants');
     eur = Math.min(eur, S().cash);
-    const fee = eur * G.feeSpot();
+    const fee = eur * G.feeSpot(eur);
     const qty = (eur - fee) / p;
     const h = S().holdings[id] || { qty: 0, cost: 0 };
     h.qty += qty; h.cost += eur; h.lastVal = h.qty * p;
@@ -119,7 +128,7 @@
     qty = +qty;
     if (!(qty > 0)) return err('Quantité invalide');
     if (qty >= h.qty * 0.9999) qty = h.qty;
-    const gross = qty * p; const fee = gross * G.feeSpot(); const proceeds = gross - fee;
+    const gross = qty * p; const fee = gross * G.feeSpot(gross); const proceeds = gross - fee;
     const costPart = h.cost * qty / h.qty;
     const pnl = proceeds - costPart;
     h.qty -= qty; h.cost -= costPart;
@@ -148,7 +157,7 @@
     sl = sl ? +sl : null; tp = tp ? +tp : null;
     if (side === 'long') { if (sl && sl >= p) return err('Le stop-loss doit être sous le prix actuel'); if (tp && tp <= p) return err('Le take-profit doit être au-dessus du prix actuel'); }
     else { if (sl && sl <= p) return err('Le stop-loss doit être au-dessus du prix actuel'); if (tp && tp >= p) return err('Le take-profit doit être sous le prix actuel'); }
-    const fee = margin * lev * G.feeLev();
+    const fee = Math.min(margin * 0.6, margin * lev * G.feeLev(margin * lev)); // jamais plus de 60 % de la marge
     const m = margin - fee;
     const qty = m * lev / p;
     const pos = { id: uid(), asset: id, side, lev, margin: m, entry: p, qty, sl, tp, liq: G.liqPrice(side, p, lev), t: Date.now(), lastPnl: 0 };
@@ -169,7 +178,7 @@
     let back;
     if (reason === 'liq') { back = 0; pnl = -pos.margin; S().stats.liquidations++; }
     else {
-      const fee = pos.qty * p * G.feeLev();
+      const fee = pos.qty * p * G.feeLev(pos.qty * p);
       back = Math.max(0, pos.margin + pnl - fee); pnl = back - pos.margin; S().stats.fees += fee;
     }
     S().positions.splice(i, 1);
@@ -205,11 +214,11 @@
     if (stake < 0.1) return err('Mise minimum : 0,10 €');
     if (stake > S().cash + 1e-9) return err('Fonds insuffisants');
     stake = Math.min(stake, S().cash);
-    const b = { id: uid(), asset: id, dir, stake, start: p, t: Date.now(), end: Date.now() + minutes * 60000, minutes };
+    const b = { id: uid(), asset: id, dir, stake, start: p, t: Date.now(), end: Date.now() + minutes * 60000, minutes, payout: G.betPayout(stake) };
     S().bets.push(b); S().cash -= stake;
     log({ kind: 'bet', asset: id, dir, eur: stake, price: p, minutes });
     G.save(); emit('trade', { kind: 'bet', id });
-    return { ok: true, msg: `Pari ${dir === 'up' ? '📈 hausse' : '📉 baisse'} sur ${a.id} (${minutes} min) : ${TC.fmt.eur(stake)}` };
+    return { ok: true, msg: `Pari ${dir === 'up' ? '📈 hausse' : '📉 baisse'} sur ${a.id} (${minutes} min) : ${TC.fmt.eur(stake)}${b.payout < G.BET_PAYOUT ? ` · gain réduit : x${b.payout.toFixed(2).replace('.', ',')} (grande fortune)` : ''}` };
   };
 
   const resolving = new Set();
@@ -227,7 +236,7 @@
       S().bets.splice(i, 1);
       let result, pay = 0;
       if (Math.abs(p - b.start) / b.start < 1e-9) { result = 'push'; pay = b.stake; }
-      else if ((p > b.start) === (b.dir === 'up')) { result = 'win'; pay = b.stake * (S().jackpot ? 3 : G.BET_PAYOUT); S().jackpot = false; S().stats.betsWon++; }
+      else if ((p > b.start) === (b.dir === 'up')) { result = 'win'; pay = b.stake * (S().jackpot ? 3 : (b.payout || G.BET_PAYOUT)); S().jackpot = false; S().stats.betsWon++; }
       else { result = 'lose'; S().stats.betsLost++; }
       S().cash += pay;
       const pnl = pay - b.stake;

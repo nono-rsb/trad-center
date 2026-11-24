@@ -230,7 +230,7 @@
         <div class="seg seg-4" id="o-betdur">${G.BET_DURATIONS.map(([m, l]) => `<button data-dur="${m}" class="${UI.betDur === m ? 'active' : ''}">${l}</button>`).join('')}</div>
         <label class="fld">Mise<div class="inp"><input id="o-amt" type="number" min="0" step="any" inputmode="decimal" placeholder="0,00"><span>€</span></div></label>
         <div class="quick" data-target="o-amt" data-base="cash"><button data-p="10">10 %</button><button data-p="25">25 %</button><button data-p="50">50 %</button><button data-p="100">Max</button></div>
-        <div class="avail">Disponible : <b>${fmt.eur(S().cash)}</b> · Gain si réussi : <b>x${G.BET_PAYOUT}</b> (10 € misés = ${fmt.eur(10 * G.BET_PAYOUT)} récupérés)</div>
+        <div class="avail">Disponible : <b>${fmt.eur(S().cash)}</b> · Gain si réussi : <b>x${G.BET_PAYOUT}</b> (10 € misés = ${fmt.eur(10 * G.BET_PAYOUT)} récupérés)${G.rich() > 0 ? ' · <span class="warn-t">au-delà de 10 M€, gain réduit (grande fortune)</span>' : ''}</div>
         <div class="bet-btns"><button class="btn btn-buy btn-xl" data-bet="up" ${closed ? 'disabled' : ''}>📈 Plus haut</button><button class="btn btn-sell btn-xl" data-bet="down" ${closed ? 'disabled' : ''}>📉 Plus bas</button></div>
         ${closed ? '<p class="hint warn">Marché fermé : les paris rouvriront à la reprise de la cotation.</p>' : ''}
         <div id="o-bets"></div>
@@ -258,17 +258,17 @@
     if (prev) {
       if (UI.mode === 'spot' && UI.spotSide === 'buy') {
         const v = +(amtEl && amtEl.value) || 0;
-        prev.innerHTML = v > 0 && p ? `Vous recevez ≈ <b>${fmt.qty(v * (1 - G.feeSpot()) / p)} ${esc(a.id)}</b><br>Frais : ${fmt.eur(v * G.feeSpot())}` : '';
+        prev.innerHTML = v > 0 && p ? `Vous recevez ≈ <b>${fmt.qty(v * (1 - G.feeSpot(v)) / p)} ${esc(a.id)}</b><br>Frais : ${fmt.eur(v * G.feeSpot(v))}${G.impact(v) > 0 ? ` (dont impact sur le marché ${(G.impact(v) * 100).toFixed(2).replace('.', ',')} %)` : ''}` : '';
       } else if (UI.mode === 'spot') {
         const q = +(qtyEl && qtyEl.value) || 0; const h = S().holdings[a.id];
         if (q > 0 && p && h) {
-          const gross = q * p, net = gross * (1 - G.feeSpot()), cost = h.cost * Math.min(q, h.qty) / h.qty, pnl = net - cost;
+          const gross = q * p, net = gross * (1 - G.feeSpot(gross)), cost = h.cost * Math.min(q, h.qty) / h.qty, pnl = net - cost;
           prev.innerHTML = `Vous recevez ≈ <b>${fmt.eur(net)}</b><br>Résultat : <b class="${cls(pnl)}">${pnl > 0 ? '+' : ''}${fmt.eur(pnl)}</b>`;
         } else prev.innerHTML = '';
       } else if (UI.mode === 'lev') {
         const v = +(amtEl && amtEl.value) || 0;
         if (v > 0 && p) {
-          const fee = v * UI.lev * G.feeLev(), m = v - fee, size = m * UI.lev, liq = G.liqPrice(UI.levSide, p, UI.lev);
+          const fee = Math.min(v * 0.6, v * UI.lev * G.feeLev(v * UI.lev)), m = v - fee, size = m * UI.lev, liq = G.liqPrice(UI.levSide, p, UI.lev);
           const move1 = size * 0.01;
           prev.innerHTML = `Taille de position : <b>${fmt.eur(size)}</b><br>Prix de liquidation : <b class="warn-t">${fmt.eur(liq)}</b> (${fmt.pct((liq - p) / p * 100)})<br>
             Un mouvement de 1 % = <b>${fmt.eur(move1)}</b> · Frais : ${fmt.eur(fee)}`;
@@ -323,7 +323,7 @@
       const p = D.eur(b.asset); const winning = p != null && ((p > b.start) === (b.dir === 'up')) && p !== b.start;
       return `<tr><td><b>${b.asset}</b></td><td>${b.dir === 'up' ? '📈 Hausse' : '📉 Baisse'}</td><td>${fmt.eur(b.stake)}</td><td>${fmt.eur(b.start)}</td><td>${fmt.eur(p)}</td><td class="${winning ? 'up' : 'down'}"><b>${winning ? 'Gagnant' : 'Perdant'}</b></td><td>${fmt.dur(b.end - Date.now())}</td></tr>`;
     }).join('');
-    const LOGL = { shop: '🛒 Courses', loan: '🏦 Prêt', repay: '🏦 Remboursement', fine: '🛡️ Correction', buy: '🟢 Achat', sell: '🔴 Vente', open: '⚡ Ouverture', close: '✅ Clôture', liq: '💀 Liquidation', bet: '🎲 Pari', betres: '🎲 Résultat pari', item: '🛍️ Achat', itemsell: '♻️ Revente', rent: '🏠 Loyers', biz: '🏪 Commerces', bonus: '🎁 Bonus', send: '📤 Envoi', recv: '📥 Reçu' };
+    const LOGL = { tax: '🏛️ Impôt', shop: '🛒 Courses', loan: '🏦 Prêt', repay: '🏦 Remboursement', fine: '🛡️ Correction', buy: '🟢 Achat', sell: '🔴 Vente', open: '⚡ Ouverture', close: '✅ Clôture', liq: '💀 Liquidation', bet: '🎲 Pari', betres: '🎲 Résultat pari', item: '🛍️ Achat', itemsell: '♻️ Revente', rent: '🏠 Loyers', biz: '🏪 Commerces', bonus: '🎁 Bonus', send: '📤 Envoi', recv: '📥 Reçu' };
     const lrow = s.log.slice(0, 80).map(l => {
       const name = l.item ? (TC.shopById[l.item].brand + ' ' + TC.shopById[l.item].model) : (l.kind === 'send' || l.kind === 'recv') ? (l.asset ? '' : 'Euros') : (l.asset || '');
       let det = '';
@@ -335,7 +335,7 @@
       if (l.kind === 'betres') det = `${fmt.eur(l.start)} → ${fmt.eur(l.price)} (${l.result === 'win' ? 'gagné' : l.result === 'push' ? 'égalité' : 'perdu'})`;
       return `<tr><td><small>${fmt.time(l.t)}</small></td><td>${LOGL[l.kind] || l.kind}</td><td><b>${esc(name)}</b> <small>${det}</small></td><td>${fmt.eur(l.eur)}</td><td class="${cls(l.pnl)}">${l.pnl != null ? (l.pnl > 0 ? '+' : '') + fmt.eur(l.pnl) : ''}</td></tr>`;
     }).join('');
-    $('#tab-portfolio').innerHTML = (TC.Bot ? TC.Bot.panel() : '') + `
+    $('#tab-portfolio').innerHTML = (TC.Bot ? TC.Bot.panel() : '') + (TC.Tax && TC.Tax.fortunePanel ? TC.Tax.fortunePanel() : '') + `
       <div class="cards">${cards.map(c => `<div class="card"><span>${c[2]}</span><label>${c[0]}</label><b>${c[1]}</b></div>`).join('')}</div>
       <div class="panel"><h3>📈 Évolution de votre patrimoine</h3><div id="nw-chart" class="nw-chart"></div></div>
       ${!rows && !prow && !brow ? '<div class="panel"><div class="empty">Tu n\'as encore rien acheté. Va dans <b>📈 Marchés</b>, choisis un actif et touche <b>Acheter</b>.</div></div>' : ''}

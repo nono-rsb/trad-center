@@ -104,7 +104,7 @@
     if (t.closest('#gta') && !TC.season.noel) { TC.goto('TTWO'); return; } // bandeau GTA VI → action Take-Two (Rockstar)
     if (b && b.dataset.sellall) {
       const id = b.dataset.sellall; const h = S().holdings[id]; if (!h) return;
-      if (!(await TC.confirm('Tout vendre ?', `Vendre <b>${fmt.qty(h.qty)} ${id}</b> pour environ <b>${fmt.eur(G.holdingValue(id) * (1 - G.feeSpot()))}</b> ?`, 'Vendre', 'btn-sell'))) return;
+      if (!(await TC.confirm('Tout vendre ?', `Vendre <b>${fmt.qty(h.qty)} ${id}</b> pour environ <b>${fmt.eur(G.holdingValue(id) * (1 - G.feeSpot(G.holdingValue(id))))}</b> ?`, 'Vendre', 'btn-sell'))) return;
       const r = G.sell(id, h.qty); notify(r); if (r.ok) { TC.sound('sell'); afterAction(); }
       return;
     }
