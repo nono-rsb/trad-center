@@ -337,12 +337,13 @@
       if (TC.Progress) { pub.lvl = TC.Progress.level(); pub.streak = (s.prog && s.prog.streak && s.prog.streak.n) || 0; }
       if (TC.Duel) pub.dl = TC.Duel.pub();
       if (N.refN != null) pub.refN = N.refN;
+      if (TC.Corp) { const c = TC.Corp.pub(); if (c) pub.co = c; else if (N.profile && N.profile.co) pub.co = firebase.firestore.FieldValue.delete(); } // entreprise du joueur (résumé public)
       if (TC.Xmas && TC.Xmas.raceGain() != null) { pub.xmasGain = TC.Xmas.raceGain(); pub.xmasYear = new Date().getFullYear(); }
       // profil public (classements, amis) : toutes les 5 min, ou tout de suite si l'apparence, la ville ou le rang changent
-      const key = JSON.stringify([pub.rank, pub.items, pub.topItem, pub.look, pub.plusUntil, pub.city, pub.lvl, pub.streak, pub.dl && [pub.dl.id, pub.dl.state, Math.round(pub.dl.g || 0), pub.dl.fin], pub.refN]); // pendant un duel, le score part à chaque sauvegarde
+      const key = JSON.stringify([pub.rank, pub.items, pub.topItem, pub.look, pub.plusUntil, pub.city, pub.lvl, pub.streak, pub.dl && [pub.dl.id, pub.dl.state, Math.round(pub.dl.g || 0), pub.dl.fin], pub.refN, pub.co && pub.co.n !== undefined ? [pub.co.n, pub.co.st, pub.co.lv, pub.co.em, pub.co.tok && pub.co.tok.y] : !!pub.co]); // pendant un duel, le score part à chaque sauvegarde
       if (key !== lastPubKey || Date.now() - lastPub > PUB_EVERY || document.hidden) {
         await db.collection('users').doc(N.user.uid).update(pub); lastPub = Date.now(); lastPubKey = key;
-        Object.assign(N.profile || {}, pub);
+        Object.assign(N.profile || {}, pub); if (pub.co && pub.co.n === undefined) delete N.profile.co;
       }
       N.lastSync = Date.now(); emit('synced');
     } catch (e) { console.warn('sync', e); }
