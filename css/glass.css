@@ -972,3 +972,18 @@ html.briques .icon-btn.gold::after { content: '🧱'; margin-left: 2px; font-siz
 /* 🏛️ Grande fortune */
 .fort { border: 1px solid rgba(255,180,60,.45); background: linear-gradient(135deg, rgba(255,180,60,.12), rgba(255,180,60,.03)); }
 .fort h3 small { opacity: .7; font-weight: 600; margin-left: 6px; }
+
+/* 🇫🇷 Vie en France */
+.fr-panel button { margin: 4px 4px 0 0; }
+.fr-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.fr-card { padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,.1); }
+.fr-card h4 { margin: 12px 0 4px; }
+.fr-chk { display: flex; gap: 8px; align-items: flex-start; margin: 10px 0; font-size: .9rem; }
+.frin { display: flex; align-items: center; gap: 6px; margin: 4px 0; }
+.frin input, .fr-card select { flex: 1; padding: 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,.25); background: rgba(255,255,255,.08); color: inherit; font-size: 1rem; }
+.fr-card select { width: 100%; margin: 4px 0; }
+.fr-card .err { color: #ff6b6b; margin: 6px 0 0; }
+.bk-modes { display: flex; gap: 8px; }
+.bk-modes button { flex: 1; padding: 10px 6px; border-radius: 12px; border: 1px solid rgba(128,128,128,.4); background: transparent; color: inherit; font-weight: 700; }
+.bk-modes button small { display: block; font-weight: 400; opacity: .75; margin-top: 2px; }
+.bk-modes button.on { border-color: #f5b400; background: rgba(245,180,0,.18); }
