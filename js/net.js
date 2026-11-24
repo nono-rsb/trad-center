@@ -499,6 +499,8 @@
     try {
       await db.collection('users').doc(N.user.uid).update({ refOk: true, updatedAt: Date.now() });
       N.profile.refOk = true;
+      G.state.cash += 30; G.state.log.unshift({ t: Date.now(), kind: 'bonus', eur: 30, who: 'Cadeau de bienvenue' }); G.save(true); // le filleul aussi est récompensé
+      TC.toast('🎁 Cadeau de bienvenue : +30 € !', 'ok', 6000);
       N.notifyPlayer(N.profile.referredBy, 'referral');
     } catch (e) { console.warn('ref', e); }
   };

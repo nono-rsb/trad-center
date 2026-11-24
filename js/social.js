@@ -124,8 +124,9 @@
   function inviteBlock() {
     const r = N.referrals || []; const ok = r.filter(x => x.ok).length;
     return `<div class="panel invite"><div class="inv-top"><div class="big-emoji">🎁</div><div><h3>Invite tes amis : +${N.REF_BONUS} € par ami</h3>
-      <p>Envoie ton lien. Dès que ton ami <b>crée son compte</b> et <b>active les notifications</b>, tu gagnes <b>${N.REF_BONUS} €</b> et vous devenez amis automatiquement.</p></div></div>
+      <p>Envoie ton lien. Dès que ton ami <b>crée son compte</b> et <b>active les notifications</b>, tu gagnes <b>${N.REF_BONUS} €</b>, il reçoit <b>30 €</b> de cadeau de bienvenue, et vous devenez amis automatiquement.</p></div></div>
       <div class="inv-link"><input readonly value="${esc(N.inviteLink())}"><button class="btn btn-gold" data-soc="share">📤 Partager</button><button class="btn" data-soc="copylink">📋</button></div>
+      <button class="btn bk-full" data-sharecard>🖼️ Partager ma carte de joueur (image pour story)</button>
       ${r.length ? `<div class="inv-list">${r.map(x => `<span class="${x.ok ? 'up' : 'muted'}">${x.ok ? '✅' : '⏳'} ${esc(x.pseudo || '')}${x.ok ? '' : x.guest ? ' (joue en invité : il doit créer son compte)' : ' (en attente : compte et notifications)'}</span>`).join('')}</div>` : ''}
       <p class="hint">${ok} ami(s) validé(s) · ${fmt.eur(ok * N.REF_BONUS)} gagnés</p></div>`;
   }

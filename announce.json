@@ -1,24 +1,24 @@
 {
-  "id": "entrepreneur-2026-11-24",
-  "emoji": "🏢",
-  "title": "Deviens entrepreneur !",
-  "tab": "portfolio",
+  "id": "relais-carte-2026-11-24",
+  "emoji": "📶",
+  "title": "Le jeu marche sur tous les Wi-Fi !",
+  "tab": "social",
   "items": [
     {
-      "icon": "📄",
-      "title": "Crée ta vraie entreprise",
-      "text": "Secteur, nom unique, statut (micro, SASU, SAS), capital, dépôt au greffe et Kbis après 12 h."
+      "icon": "📶",
+      "title": "Wi-Fi qui bloque les prix ? Réglé",
+      "text": "Si ton école, ta box ou le contrôle parental bloque Binance et Yahoo, le jeu reçoit maintenant les cours par son propre serveur. Tu peux trader partout."
     },
     {
-      "icon": "📒",
-      "title": "Gère-la comme un patron",
-      "text": "Salariés, produit, marketing, TVA, impôts à chaque clôture, cyberattaques, buzz… Trésorerie négative : liquidation !"
+      "icon": "🖼️",
+      "title": "Ta carte de joueur à partager",
+      "text": "Onglet Amis : une image avec ton rang et ton patrimoine à poster en story, avec ton lien d'invitation."
     },
     {
-      "icon": "🪙",
-      "title": "Ta propre monnaie",
-      "text": "En SAS, lance ta monnaie : ses prix suivent ta boîte et tes amis peuvent investir."
+      "icon": "🎁",
+      "title": "30 € pour les nouveaux",
+      "text": "Un ami qui rejoint avec ton lien reçoit 30 € de cadeau de bienvenue, et toi 20 €."
     }
   ],
-  "button": "Créer mon entreprise 🏢"
+  "button": "Super 👍"
 }

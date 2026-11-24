@@ -400,6 +400,20 @@
     });
   }
 
+  /* Relais : si Binance / Yahoo sont bloqués par le réseau (école, box, contrôle parental), on lit prices.json,
+   * publié à côté du jeu toutes les ~10 min par le serveur. Ces cours sont « différés » (tradables). */
+  const srcDown = a => (a.src === 'binance' && D.health.binance === 'down') || (a.src === 'yahoo' && D.health.yahoo === 'down') || (a.src === 'fx' && D.health.fx === 'down' && D.health.yahoo === 'down');
+  async function loadRelay() {
+    if (!TC.ASSETS.some(srcDown)) { if (D.health.relay) { D.health.relay = null; emit('__health'); } return; }
+    try {
+      const j = await fetchJSON('prices.json?m=' + Math.floor(Date.now() / 60000), 8000);
+      if (!j || !j.p || !j.t || Date.now() - j.t > 40 * 60000) return;
+      let n = 0;
+      TC.ASSETS.forEach(a => { const q = j.p[a.id]; if (!q || !(q.e > 0) || !srcDown(a)) return; set(a.id, { price: q.e, prev: q.e / (1 + (q.d || 0) / 100), ccy: 'EUR', status: 'delayed', closed: !q.o, t: j.t }); n++; });
+      if (n && D.health.relay !== 'ok') { D.health.relay = 'ok'; emit('__health'); }
+    } catch (e) { }
+  }
+  D.loadRelay = loadRelay;
   D.anySim = () => Object.values(D.prices).some(p => p.status === 'sim');
 
   /* ================= HISTORIQUE (graphiques) ================= */
@@ -480,8 +494,7 @@
     setTimeout(() => {
       ['binance', 'yahoo', 'fx'].forEach(k => { if (D.health[k] === 'loading') D.health[k] = 'down'; });
       emit('__health');
-      simTick();
-      setInterval(simTick, 2000);
+      loadRelay().then(() => { simTick(); setInterval(simTick, 2000); setInterval(loadRelay, 60000); });
     }, 15000);
   };
 })();

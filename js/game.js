@@ -76,7 +76,7 @@
   const real = id => { const q = TC.Data.prices[id]; return !!(q && q.price != null && (q.status === 'live' || q.status === 'delayed')); };
   G.realPrice = real;
   const pxv = id => { const q = TC.Data.prices[id]; return q && q.status === 'sim' ? null : px(id); };
-  const NOREAL = 'Cours en direct indisponible sur ton réseau (prix simulés) : impossible de trader pour l\'instant. Réessaie avec une autre connexion.';
+  const NOREAL = 'Cours indisponibles sur ton réseau (le Wi-Fi bloque les sources de prix) : impossible de trader pour l\'instant. Essaie avec les données mobiles ou une autre connexion, ou réessaie dans quelques minutes.';
   const uid = () => S().nextId++;
   function log(entry) {
     S().log.unshift(Object.assign({ t: Date.now() }, entry));
