@@ -968,3 +968,7 @@ html.briques .icon-btn.gold::after { content: '🧱'; margin-left: 2px; font-siz
 /* 💬 Bloc Discord */
 .disc { border: 1px solid rgba(88,101,242,.55); background: linear-gradient(135deg, rgba(88,101,242,.22), rgba(88,101,242,.08)); }
 .disc .btn-xl { display: block; width: 100%; text-align: center; box-sizing: border-box; margin-top: 10px; }
+
+/* 🏛️ Grande fortune */
+.fort { border: 1px solid rgba(255,180,60,.45); background: linear-gradient(135deg, rgba(255,180,60,.12), rgba(255,180,60,.03)); }
+.fort h3 small { opacity: .7; font-weight: 600; margin-left: 6px; }

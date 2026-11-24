@@ -98,6 +98,61 @@
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wrapLater); else setTimeout(wrapLater, 0);
   setInterval(X.bar, 60000);
+  /* ---------- Impôt sur la grande fortune (à partir de 1 Md€) ----------
+   * Prélevé sur le cash toutes les 6 h, au prorata des jours écoulés (7 jours maximum d'un coup). Par tranche de patrimoine :
+   * 1 à 5 Md€ : 0,05 % par jour ; 5 à 20 Md€ : 0,1 % par jour ; au-delà de 20 Md€ : 0,2 % par jour.
+   * Pas assez de cash : le reste devient une dette fiscale (retirée du patrimoine, jamais plus de la moitié), payée dès qu'il y a du cash.
+   * Le créateur en est exempt (hors concours). L'argent des impôts sort du jeu. */
+  X.FORTUNE = [[1e9, 5e9, 0.0005], [5e9, 20e9, 0.001], [20e9, Infinity, 0.002]];
+  X.fortuneDay = nw => { let t = 0; for (const [a, b, r] of X.FORTUNE) { const part = Math.min(nw, b) - a; if (part > 0) t += part * r; } return t; };
+  const exempt = () => !!(TC.Net && TC.Net.user && TC.Net.user.uid === TC.ADMIN_UID);
+  X.owed = () => (S().fortune && S().fortune.owed) || 0;
+  { const nw0 = TC.Game.netWorth; TC.Game.netWorth = () => nw0() - X.owed(); } // la dette fiscale réduit le patrimoine
+  const r2 = v => Math.round(v * 100) / 100;
+  function payDebt() {
+    const f = S().fortune; if (!f || !(f.owed > 0) || !(S().cash > 0)) return 0;
+    const p = r2(Math.min(f.owed, S().cash)); S().cash -= p; f.owed = r2(f.owed - p); f.paid = r2((f.paid || 0) + p); X.pay(p);
+    S().log.unshift({ t: Date.now(), kind: 'tax', eur: p, asset: '🏛️ Impôt sur la grande fortune' }); if (S().log.length > 300) S().log.length = 300;
+    return p;
+  }
+  X.fortuneCheck = function () {
+    const G = TC.Game; if (!G.state || exempt()) return;
+    const now = Date.now(), nw = G.netWorth() + X.owed(); // patrimoine avant la dette fiscale
+    let f = S().fortune;
+    if (nw < 1e9) { if (f) { f.at = now; if (payDebt()) G.save(); } return; }
+    if (!f) f = S().fortune = { at: now, owed: 0, paid: 0 };
+    const el = now - f.at;
+    if (el < 6 * 3600000) { if (payDebt()) G.save(); return; }
+    const due = r2(X.fortuneDay(nw) * Math.min(7, el / 86400000)); f.at = now;
+    f.owed = r2(Math.min((f.owed || 0) + due, nw * 0.5));
+    const left0 = f.owed, paid = payDebt();
+    TC.toast(`🏛️ Impôt sur la grande fortune : −${TC.fmt.eur(due, true)}${f.owed > 0 ? ` (reste ${TC.fmt.eur(f.owed, true)} à payer : pas assez de cash)` : ''}`, 'bad', 8000);
+    G.save(true); if (TC.App && TC.App.after) TC.App.after();
+  };
+  setInterval(() => { try { X.fortuneCheck(); } catch (e) { console.warn('fortune', e); } }, 60000); setTimeout(() => { try { X.fortuneCheck(); } catch (e) { } }, 4000);
+  X.fortunePanel = function () {
+    const G = TC.Game, fmt = TC.fmt, nw = G.netWorth() + X.owed(); if (nw < 5e8 || exempt()) return '';
+    const r = G.rich();
+    if (r <= 0) return `<div class="panel fort"><h3>🏛️ Grande fortune</h3><p class="muted">Tu approches du milliard. À partir de <b>1 Md€</b>, le jeu devient plus dur : frais plus élevés, gros ordres qui font bouger les prix, impôt chaque jour. <button class="btn btn-sm" data-fortune>En savoir plus</button></p></div>`;
+    return `<div class="panel fort"><h3>🏛️ Grande fortune <small>niveau ${Math.round(r * 100)} %</small></h3>
+      <div class="kv"><span>Frais de trading</span><b>×${(1 + 4 * r).toFixed(1).replace('.', ',')}</b><span>Impôt sur la fortune</span><b>${fmt.eur(X.fortuneDay(nw), true)} / jour</b><span>Dette fiscale</span><b>${fmt.eur(X.owed())}</b></div>
+      <p class="hint">Un ordre de 1 Md€ te coûte ${(G.impact(1e9) * 100).toFixed(1).replace('.', ',')} % d'impact sur le marché. <button class="btn btn-sm" data-fortune>Détails</button></p></div>`;
+  };
+  X.fortuneInfo = function () {
+    const G = TC.Game, fmt = TC.fmt, nw = G.netWorth() + X.owed(), r = G.rich();
+    const pc = v => (v * 100).toFixed(2).replace('.', ',') + ' %';
+    TC.modal(`<h2>🏛️ Grande fortune</h2><div class="modal-body">
+      <p>Plus on est riche, plus c'est dur de gagner encore. Ça commence à <b>1 Md€</b> de patrimoine et monte jusqu'à environ <b>32 Md€</b>.</p>
+      <div class="nbox">Ton niveau : <b>${Math.round(r * 100)} %</b> (patrimoine ${fmt.eur(nw, true)})</div>
+      <h4>1. Frais de trading</h4><p class="hint">Les frais sont multipliés jusqu'à ×5. Pour toi : <b>×${(1 + 4 * r).toFixed(1).replace('.', ',')}</b>.</p>
+      <h4>2. Impact sur le marché</h4><p class="hint">Un gros ordre fait bouger le prix contre toi, jusqu'à 8 %. Pour toi : 100 M€ = ${pc(G.impact(1e8))}, 1 Md€ = ${pc(G.impact(1e9))}. Divise tes ordres, ou utilise moins de levier.</p>
+      <h4>3. Paris</h4><p class="hint">Au-delà de 10 M€ de mise, le gain d'un pari réussi baisse (x${G.betPayout(1e8).toFixed(2).replace('.', ',')} pour 100 M€, jusqu'à x1,1).</p>
+      <h4>4. Impôt sur la fortune</h4>
+      <div class="kv"><span>1 à 5 Md€</span><b>0,05 % / jour</b><span>5 à 20 Md€</span><b>0,1 % / jour</b><span>Au-delà de 20 Md€</span><b>0,2 % / jour</b></div>
+      <p class="hint">Prélevé sur ton cash toutes les 6 h. Aujourd'hui : <b>${fmt.eur(X.fortuneDay(nw))} par jour</b>. Pas assez de cash : le reste devient une dette fiscale, retirée de ton patrimoine et payée dès que tu as du cash. Déjà payé : <b>${fmt.eur((S().fortune && S().fortune.paid) || 0)}</b>.</p>
+      <div class="modal-actions"><button class="btn btn-gold" data-close>OK</button></div></div>`);
+  };
+  document.addEventListener('click', e => { if (e.target.closest('[data-fortune]')) X.fortuneInfo(); });
   X.info = function () {
     const fmt = TC.fmt, me = TC.Game.netWorth();
     const ex = [5e3, 50e3, 500e3, 5e6, 50e6, 1e9];
