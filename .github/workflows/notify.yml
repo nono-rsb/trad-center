@@ -44,6 +44,18 @@ jobs:
         with:
           path: scripts/state.json
           key: notify-state-${{ github.run_id }}
+      - name: Cours relayés (pour les réseaux qui bloquent Binance et Yahoo)
+        if: always() && hashFiles('scripts/relay/prices.json') != ''
+        run: |
+          cp scripts/relay/prices.json "$RUNNER_TEMP/prices.json"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git fetch -q origin gh-pages 2>/dev/null; then
+            git checkout -q -f -B gh-pages origin/gh-pages
+            cp "$RUNNER_TEMP/prices.json" prices.json
+            git add prices.json
+            git diff --cached --quiet || { git commit -q --amend --no-edit && git push -q -f origin gh-pages; }
+          fi
       - name: Questions des joueurs → branche qa-inbox (lue par Claude)
         if: always() && hashFiles('scripts/qa-inbox.json') != ''
         run: |

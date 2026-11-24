@@ -621,6 +621,17 @@ async function main() {
     verbose = false; n++;
     if (Date.now() + 30000 < end) await new Promise(r => setTimeout(r, 30000));
   } while (Date.now() + 30000 < end);
+  // Relais des cours : les Wi-Fi (écoles, box, contrôle parental) bloquent souvent Binance et Yahoo, jamais le site du jeu.
+  // Le fichier est publié à côté du jeu (prices.json) et le jeu s'en sert quand ses sources directes sont injoignables.
+  try {
+    const px = await prices();
+    if (Object.keys(px).length > 5) {
+      fs.mkdirSync(path.join(ROOT, 'scripts', 'relay'), { recursive: true });
+      const p = {}; for (const [k, v] of Object.entries(px)) if (v && isFinite(v.eur) && v.eur > 0) p[k] = { e: +v.eur.toPrecision(8), d: +(+v.d || 0).toFixed(3), o: v.open ? 1 : 0 };
+      fs.writeFileSync(path.join(ROOT, 'scripts', 'relay', 'prices.json'), JSON.stringify({ t: Date.now(), p }));
+      log('relais des cours :', Object.keys(p).length, 'cours');
+    }
+  } catch (e) { log('relais', e.message); }
   log('fin,', sentTotal, 'notification(s) au total');
   if (process.env.LOOP_MINUTES) fs.writeFileSync(path.join(ROOT, 'scripts', '.loop-ok'), '1'); // autorise la relance
 }
