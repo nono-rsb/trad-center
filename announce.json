@@ -1,28 +1,19 @@
 {
-  "id": "relais-carte-2026-11-24",
-  "emoji": "📶",
-  "title": "Le jeu marche sur tous les Wi-Fi !",
-  "tab": "social",
+  "id": "babylon-2026-11-25",
+  "emoji": "✨",
+  "title": "Trad City change de moteur 3D !",
+  "tab": "city",
   "items": [
     {
-      "icon": "📶",
-      "title": "Wi-Fi qui bloque les prix ? Réglé",
-      "text": "Si ton école, ta box ou le contrôle parental bloque Binance et Yahoo, le jeu reçoit maintenant les cours par son propre serveur. Tu peux trader partout."
+      "icon": "🎨",
+      "title": "Nouveau rendu avec Babylon.js",
+      "text": "Ombres plus douces, lumières et reflets plus réalistes, bords lissés : la ville, les voitures et les maisons sont plus belles."
     },
     {
-      "icon": "🖼️",
-      "title": "Ta carte de joueur à partager",
-      "text": "Onglet Amis : une image avec ton rang et ton patrimoine à poster en story, avec ton lien d'invitation."
-    },
-    {
-      "icon": "🎁",
-      "title": "30 € pour les nouveaux",
-      "text": "Un ami qui rejoint avec ton lien reçoit 30 € de cadeau de bienvenue, et toi 20 €."
+      "icon": "🚀",
+      "title": "Même ville, mêmes attractions",
+      "text": "Balade, karting, manège, grande roue, stand de tir, maisons : tout est toujours là. Le premier chargement de l'onglet Ville peut prendre quelques secondes de plus."
     }
   ],
-  "button": "Super 👍",
-  "push": {
-    "title": "🏢 Nouveautés sur Trad Center !",
-    "body": "Crée ta propre entreprise et ta monnaie, assure-toi, utilise TradPay… et le jeu marche maintenant sur tous les Wi-Fi. Touche pour voir."
-  }
+  "button": "Voir la ville 🏙️"
 }

@@ -1,4 +1,4 @@
-/* Trad Center — Trad City en 3D (Three.js r149, chargé seulement quand on ouvre l'onglet Ville)
+/* Trad Center — Trad City en 3D (Babylon.js, chargé seulement quand on ouvre l'onglet Ville ; l'API de Three.js est fournie par js/b3.js)
  * Bâtiments modélisés selon le patrimoine de chaque joueur, commerces autour, monuments, voitures qui roulent,
  * jour / nuit à l'heure de Paris, neige en décembre. Un doigt : tourner. Deux doigts : zoom et déplacement. Toucher : ouvrir.
  * Mode balade (V.walk) : on se promène à pied, à la 3e personne (clavier + souris sur ordinateur, joystick sur téléphone),
@@ -34,9 +34,11 @@
     if (V.ready) return Promise.resolve(true); if (V.failed) return Promise.resolve(false);
     return loading || (loading = (async () => {
       try {
-        if (!window.THREE) await loadScript('js/vendor/three.min.js');
-        if (!window.THREE) throw new Error('moteur 3D non chargé');
-        T = window.THREE; init(); V.ready = true; return true;
+        if (!window.BABYLON) await loadScript('js/vendor/babylon.js');
+        if (!window.BABYLON) throw new Error('moteur 3D non chargé');
+        if (!window.B3) await loadScript('js/b3.js');
+        if (!window.B3) throw new Error('couche 3D non chargée');
+        T = window.B3; init(); V.ready = true; return true;
       } catch (e) { console.warn('3D', e); V.error = String(e && e.message || e); V.failed = true; loading = null; return false; }
     })());
   };
@@ -774,11 +776,11 @@
     const mobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.platform));
     renderer = new T.WebGLRenderer({ canvas, antialias: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, mobile ? 1.5 : 2));
-    renderer.outputEncoding = T.sRGBEncoding; renderer.shadowMap.enabled = true; renderer.shadowMap.type = mobile ? T.PCFShadowMap : T.PCFSoftShadowMap;
     canvas.addEventListener('webglcontextlost', e => { e.preventDefault(); fail('contexte 3D perdu (mémoire du téléphone)'); });
-    renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = .9; isMobile = mobile;
+    isMobile = mobile;
     scene = new T.Scene();
     camera = new T.PerspectiveCamera(45, 1, 1, 3000);
+    T.look(scene, camera, mobile); // rendu Babylon : tone mapping ACES, bloom, anti-crénelage
     hemi = new T.HemisphereLight(0xdcefff, 0x5a7a3a, .6); scene.add(hemi);
     sun = new T.DirectionalLight(0xfff1d6, 1.25); sun.castShadow = true; sun.shadow.mapSize.set(mobile ? 1024 : 2048, mobile ? 1024 : 2048); sun.shadow.bias = -.0005; scene.add(sun); scene.add(sun.target);
     clock = new T.Clock();
@@ -793,22 +795,12 @@
     world.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.isSprite) { o.material.map && o.material.map.dispose(); o.material.dispose(); } });
     winMats.forEach(m => { m.map && m.map.dispose(); m.emissiveMap && m.emissiveMap.dispose(); m.dispose(); }); winMats.length = 0;
     pickables.length = animated.length = cars.length = labels.length = blinkers.length = 0;
-    world = null; snow = null; stars = null; lotPos = {}; colliders.length = 0; blockPos.length = 0; meWalker = null;
+    T.free(world); world = null; snow = null; stars = null; lotPos = {}; colliders.length = 0; blockPos.length = 0; meWalker = null;
   }
 
   /* ---------- Reflets (carte d'environnement) : carrosseries et vitres qui reflètent le ciel ---------- */
   let envNight = null;
-  function makeEnv() {
-    if (envNight === night || !renderer) return; envNight = night;
-    try {
-      const pm = new T.PMREMGenerator(renderer), es = new T.Scene();
-      es.add(new T.Mesh(new T.SphereGeometry(50, 32, 16), new T.ShaderMaterial({ side: T.BackSide, uniforms: { top: { value: new T.Color(night ? 0x0a1030 : 0x3d8fe0) }, bot: { value: new T.Color(night ? 0x1a2040 : 0xe8f2ff) }, gr: { value: new T.Color(night ? 0x101015 : 0x7d837a) } },
-        vertexShader: 'varying vec3 vP; void main(){ vP = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
-        fragmentShader: 'uniform vec3 top; uniform vec3 bot; uniform vec3 gr; varying vec3 vP; void main(){ vec3 c = vP.y > 0. ? mix(bot, top, pow(vP.y, .6)) : mix(bot, gr, pow(-vP.y, .35)); gl_FragColor = vec4(c, 1.); }' })));
-      if (!night) { const s = new T.Mesh(new T.SphereGeometry(5, 12, 8), new T.MeshBasicMaterial({ color: 0xfff6e0 })); s.position.set(28, 30, 18); es.add(s); }
-      const rt = pm.fromScene(es, .02); if (scene.environment) scene.environment.dispose(); scene.environment = rt.texture; pm.dispose();
-    } catch (e) { console.warn('env', e); }
-  }
+  function makeEnv() { if (envNight === night || !renderer) return; envNight = night; try { T.makeEnv(night); } catch (e) { console.warn('env', e); } }
 
   /* ---------- Rues : passages piétons, feux tricolores, bancs, poubelles, piétons qui se promènent ---------- */
   const tlMats = [];
@@ -1709,6 +1701,7 @@
     if (snow) { const a = snow.geometry.attributes.position; for (let i = 1; i < a.array.length; i += 3) { a.array[i] -= dt * 6; if (a.array[i] < 0) a.array[i] = 90; } a.needsUpdate = true; }
     // les étiquettes lointaines s'effacent pour ne pas encombrer
     if (!inside) labels.forEach(l => { l.visible = !Wk.on; if (Wk.on) return; const d = l.position.distanceTo(camera.position); const o = Math.max(0, Math.min(1, (HALF * 3.2 - d) / (HALF * 1.2))); l.material.opacity = Math.max(.12, o); });
+    T.hemiK = inside ? 2.6 : 1.3; // à l'intérieur, plus de lumière ambiante
     try { renderer.render(scene, camera); } catch (e) { fail('rendu : ' + (e.message || e)); }
   }
 
