@@ -72,7 +72,13 @@
     _dirty() { this._meshes.forEach(m => m._refreshGeo()); }
     bounds() { if (this._bb) return this._bb; const p = this.pos; let a = [1e9, 1e9, 1e9], b = [-1e9, -1e9, -1e9]; for (let i = 0; i < p.length; i += 3) for (let k = 0; k < 3; k++) { a[k] = Math.min(a[k], p[i + k]); b[k] = Math.max(b[k], p[i + k]); } return (this._bb = { min: a, max: b }); }
     dispose() { this._meshes.forEach(m => m._release()); }
-    vertexData() { const vd = new B.VertexData(); vd.positions = this.pos; vd.normals = this.nor.length ? this.nor : null; vd.uvs = this.uv.length ? this.uv : null; if (this.idx.length) vd.indices = this.idx; else { const n = this.pos.length / 3, ix = new Array(n); for (let i = 0; i < n; i++) ix[i] = i; vd.indices = ix; } return vd; }
+    pack() { // tableaux typés : 2 à 3 fois moins de mémoire que des tableaux JS de nombres
+      if (!(this.pos instanceof Float32Array)) this.pos = Float32Array.from(this.pos);
+      if (!(this.nor instanceof Float32Array)) this.nor = Float32Array.from(this.nor);
+      if (!(this.uv instanceof Float32Array)) this.uv = Float32Array.from(this.uv);
+      if (!(this.idx instanceof Uint32Array) && !(this.idx instanceof Uint16Array)) { const n = this.idx.length || this.pos.length / 3; if (!this.idx.length) { this.idx = new Uint32Array(n); for (let i = 0; i < n; i++) this.idx[i] = i; } else this.idx = (this.pos.length / 3 > 65535 ? Uint32Array : Uint16Array).from(this.idx); }
+    }
+    vertexData() { this.pack(); const vd = new B.VertexData(); vd.positions = this.pos; vd.normals = this.nor.length ? this.nor : null; vd.uvs = this.uv.length ? this.uv : null; vd.indices = this.idx; return vd; }
   }
   T.BufferGeometry = BufferGeometry; T.Float32BufferAttribute = class { constructor(a, n) { this.array = a; this.itemSize = n; this._cb = null; } set needsUpdate(v) { if (v && this._cb) this._cb(); } get needsUpdate() { return false; } };
   const gv = (g, x, y, z, nx, ny, nz, u, v) => { g.pos.push(x, y, z); g.nor.push(nx, ny, nz); g.uv.push(u, v); return g.pos.length / 3 - 1; };
@@ -185,6 +191,9 @@
     bm() { if (!this._bm) { this._bm = this._build(); this._bm.sideOrientation = CCW; this._sync(); } return this._bm; }
     _rebuild() { if (this._bm) { this._bm.dispose(false, false); this._bm = null; this._users && this._users.forEach(m => m._useMat()); } }
     dispose() { if (this._bm) { this._bm.dispose(false, false); this._bm = null; } }
+    // plus aucun objet ne s'en sert : on libère le matériau Babylon et ses textures (recréés à la demande s'il resservait)
+    _free() { this.dispose(); [this._map, this._emap].forEach(t => { if (t && t._mats) { t._mats.delete(this); if (!t._mats.size) t.dispose(); } }); }
+    _tex(t) { (t._mats || (t._mats = new Set())).add(this); return t.bt(); }
     clone() { const c = new this.constructor(Object.assign({}, this._o)); this._copyTo(c); return c; }
     _copyTo(c) { c.transparent = this.transparent; c._opacity = this._opacity; c.side = this.side; c._map = this._map; if (this.color) c.color.copy(this.color); if (this.emissive) { c.emissive.copy(this.emissive); c.emissiveIntensity = this.emissiveIntensity; } if (c.roughness !== undefined) { c.roughness = this.roughness; c.metalness = this.metalness; } }
     _common(m) {
@@ -200,9 +209,9 @@
       const m = this._bm; if (!m) return; this._common(m);
       m.albedoColor = this.color.toB3(); m.metallic = this.metalness * .45; m.roughness = Math.max(.04, this.roughness); m.environmentIntensity = this.envMapIntensity * T.envK;
       m.emissiveColor = new B.Color3(this.emissive.r * this.emissiveIntensity, this.emissive.g * this.emissiveIntensity, this.emissive.b * this.emissiveIntensity);
-      if (this._map) { m.albedoTexture = this._map.bt(); if (this.transparent) { m.useAlphaFromAlbedoTexture = true; m.transparencyMode = B.PBRMaterial.PBRMATERIAL_ALPHABLEND; } }
+      if (this._map) { m.albedoTexture = this._tex(this._map); if (this.transparent) { m.useAlphaFromAlbedoTexture = true; m.transparencyMode = B.PBRMaterial.PBRMATERIAL_ALPHABLEND; } }
       else { m.albedoTexture = null; m.transparencyMode = this.transparent && this._opacity < 1 ? B.PBRMaterial.PBRMATERIAL_ALPHABLEND : B.PBRMaterial.PBRMATERIAL_OPAQUE; }
-      if (this._emap) m.emissiveTexture = this._emap.bt(); else m.emissiveTexture = null;
+      if (this._emap) m.emissiveTexture = this._tex(this._emap); else m.emissiveTexture = null;
       m.twoSidedLighting = this.side === 2; m.directIntensity = 1; m.specularIntensity = 1;
     }
   };
@@ -211,7 +220,7 @@
     _build() { const m = new B.StandardMaterial('bas', SC); m.disableLighting = true; m.diffuseColor = new B.Color3(0, 0, 0); m.specularColor = new B.Color3(0, 0, 0); return m; }
     _sync() {
       const m = this._bm; if (!m) return; this._common(m); m.emissiveColor = this.color.toB3().toGammaSpace();
-      m.emissiveTexture = null; m.opacityTexture = null; if (this._map) { m.diffuseTexture = this._map.bt(); m.emissiveColor = this.color.toB3().toGammaSpace(); m.useAlphaFromDiffuseTexture = this.transparent; } else m.diffuseTexture = null;
+      m.emissiveTexture = null; m.opacityTexture = null; if (this._map) { m.diffuseTexture = this._tex(this._map); m.emissiveColor = this.color.toB3().toGammaSpace(); m.useAlphaFromDiffuseTexture = this.transparent; } else m.diffuseTexture = null;
     }
   };
   T.SpriteMaterial = class extends T.MeshBasicMaterial { constructor(o = {}) { super(o); this.isSpriteMaterial = true; this.transparent = o.transparent !== false; }
@@ -235,20 +244,24 @@
     translateY(d) { this.position.y += d; return this; }
     lookAt(x, y, z) { const t = typeof x === 'object' ? x : { x, y, z }; this._look = t; const p = this.position, dx = t.x - p.x, dy = t.y - p.y, dz = t.z - p.z; this.rotation.y = Math.atan2(dx, dz); this.rotation.x = -Math.atan2(dy, Math.hypot(dx, dz)); this.rotation.z = 0; }
     updateMatrixWorld() { const q = new Quaternion().setFromEuler(this.rotation), l = new Matrix4().compose(this.position, q, this.scale); this.matrixWorld = this.parent && this.parent.matrixWorld ? new Matrix4().multiplyMatrices(this.parent.matrixWorld, l) : l; this.children.forEach(c => c.updateMatrixWorld()); }
-    localToWorld(v) { let r = this; while (r.parent) r = r.parent; r.updateMatrixWorld(); return this.matrixWorld.applyToVec(v, v); }
-    getWorldPosition(out) { let r = this; while (r.parent) r = r.parent; r.updateMatrixWorld(); const e = this.matrixWorld.elements; out.set(e[12], e[13], e[14]); return out; }
+    _world() { // matrice monde : produit des matrices locales de la chaîne de parents (sans parcourir tout l'arbre)
+      const l = new Matrix4().compose(this.position, new Quaternion().setFromEuler(this.rotation), this.scale);
+      return this.parent && this.parent._world ? new Matrix4().multiplyMatrices(this.parent._world(), l) : l;
+    }
+    localToWorld(v) { return this._world().applyToVec(v, v); }
+    getWorldPosition(out) { const e = this._world().elements; out.set(e[12], e[13], e[14]); return out; }
     _syncSelf() { const p = this.position, r = this.rotation, s = this.scale, c = this._c, n = this._n; if (!n) return; if (p.x !== c[0] || p.y !== c[1] || p.z !== c[2]) { n.position.set(p.x, p.y, p.z); c[0] = p.x; c[1] = p.y; c[2] = p.z; } if (r.x !== c[3] || r.y !== c[4] || r.z !== c[5]) { const q = new Quaternion().setFromEuler(r); if (!n.rotationQuaternion) n.rotationQuaternion = new B.Quaternion(); n.rotationQuaternion.set(q.x, q.y, q.z, q.w); c[3] = r.x; c[4] = r.y; c[5] = r.z; } if (s.x !== c[6] || s.y !== c[7] || s.z !== c[8]) { n.scaling.set(s.x, s.y, s.z); c[6] = s.x; c[7] = s.y; c[8] = s.z; } }
     _sync() { this._syncSelf(); for (let i = 0; i < this.children.length; i++) this.children[i]._sync(); }
   }
   class Group extends Object3D { constructor() { super(); this.isGroup = true; } }
   T.Object3D = Object3D; T.Group = Group;
   // libère les nœuds Babylon d'un sous-arbre retiré de la scène (ils seront recréés si on le rajoute)
-  T.free = function (o) { o.traverse(x => { if (x._inst) { try { x._inst.dispose(); } catch (e) { } x._inst = null; } if (x.isMesh) { x._release(); } else if (x.isSprite) { if (x._n && !x._n.isDisposed()) x._n.dispose(false, false); } else if (x._n && x._n.dispose && !x._n.isDisposed() && !x.isLight && !x.isCamera) x._n.dispose(false, false); }); };
+  T.free = function (o) { o.traverse(x => { if (x._inst) { try { x._inst.dispose(); } catch (e) { } x._inst = null; } if (x.isMesh) { x._release(); } else if (x.isSprite) { x._release(); } else if (x._n && x._n.dispose && !x._n.isDisposed() && !x.isLight && !x.isCamera) x._n.dispose(false, false); }); };
   const CAST = new Set();
   class Mesh extends Object3D {
     constructor(geo, mat) { super(); this.isMesh = true; this.geometry = geo || new BufferGeometry(); this._mat = mat || new T.MeshBasicMaterial(); this._cast = false; this._recv = false; this._fc = true; this._build(); }
     _mkNode() { return null; }
-    _build() { const g = this.geometry; const m = new B.Mesh('m', SC); this._n = m; g.vertexData().applyToMesh(m, true); m.metadata = this; m.isPickable = true; g._meshes.add(this); this._c = [NaN, 0, 0, 0, 0, 0, 1, 1, 1]; this._useMat(); m.receiveShadows = this._recv; if (this._cast) this._castOn(true); m.alwaysSelectAsActiveMesh = this._fc === false; this._on(this._attached === true); }
+    _build() { const g = this.geometry; const m = new B.Mesh('m', SC); this._n = m; g.vertexData().applyToMesh(m, false); m.metadata = this; m.isPickable = true; g._meshes.add(this); this._c = [NaN, 0, 0, 0, 0, 0, 1, 1, 1]; this._useMat(); m.receiveShadows = this._recv; if (this._cast) this._castOn(true); m.alwaysSelectAsActiveMesh = this._fc === false; this._on(this._attached === true); }
     _useMat() {
       const mt = this._mat, arr = Array.isArray(mt), list = arr ? mt : [mt];
       list.forEach(x => { if (!x || !x.bm) throw new Error('matériau invalide : ' + typeof x + ' sur ' + (this.geometry && this.geometry.constructor.name)); (x._users || (x._users = new Set())).add(this); });
@@ -263,8 +276,12 @@
     _castOn(v) { if (v) CAST.add(this._n); else CAST.delete(this._n); const g = T.shadowGen; if (!g) return; if (v) g.addShadowCaster(this._n); else g.removeShadowCaster(this._n); }
     get frustumCulled() { return this._fc !== false; } set frustumCulled(v) { this._fc = v; if (this._n && !this._n.isDisposed()) this._n.alwaysSelectAsActiveMesh = !v; }
     get receiveShadow() { return this._recv; } set receiveShadow(v) { this._recv = !!v; if (this._n && !this._n.isDisposed()) this._n.receiveShadows = this._recv; }
-    _refreshGeo() { if (this._n && !this._n.isDisposed()) this.geometry.vertexData().applyToMesh(this._n, true); }
-    _release() { if (this._n) { CAST.delete(this._n); if (!this._n.isDisposed()) this._n.dispose(false, false); } this.geometry._meshes.delete(this); }
+    _refreshGeo() { if (this._n && !this._n.isDisposed()) this.geometry.vertexData().applyToMesh(this._n, false); }
+    _release() {
+      if (this._n) { CAST.delete(this._n); if (!this._n.isDisposed()) this._n.dispose(false, false); }
+      this.geometry._meshes.delete(this);
+      (Array.isArray(this._mat) ? this._mat : [this._mat]).forEach(x => { if (x && x._users) { x._users.delete(this); if (!x._users.size && x._free) x._free(); } });
+    }
     _syncSelf() { if (!this._n || this._n.isDisposed()) return; super._syncSelf(); }
     _cloneSelf() { const c = new Mesh(this.geometry, this._mat); c.castShadow = this._cast; c.receiveShadow = this._recv; return c; }
   }
@@ -282,6 +299,7 @@
     _mkNode() { return null; }
     _build() { const m = B.MeshBuilder.CreatePlane('sp', { size: 1, sideOrientation: B.Mesh.DOUBLESIDE }, SC); m.billboardMode = B.AbstractMesh.BILLBOARDMODE_ALL; m.isPickable = false; m.material = this.material.bm(); m.material.backFaceCulling = false; m.renderingGroupId = this.material._depthTest ? 0 : 1; this._n = m; m.metadata = this; (this.material._spr = this.material._spr || new Set()).add(this); this._on(this._attached === true); }
     _ensure() { if (!this._n || this._n.isDisposed()) { this._build(); if (this.parent) this._n.parent = this.parent._bnode(); this._on(true); } }
+    _release() { if (this._n && !this._n.isDisposed()) this._n.dispose(false, false); const mt = this.material; if (mt && mt._spr) { mt._spr.delete(this); if (!mt._spr.size && mt._free) mt._free(); } }
     _syncSelf() { super._syncSelf(); const m = this._n; if (m && m.renderingGroupId !== (this.material._depthTest ? 0 : 1)) m.renderingGroupId = this.material._depthTest ? 0 : 1; if (m && this.material._bm && m.material !== this.material._bm) m.material = this.material._bm; }
   };
 
@@ -366,7 +384,7 @@
   T.DirectionalLight = class extends Light {
     constructor(c, i) { super(); this.color.set(c); this.intensity = i; this.target = new Object3D(); this._castS = false; this.shadow = { mapSize: { x: 1024, y: 1024, set(x, y) { this.x = x; this.y = y; } }, bias: 0, camera: { left: -50, right: 50, top: 50, bottom: -50, near: 1, far: 200, updateProjectionMatrix() { } } }; this._bl = new B.DirectionalLight('sun', new B.Vector3(0, -1, 0), SC); this._bl.specular = new B.Color3(1, 1, 1); this._bl.autoUpdateExtends = false; this._bl.autoCalcShadowZBounds = false; this._on(false); }
     get castShadow() { return this._castS; } set castShadow(v) { this._castS = !!v; }
-    _mkGen() { const sm = this.shadow.mapSize.x || 1024, g = new B.ShadowGenerator(sm, this._bl); g.usePercentageCloserFiltering = true; g.filteringQuality = B.ShadowGenerator.QUALITY_MEDIUM; g.bias = 0.0006; g.normalBias = 0.02; g.setDarkness(0.15); T.shadowGen = g; this._gen = g; CAST.forEach(m => g.addShadowCaster(m)); return g; }
+    _mkGen() { const sm = this.shadow.mapSize.x || 1024, g = new B.ShadowGenerator(sm, this._bl); if (T.mobile) g.usePoissonSampling = true; else { g.usePercentageCloserFiltering = true; g.filteringQuality = B.ShadowGenerator.QUALITY_MEDIUM; } g.bias = 0.0006; g.normalBias = 0.02; g.setDarkness(0.15); T.shadowGen = g; this._gen = g; CAST.forEach(m => g.addShadowCaster(m)); return g; }
     _syncSelf() {
       const l = this._bl, p = this.position, t = this.target.position; l.diffuse = this.color.toB3(); l.intensity = this.intensity * T.sunK;
       l.position.set(p.x, p.y, p.z); const d = new B.Vector3(t.x - p.x, t.y - p.y, t.z - p.z); if (d.lengthSquared() > 1e-8) l.direction = d.normalize();
@@ -422,8 +440,8 @@
   /* ---------- Boîtes englobantes ---------- */
   T.Box3 = class {
     constructor() { this.min = new Vector3(1e9, 1e9, 1e9); this.max = new Vector3(-1e9, -1e9, -1e9); }
-    setFromObject(o) { this.min.set(1e9, 1e9, 1e9); this.max.set(-1e9, -1e9, -1e9); let r = o; while (r.parent) r = r.parent; r.updateMatrixWorld(); const v = new Vector3();
-      o.traverse(m => { if (!m.isMesh) return; const b = m.geometry.bounds(); if (b.min[0] > b.max[0]) return; for (let i = 0; i < 8; i++) { v.set(i & 1 ? b.max[0] : b.min[0], i & 2 ? b.max[1] : b.min[1], i & 4 ? b.max[2] : b.min[2]); m.matrixWorld.applyToVec(v, v); this.min.set(Math.min(this.min.x, v.x), Math.min(this.min.y, v.y), Math.min(this.min.z, v.z)); this.max.set(Math.max(this.max.x, v.x), Math.max(this.max.y, v.y), Math.max(this.max.z, v.z)); } });
+    setFromObject(o) { this.min.set(1e9, 1e9, 1e9); this.max.set(-1e9, -1e9, -1e9); const v = new Vector3();
+      o.traverse(m => { if (!m.isMesh) return; const b = m.geometry.bounds(); if (b.min[0] > b.max[0]) return; const W = m._world(); for (let i = 0; i < 8; i++) { v.set(i & 1 ? b.max[0] : b.min[0], i & 2 ? b.max[1] : b.min[1], i & 4 ? b.max[2] : b.min[2]); W.applyToVec(v, v); this.min.set(Math.min(this.min.x, v.x), Math.min(this.min.y, v.y), Math.min(this.min.z, v.z)); this.max.set(Math.max(this.max.x, v.x), Math.max(this.max.y, v.y), Math.max(this.max.z, v.z)); } });
       return this; }
   };
 
@@ -432,12 +450,7 @@
   // Rendu : tone mapping ACES, contraste, bloom (lueur des fenêtres et des lampes la nuit), anti-crénelage MSAA
   T.look = function (scene, camera, mobile) {
     const bs = scene._bs, ip = bs.imageProcessingConfiguration; ip.toneMappingEnabled = false; ip.exposure = 1.0; ip.contrast = 1.0;
-    try {
-      const p = new B.DefaultRenderingPipeline('dp', false, bs, [camera._bc]); p.samples = mobile ? 2 : 4; p.fxaaEnabled = false;
-      p.bloomEnabled = false; p.bloomThreshold = .85; p.bloomWeight = mobile ? .22 : .35; p.bloomKernel = 40; p.bloomScale = .5;
-      p.imageProcessingEnabled = true; p.imageProcessing.toneMappingEnabled = false; p.imageProcessing.exposure = 1.0; p.imageProcessing.contrast = 1.0;
-      T.pipeline = p;
-    } catch (e) { console.warn('pipeline', e); }
+    T.mobile = !!mobile;
   };
   T.WebGLRenderer = class {
     constructor(o) { this.canvas = o.canvas; this.engine = new B.Engine(o.canvas, o.antialias !== false, { stencil: false, powerPreference: 'high-performance', preserveDrawingBuffer: false }); this.info = { render: { get calls() { return T._eng ? T._eng._drawCalls.current : 0; } } }; T._eng = this.engine; this.shadowMap = {}; this._pr = 1; this.domElement = o.canvas; }
