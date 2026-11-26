@@ -335,7 +335,8 @@
   }
   function tree(g, x, z, s = 1, xmas) {
     g.add(cyl(.25 * s, .35 * s, 1.6 * s, col(0x6b4a2b), x, 0, z, 8));
-    const leaf = col(xmas ? 0x1f6f3a : [0x3fa34d, 0x2f8f46, 0x58b85c][Math.abs(x * 7 + z * 3 | 0) % 3]);
+    const FALL = TC.season && TC.season.autwin; // automne : feuillage orange, rouille, ocre et quelques verts
+    const leaf = col(xmas ? 0x1f6f3a : (FALL ? [0xe8892c, 0xc9542b, 0xd9a441, 0x8a9a3b, 0xb8452a][Math.abs(x * 7 + z * 3 | 0) % 5] : [0x3fa34d, 0x2f8f46, 0x58b85c][Math.abs(x * 7 + z * 3 | 0) % 3]));
     if (xmas) { for (let i = 0; i < 3; i++) g.add(mesh(new T.ConeGeometry((2.4 - i * .6) * s, 2.6 * s, 10), leaf, x, (1.6 + i * 1.5 + 1.3) * s, z)); return; }
     g.add(mesh(new T.SphereGeometry(1.5 * s, 10, 8), leaf, x, 2.6 * s, z));
   }
@@ -903,8 +904,7 @@
     clearWorld();
     world = new T.Group(); scene.add(world);
     night = forcedNight != null ? forcedNight : data.night;
-    const noel = !!(TC.season && TC.season.noel && !TC.season.briques), brick = !!(TC.season && TC.season.briques);
-    let studs = null; const studMat = () => studs || (studs = (() => { const t = canvasTex(64, 64, (g, w, h) => { g.fillStyle = '#1fae4c'; g.fillRect(0, 0, w, h); g.fillStyle = 'rgba(0,0,0,.18)'; g.beginPath(); g.arc(32, 33.5, 15, 0, 6.3); g.fill(); g.fillStyle = '#37cc68'; g.beginPath(); g.arc(32, 32, 14, 0, 6.3); g.fill(); g.fillStyle = 'rgba(255,255,255,.35)'; g.beginPath(); g.arc(27, 27, 4, 0, 6.3); g.fill(); }); t.wrapS = t.wrapT = T.RepeatWrapping; t.repeat.set(10, 10); return new T.MeshStandardMaterial({ map: t, roughness: .6 }); })());
+    const noel = !!(TC.season && TC.season.noel), autumn = !!(TC.season && TC.season.autwin);
     const items = [{ land: 'bourse' }, { land: 'market' }];
     // monuments mélangés aux plus riches, comme sur la carte 2D
     let li = 1; const L = data.landmarks;
@@ -928,7 +928,7 @@
       const a = mesh(new T.PlaneGeometry(W, 1.2), roadMat, 0, .06, c, false); a.rotation.x = -Math.PI / 2; a.receiveShadow = true; world.add(a);
       const b = mesh(new T.PlaneGeometry(W, 1.2), roadMat, c, .06, 0, false); b.rotation.x = -Math.PI / 2; b.rotation.z = Math.PI / 2; b.receiveShadow = true; world.add(b);
     }
-    const walk = col(0xc9ccd2), grass = brick ? studMat() : col(noel ? 0xeef3f8 : 0x4caf50, { roughness: 1 }), plaza = col(0xe6dfd0);
+    const walk = col(0xc9ccd2), grass = col(noel ? 0xeef3f8 : autumn ? 0x9aa040 : 0x4caf50, { roughness: 1 }), plaza = col(0xe6dfd0);
     // lampadaires aux carrefours
     const lampMat = new T.MeshBasicMaterial({ color: night ? 0xfff0b0 : 0xdddddd });
     for (let i = 0; i <= N; i++) for (let j = 0; j <= N; j++) {

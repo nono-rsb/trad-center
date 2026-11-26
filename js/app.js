@@ -101,7 +101,6 @@
       return;
     }
     if (b && b.dataset.goto) return TC.goto(b.dataset.goto);
-    if (t.closest('#gta') && !TC.season.noel) { TC.goto('TTWO'); return; } // bandeau GTA VI → action Take-Two (Rockstar)
     if (b && b.dataset.sellall) {
       const id = b.dataset.sellall; const h = S().holdings[id]; if (!h) return;
       if (!(await TC.confirm('Tout vendre ?', `Vendre <b>${fmt.qty(h.qty)} ${id}</b> pour environ <b>${fmt.eur(G.holdingValue(id) * (1 - G.feeSpot(G.holdingValue(id))))}</b> ?`, 'Vendre', 'btn-sell'))) return;
@@ -161,11 +160,9 @@
       </div><div class="modal-actions"><button class="btn btn-gold btn-xl" data-close>C'est parti 🚀</button></div>`, { cls: 'wide', onClose: () => { if (!S().seenIntro) { S().seenIntro = true; G.save(); } } });
   }
 
-  /* ---------------- Compte à rebours : sortie de GTA VI (19 novembre 2026, heure locale) ---------------- */
-  const GTA_DATE = new Date(2026, 10, 19, 0, 0, 0);
+  /* ---------------- Bandeau de fêtes : compte à rebours jusqu'à Noël, puis jusqu'au Nouvel An (décembre seulement) ---------------- */
   const box = (v, l) => `<span class="gta-box"><b>${String(v).padStart(2, '0')}</b><i>${l}</i></span>`;
   const countdown = ms => { const d = Math.floor(ms / 86400000), h = Math.floor(ms / 3600000) % 24, m = Math.floor(ms / 60000) % 60, s = Math.floor(ms / 1000) % 60; return `<div class="gta-cd">${box(d, 'jours')}${box(h, 'h')}${box(m, 'min')}${box(s, 's')}</div>`; };
-  // En décembre : compte à rebours jusqu'à Noël, puis jusqu'au Nouvel An
   function noelBanner(el) {
     const now = new Date(), y = now.getMonth() === 11 ? now.getFullYear() : new Date().getFullYear();
     const xmas = new Date(y, 11, 25), ny = new Date(y + 1, 0, 1);
@@ -173,30 +170,24 @@
     else if (now.getDate() === 25) el.innerHTML = `<span class="gta-palm">🎅</span><div class="gta-txt"><small>Trad Center vous souhaite un</small><b class="gta-out">JOYEUX NOËL 🎄</b></div><span class="gta-palm r">🎁</span>`;
     else el.innerHTML = `<span class="gta-palm">🎆</span><div class="gta-txt"><small>Nouvel An dans</small><span class="gta-date">01.01.${y + 1}</span></div>${countdown(ny - now)}<span class="gta-palm r">🥂</span>`;
   }
-  // Action de la maison mère de Rockstar Games, cliquable depuis le bandeau
-  function ttwoChip() {
-    const p = D.eur('TTWO'), c = D.change('TTWO');
-    return p ? `<button class="ttwo-chip" data-goto="TTWO" title="Trader l'action Take-Two (Rockstar Games)">R★ <b>${fmt.eur(p)}</b> <i class="${c >= 0 ? 'up' : 'down'}">${fmt.pct(c)}</i></button>` : `<button class="ttwo-chip" data-goto="TTWO">R★ Trader l'action</button>`;
-  }
   function gta() {
     const el = $('#gta'); if (!el) return;
-    if (TC.season.noel) { el.title = 'Joyeuses fêtes !'; return noelBanner(el); }
-    const ms = GTA_DATE - Date.now();
-    if (ms <= 0) { el.innerHTML = `<span class="gta-palm">🌴</span><div class="gta-txt"><small>Grand Theft Auto VI · Rockstar Games</small><b class="gta-out">EST SORTI 🎉</b></div><span class="gta-ttwo">${ttwoChip()}</span><span class="gta-palm r">🌴</span>`; return; }
-    el.innerHTML = `<span class="gta-palm">🌴</span><div class="gta-txt"><small>Sortie de GTA VI</small><span class="gta-date">Rockstar Games · 19.11.2026</span></div>
-      ${countdown(ms)}<span class="gta-ttwo">${ttwoChip()}</span><span class="gta-palm r">🌴</span>`;
+    if (TC.season.noel) { el.title = 'Joyeuses fêtes !'; el.hidden = false; return noelBanner(el); }
+    el.hidden = true; el.innerHTML = ''; // hors décembre : pas de bandeau
   }
 
-  /* ---------------- Neige (thème de Noël) ---------------- */
+  /* ---------------- Particules : neige (Noël), feuilles d'automne et premiers flocons (thème automne / hiver) ---------------- */
   function snow(force) {
     if (document.getElementById('snow')) return;
-    if (((!TC.season.noel || TC.season.briques) && !force) || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if ((!(TC.season.noel || TC.season.autwin) && !force) || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const leaves = !TC.season.noel && TC.season.autwin;
     const c = document.createElement('canvas'); c.id = 'snow'; document.body.appendChild(c);
-    const ctx = c.getContext('2d'); let W, H, flakes = [];
+    const ctx = c.getContext('2d'); let W, H; const flakes = [], lv = [];
     const resize = () => { const r = devicePixelRatio || 1; W = innerWidth; H = innerHeight; c.width = W * r; c.height = H * r; c.style.width = W + 'px'; c.style.height = H + 'px'; ctx.setTransform(r, 0, 0, r, 0, 0); };
     resize(); addEventListener('resize', resize);
-    const n = innerWidth < 600 ? 55 : 110;
+    const small = innerWidth < 600, n = leaves ? (small ? 26 : 50) : (small ? 55 : 110), COL = ['#ff9a3c', '#e8622c', '#d9a441', '#b5472a', '#f2c14e', '#c9742e'];
     for (let i = 0; i < n; i++) flakes.push({ x: Math.random() * W, y: Math.random() * H, r: Math.random() * 2.4 + 0.8, s: Math.random() * 0.6 + 0.35, w: Math.random() * Math.PI * 2 });
+    if (leaves) for (let i = 0; i < (small ? 16 : 30); i++) lv.push({ x: Math.random() * W, y: Math.random() * H, z: Math.random() * 6 + 6, s: Math.random() * 0.7 + 0.5, w: Math.random() * Math.PI * 2, a: Math.random() * 6.28, va: (Math.random() - .5) * .04, c: COL[i % COL.length] });
     (function loop() {
       if (!document.hidden) {
         ctx.clearRect(0, 0, W, H); ctx.fillStyle = 'rgba(255,255,255,.85)';
@@ -204,6 +195,12 @@
           f.y += f.s; f.w += 0.01; f.x += Math.sin(f.w) * 0.35;
           if (f.y > H + 5) { f.y = -5; f.x = Math.random() * W; }
           ctx.globalAlpha = 0.35 + f.r / 4; ctx.beginPath(); ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2); ctx.fill();
+        }
+        for (const l of lv) { // feuille : deux courbes pointues + une nervure, qui tourne en tombant
+          l.y += l.s; l.w += 0.015; l.x += Math.sin(l.w) * 0.9; l.a += l.va;
+          if (l.y > H + 14) { l.y = -14; l.x = Math.random() * W; }
+          ctx.save(); ctx.translate(l.x, l.y); ctx.rotate(l.a); ctx.globalAlpha = .8; ctx.fillStyle = l.c; ctx.beginPath(); ctx.moveTo(0, -l.z); ctx.quadraticCurveTo(l.z * .85, 0, 0, l.z); ctx.quadraticCurveTo(-l.z * .85, 0, 0, -l.z); ctx.fill();
+          ctx.strokeStyle = 'rgba(80,30,10,.45)'; ctx.lineWidth = .8; ctx.beginPath(); ctx.moveTo(0, -l.z * .9); ctx.lineTo(0, l.z * 1.15); ctx.stroke(); ctx.restore();
         }
       }
       requestAnimationFrame(loop);
@@ -425,7 +422,7 @@
     TC.onImages(() => { if (['shop', 'collection'].includes(UI.tab)) UI.refreshTab(); UI.header(); });
     gta(); setInterval(gta, 1000); snow();
     if (TC.season.noel) setTimeout(noelWelcome, 1800); // fenêtre de l'événement : décembre seulement
-    { const tc = document.querySelector('meta[name=theme-color]'); if (tc) { if (TC.season.briques) tc.content = '#1565c0'; else if (TC.season.noel) tc.content = '#0b1d1a'; } }
+    { const tc = document.querySelector('meta[name=theme-color]'); if (tc) { if (TC.season.noel) tc.content = '#0b1d1a'; else tc.content = '#1a1625'; } }
     setTimeout(() => TC.loadImages(), 300);
     try { const s = localStorage.getItem('tradcenter.sel'); if (s && TC.assetById[s]) UI.sel = s; } catch (e) { }
     // liens ouverts depuis une notification : ?a=BTC ou ?tab=social

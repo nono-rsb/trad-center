@@ -1,19 +1,19 @@
 {
-  "id": "voitures-3d-2026-11-26",
-  "emoji": "🚗",
-  "title": "De nouvelles voitures 3D !",
-  "tab": "city",
+  "id": "automne-hiver-2026-11-27",
+  "emoji": "🍂",
+  "title": "Nouveau décor : automne / hiver",
+  "tab": "markets",
   "items": [
     {
-      "icon": "🏎️",
-      "title": "Voitures de sport et gros 4x4",
-      "text": "Les voitures de sport et les 4x4 de Trad City ont de nouveaux modèles 3D avec de vraies roues qui tournent et braquent, dans la couleur de ta voiture."
+      "icon": "🍂",
+      "title": "Un thème entre automne et hiver",
+      "text": "Crépuscule bleu ardoise, reflets ambre et givre, feuilles qui tombent et premiers flocons. Toujours avec le verre liquide de l'iOS."
     },
     {
-      "icon": "🎨",
-      "title": "Modèles libres de droits",
-      "text": "Ce sont des modèles génériques (pas de marques réelles), libres de droits."
+      "icon": "🏙️",
+      "title": "La ville aux couleurs d'automne",
+      "text": "Les arbres de Trad City passent à l'orange, la rouille et l'ocre."
     }
   ],
-  "button": "Voir la ville 🏙️"
+  "button": "Voir 🍁"
 }
