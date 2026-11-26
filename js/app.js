@@ -282,6 +282,7 @@
       <h4>Sources de données</h4>
       <div class="kv"><span>Crypto (Binance)</span><b>${h.binance}</b><span>Bourse (Yahoo Finance)</span><b>${h.yahoo}</b><span>Devises</span><b>${D.fxStatus}</b><span>1 € =</span><b>${fmt.num(D.fx.USD, 4)} $</b></div>
       <p class="hint">${h.relay === 'ok' ? '✅ Ton réseau bloque les sources directes : le jeu utilise les cours relayés par le serveur du jeu (différés de quelques minutes). Tu peux trader.' : 'Si ton réseau (école, box, contrôle parental, Wi-Fi public) bloque une source, le jeu bascule sur les cours relayés du jeu ; sans eux, tu ne peux pas trader. Astuce : essaie avec les données mobiles.'}</p>
+      ${TC.Apk ? TC.Apk.settingsHtml() : ''}
       <div class="modal-actions left"><button class="btn" id="b-help2">❔ Aide</button><button class="btn" id="b-notif2">🔔 Notifications</button></div>
       ${N && N.isGuest && N.isGuest() ? `<h4>👤 Mon compte</h4><div class="kv"><span>Pseudo</span><b>${esc((N.profile && N.profile.pseudo) || '')} <span class="guesttag">Invité</span></b></div>
       <p class="hint">Tu joues en invité : tu es dans les classements et le championnat, mais sans e-mail ta partie est perdue si tu changes de téléphone ou vides ton navigateur. Crée ton compte : tu gardes tout (argent, objets, amis).</p>
