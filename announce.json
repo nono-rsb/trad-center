@@ -1,19 +1,19 @@
 {
-  "id": "android-2026-11-26",
-  "emoji": "📲",
-  "title": "L'appli Android arrive !",
-  "tab": "social",
+  "id": "voitures-3d-2026-11-26",
+  "emoji": "🚗",
+  "title": "De nouvelles voitures 3D !",
+  "tab": "city",
   "items": [
     {
-      "icon": "📲",
-      "title": "Trad Center en vraie appli",
-      "text": "Télécharge l'APK (Paramètres → Appli Android) : le jeu s'ouvre comme une appli et se met à jour tout seul."
+      "icon": "🏎️",
+      "title": "Voitures de sport et gros 4x4",
+      "text": "Les voitures de sport et les 4x4 de Trad City ont de nouveaux modèles 3D avec de vraies roues qui tournent et braquent, dans la couleur de ta voiture."
     },
     {
-      "icon": "🔔",
-      "title": "Notifications et 3D comme sur le site",
-      "text": "Rien ne change dans ta partie : tu te connectes avec ton compte habituel."
+      "icon": "🎨",
+      "title": "Modèles libres de droits",
+      "text": "Ce sont des modèles génériques (pas de marques réelles), libres de droits."
     }
   ],
-  "button": "Voir ⚙️"
+  "button": "Voir la ville 🏙️"
 }

@@ -243,7 +243,7 @@
   class Group extends Object3D { constructor() { super(); this.isGroup = true; } }
   T.Object3D = Object3D; T.Group = Group;
   // libère les nœuds Babylon d'un sous-arbre retiré de la scène (ils seront recréés si on le rajoute)
-  T.free = function (o) { o.traverse(x => { if (x.isMesh) { x._release(); } else if (x.isSprite) { if (x._n && !x._n.isDisposed()) x._n.dispose(false, false); } else if (x._n && x._n.dispose && !x._n.isDisposed() && !x.isLight && !x.isCamera) x._n.dispose(false, true); }); };
+  T.free = function (o) { o.traverse(x => { if (x._inst) { try { x._inst.dispose(); } catch (e) { } x._inst = null; } if (x.isMesh) { x._release(); } else if (x.isSprite) { if (x._n && !x._n.isDisposed()) x._n.dispose(false, false); } else if (x._n && x._n.dispose && !x._n.isDisposed() && !x.isLight && !x.isCamera) x._n.dispose(false, false); }); };
   const CAST = new Set();
   class Mesh extends Object3D {
     constructor(geo, mat) { super(); this.isMesh = true; this.geometry = geo || new BufferGeometry(); this._mat = mat || new T.MeshBasicMaterial(); this._cast = false; this._recv = false; this._fc = true; this._build(); }
@@ -319,6 +319,42 @@
     const side = (sun) => mk(g => { const gd = g.createLinearGradient(0, 0, 0, 64); gd.addColorStop(0, hex(top)); gd.addColorStop(.5, hex(bot)); gd.addColorStop(.5, hex(gr)); gd.addColorStop(1, hex(gr)); g.fillStyle = gd; g.fillRect(0, 0, 64, 64); if (sun) { g.fillStyle = '#fff6e0'; g.beginPath(); g.arc(42, 18, 7, 0, 7); g.fill(); } });
     faces.push(side(!night), mk(g => { g.fillStyle = hex(top); g.fillRect(0, 0, 64, 64); }), side(false), side(false), mk(g => { g.fillStyle = hex(gr); g.fillRect(0, 0, 64, 64); }), side(false));
     const old = SC.environmentTexture; const t = B.CubeTexture.CreateFromImages(faces, SC, false); SC.environmentTexture = t; if (old) setTimeout(() => old.dispose(), 500);
+  };
+
+  /* ---------- Modèles glTF / GLB (voitures) : chargés une fois, instanciés à volonté, carrosserie recolorée par la palette ---------- */
+  T.NodeProxy = class extends Object3D { // objet Three.js « branché » sur un nœud Babylon existant (une roue du modèle)
+    constructor(n) { super(); this._n = n; this._c = [NaN, 0, 0, 0, 0, 0, 1, 1, 1]; }
+    _mkNode() { return null; }
+  };
+  T.models = {};
+  const loadImg = url => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error(url)); i.src = url; });
+  T.loadModel = async function (key, o) { // o : { url, pal (palette PNG), body ([r,g,b] de la couleur de carrosserie dans la palette), len, wid, eye, scale }
+    const cont = await B.SceneLoader.LoadAssetContainerAsync('', o.url, SC);
+    const img = await loadImg(o.pal), c = document.createElement('canvas'); c.width = img.width; c.height = img.height; const g = c.getContext('2d'); g.drawImage(img, 0, 0);
+    T.models[key] = Object.assign({}, o, { cont, pal: g.getImageData(0, 0, c.width, c.height), vars: {}, n: 0 });
+    return T.models[key];
+  };
+  function variant(M, color) { // matériau de ce modèle dans cette couleur (partagé par toutes les voitures de la même couleur)
+    if (M.vars[color]) return M.vars[color];
+    const base = M.cont.materials[0], m = base.clone('v' + color), im = new ImageData(new Uint8ClampedArray(M.pal.data), M.pal.width, M.pal.height), d = im.data, b = M.body, r = (color >> 16) & 255, gg = (color >> 8) & 255, bb = color & 255;
+    for (let i = 0; i < d.length; i += 4) if (Math.abs(d[i] - b[0]) < 6 && Math.abs(d[i + 1] - b[1]) < 6 && Math.abs(d[i + 2] - b[2]) < 6) { d[i] = r; d[i + 1] = gg; d[i + 2] = bb; }
+    const cv = document.createElement('canvas'); cv.width = M.pal.width; cv.height = M.pal.height; cv.getContext('2d').putImageData(im, 0, 0);
+    const dt = new B.DynamicTexture('pal' + color, cv, SC, false, B.Texture.NEAREST_SAMPLINGMODE); dt.gammaSpace = false; dt.update(false);
+    m.albedoTexture = dt; m.metallicTexture = null; m.metallic = .15; m.roughness = .45; m.environmentIntensity = T.envK; m.sideOrientation = CCW;
+    return (M.vars[color] = m);
+  }
+  T.hasModel = key => !!T.models[key];
+  T.cloneModel = function (key, color) { // renvoie un Group Three.js (+ roues sous forme de Group dont les enfants tournent)
+    const M = T.models[key], inst = M.cont.instantiateModelsToScene(n => n, false), root = inst.rootNodes[0], g = new Group(), mat = variant(M, color);
+    root.parent = g._n; g._inst = inst;
+    root.getChildMeshes().forEach(m => { m.material = mat; m.isPickable = false; m.receiveShadows = true; CAST.add(m); if (T.shadowGen) T.shadowGen.addShadowCaster(m); });
+    const wheels = [];
+    ['FL', 'FR', 'RL', 'RR'].forEach(s => {
+      const n = root.getDescendants(false, x => x.name === 'wheel_' + s)[0]; if (!n) return;
+      const w = new Group(); w.position.set(n.position.x, n.position.y, n.position.z); n.position.set(0, 0, 0); if (n.rotationQuaternion) n.rotationQuaternion.set(0, 0, 0, 1);
+      w.add(new T.NodeProxy(n)); g.add(w); wheels.push(w);
+    });
+    g.userData.wheels = wheels; return g;
   };
 
   /* ---------- Lumières, caméra, scène ---------- */

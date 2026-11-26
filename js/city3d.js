@@ -38,7 +38,9 @@
         if (!window.BABYLON) throw new Error('moteur 3D non chargé');
         if (!window.B3) await loadScript('js/b3.js');
         if (!window.B3) throw new Error('couche 3D non chargée');
-        T = window.B3; init(); V.ready = true; return true;
+        T = window.B3; init();
+        try { await loadCarModels(); } catch (e) { console.warn('modèles 3D', e); } // en cas d'échec : les voitures dessinées par le jeu servent de secours
+        V.ready = true; return true;
       } catch (e) { console.warn('3D', e); V.error = String(e && e.message || e); V.failed = true; loading = null; return false; }
     })());
   };
@@ -337,6 +339,24 @@
     g.add(mesh(new T.SphereGeometry(1.5 * s, 10, 8), leaf, x, 2.6 * s, z));
   }
 
+  /* ---------- Modèles 3D de voitures (CC0, voir models/CREDITS.md) ---------- */
+  // silhouette → modèle : sport / GT / super / hyper = « muscle car », 4x4 = « monster truck » ; citadines et berlines restent dessinées par le jeu
+  const CAR_MODELS = {
+    muscle: { url: 'models/muscle.glb', pal: 'models/muscle_palette.png', body: [31, 100, 224], len: 4.0, wid: 2.1, eye: 1.62, scale: 1.1, styles: ['sport', 'gt', 'super', 'hyper'] },
+    monster: { url: 'models/monster.glb', pal: 'models/monster_palette.png', body: [255, 122, 18], len: 3.4, wid: 2.2, eye: 2.4, scale: .8, styles: ['suv', 'g'] },
+  };
+  const modelOf = {}; Object.entries(CAR_MODELS).forEach(([k, m]) => m.styles.forEach(st => { modelOf[st] = k; }));
+  async function loadCarModels() {
+    if (!window.BABYLON.SceneLoader.IsPluginForExtensionAvailable || !window.BABYLON.SceneLoader.IsPluginForExtensionAvailable('.glb')) await loadScript('js/vendor/babylon.glTF2FileLoader.min.js');
+    await Promise.all(Object.entries(CAR_MODELS).map(([k, m]) => T.loadModel(k, m).catch(e => console.warn('modèle', k, e))));
+  }
+  function glbCar(mk, color, style) {
+    const m = CAR_MODELS[mk], g = T.cloneModel(mk, color); g.scale.setScalar(m.scale);
+    g.userData.vs = style; g.userData.len = m.len; g.userData.wid = m.wid; g.userData.eye = m.eye; g.userData.seatX = .4;
+    // la voiture est mise à l'échelle : les roues restent des enfants du groupe, leur position est donc déjà à l'échelle
+    return g;
+  }
+
   /* ---------- Véhicules 3D : silhouette selon le modèle acheté, couleurs du modèle ---------- */
   const VSTYLE = { kart: 'kart', bumper: 'bumper', 'scooter-elec': 'kick', vespa: 'scooter', mt07: 'moto', clio: 'hatch', golfr: 'hatch', model3: 'sedan', taycan: 'sedan', m3: 'sedan', conti: 'gt', g63: 'g', urus: 'suv', puro: 'suv', cullinan: 'suv', '911': 'sport', gt3rs: 'sportw', roma: 'gt', db12: 'gt', r8: 'super', huracan: 'super', sto: 'superw', '296': 'super', '750s': 'super', sf90: 'super', revuelto: 'super', f40: 'superw', utopia: 'super', jesko: 'superw', chiron: 'hyper', tourbillon: 'hyper' };
   V.vstyle = it => VSTYLE[it.id] || (it.emoji === '🛴' ? 'kick' : it.emoji === '🛵' ? 'scooter' : it.emoji === '🏍️' ? 'moto' : it.emoji === '🚙' ? 'suv' : it.price > 150000 ? 'super' : it.price > 60000 ? 'sport' : 'hatch');
@@ -421,6 +441,7 @@
     style = style || (sport ? 'sport' : 'hatch');
     if (style === 'kick' || style === 'scooter' || style === 'moto' || style === 'kart' || style === 'bumper') return twoWheel(color, style);
     const wing = /w$/.test(style), key = style.replace(/w$/, ''), P = PROF[key] || PROF.hatch, smooth = key !== 'g';
+    if (modelOf[key] && T.hasModel(modelOf[key])) return glbCar(modelOf[key], color, style); // modèle 3D chargé
     const g = new T.Group();
     const paint = col(color, { metalness: .65, roughness: .22, envMapIntensity: 1.3 }), glass = col(0x0e1620, { metalness: .9, roughness: .04, envMapIntensity: 1.6 }), dark = col(0x161616, { roughness: .75 }), chrome = col(0xe6e9ee, { metalness: 1, roughness: .12 });
     g.add(extrudeSide(P.body, P.W, paint, .09, smooth));
