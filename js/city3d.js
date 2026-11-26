@@ -17,6 +17,7 @@
   /* ---------- Chargement ---------- */
   function loadScript(src) { return new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => rej(new Error(src)); document.head.appendChild(s); }); }
   function fail(msg) { console.warn('3D', msg); V.error = msg; V.failed = true; running = false; if (V.onFail) V.onFail(msg); }
+  V._fn = 0;
   V.retry = () => { V.failed = false; V.error = null; sig = ''; };
   V.drawn = () => !!(renderer && renderer.info.render.calls > 0);
   // test fait une seule fois : chaque test crée un contexte WebGL, et iOS coupe les plus anciens au-delà d'une limite
@@ -34,12 +35,12 @@
     if (V.ready) return Promise.resolve(true); if (V.failed) return Promise.resolve(false);
     return loading || (loading = (async () => {
       try {
-        if (!window.BABYLON) await loadScript('js/vendor/babylon.js');
+        if (!window.BABYLON) await loadScript('js/vendor/babylon-tc.js');
         if (!window.BABYLON) throw new Error('moteur 3D non chargé');
         if (!window.B3) await loadScript('js/b3.js');
         if (!window.B3) throw new Error('couche 3D non chargée');
-        T = window.B3; init();
-        try { await loadCarModels(); } catch (e) { console.warn('modèles 3D', e); } // en cas d'échec : les voitures dessinées par le jeu servent de secours
+        T = window.B3; const t0 = performance.now(); init(); V.timing = { init: Math.round(performance.now() - t0) };
+        try { const t1 = performance.now(); await loadCarModels(); V.timing.models = Math.round(performance.now() - t1); } catch (e) { console.warn('modèles 3D', e); } // en cas d'échec : les voitures dessinées par le jeu servent de secours
         V.ready = true; return true;
       } catch (e) { console.warn('3D', e); V.error = String(e && e.message || e); V.failed = true; loading = null; return false; }
     })());
@@ -347,7 +348,6 @@
   };
   const modelOf = {}; Object.entries(CAR_MODELS).forEach(([k, m]) => m.styles.forEach(st => { modelOf[st] = k; }));
   async function loadCarModels() {
-    if (!window.BABYLON.SceneLoader.IsPluginForExtensionAvailable || !window.BABYLON.SceneLoader.IsPluginForExtensionAvailable('.glb')) await loadScript('js/vendor/babylon.glTF2FileLoader.min.js');
     await Promise.all(Object.entries(CAR_MODELS).map(([k, m]) => T.loadModel(k, m).catch(e => console.warn('modèle', k, e))));
   }
   function glbCar(mk, color, style) {
@@ -1701,6 +1701,9 @@
     requestAnimationFrame(loop);
     const dt = Math.min(.05, clock.getDelta()), t = clock.elapsedTime;
     cam.idle += dt;
+    // qualité adaptative : si l'image saccade (téléphone lent), on baisse un peu la résolution ; elle remonte si ça va mieux
+    { const nowMs = performance.now(), ft = nowMs - (V._last || nowMs); V._last = nowMs;
+      if (ft > 0 && ft < 400) { V._ft = V._ft ? V._ft * .94 + ft * .06 : ft; if (++V._fn % 60 === 0 && renderer.engine) { const e = renderer.engine, cur = e.getHardwareScalingLevel(), base = 1 / (renderer._pr || 1); if (V._ft > 36 && cur < base * 2) e.setHardwareScalingLevel(cur + .25); else if (V._ft < 19 && cur > base) e.setHardwareScalingLevel(Math.max(base, cur - .25)); } } }
     if (Wk.on) stepAll(dt, t);
     else if (cam.goal) { const g = cam.goal, k = Math.min(1, dt * 3); cam.tx += (g.tx - cam.tx) * k; cam.tz += (g.tz - cam.tz) * k; cam.r += (g.r - cam.r) * k; cam.ty += ((g.ty || 4) - cam.ty) * k; if (Math.abs(g.tx - cam.tx) + Math.abs(g.tz - cam.tz) + Math.abs(g.r - cam.r) < .5) cam.goal = null; }
     else if (cam.idle > 6) cam.th += dt * .05; // rotation lente quand on ne touche à rien
@@ -1733,11 +1736,11 @@
     const s = JSON.stringify([data.players.map(p => [p.uid, p.tier, p.biz, p.me, p.mayor, p.friend, p.pseudo, p.plus, p.car && p.car.color, p.bld && p.bld.d ? Math.min(20, Math.floor((Date.now() - p.bld.s) / p.bld.d * 20)) : -1]), data.night, forcedNight]);
     if (s !== sig) {
       const first = !sig; sig = s;
-      try { build(data); } catch (e) { sig = ''; fail('construction : ' + (e.message || e)); throw e; }
+      try { const tb = performance.now(); build(data); (V.timing = V.timing || {}).build = Math.round(performance.now() - tb); } catch (e) { sig = ''; fail('construction : ' + (e.message || e)); throw e; }
       if (first) { const me = data.players.find(p => p.me); cam.r = Math.min(HALF * 3, 170); cam.tx = 0; cam.tz = 0; if (me) setTimeout(() => V.focus(me.uid), 900); }
     }
     resize();
-    if (!running) { running = true; clock.getDelta(); requestAnimationFrame(loop); }
+    if (!running) { running = true; V._last = 0; clock.getDelta(); requestAnimationFrame(loop); }
   };
   document.addEventListener('visibilitychange', () => { if (!document.hidden && host && canvas && canvas.isConnected && !running && TC.UI && TC.UI.tab === 'city') { running = true; clock.getDelta(); requestAnimationFrame(loop); } });
 })();
