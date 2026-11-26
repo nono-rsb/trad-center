@@ -1,19 +1,19 @@
 {
-  "id": "babylon-2026-11-25",
-  "emoji": "✨",
-  "title": "Trad City change de moteur 3D !",
-  "tab": "city",
+  "id": "android-2026-11-26",
+  "emoji": "📲",
+  "title": "L'appli Android arrive !",
+  "tab": "social",
   "items": [
     {
-      "icon": "🎨",
-      "title": "Nouveau rendu avec Babylon.js",
-      "text": "Ombres plus douces, lumières et reflets plus réalistes, bords lissés : la ville, les voitures et les maisons sont plus belles."
+      "icon": "📲",
+      "title": "Trad Center en vraie appli",
+      "text": "Télécharge l'APK (Paramètres → Appli Android) : le jeu s'ouvre comme une appli et se met à jour tout seul."
     },
     {
-      "icon": "🚀",
-      "title": "Même ville, mêmes attractions",
-      "text": "Balade, karting, manège, grande roue, stand de tir, maisons : tout est toujours là. Le premier chargement de l'onglet Ville peut prendre quelques secondes de plus."
+      "icon": "🔔",
+      "title": "Notifications et 3D comme sur le site",
+      "text": "Rien ne change dans ta partie : tu te connectes avec ton compte habituel."
     }
   ],
-  "button": "Voir la ville 🏙️"
+  "button": "Voir ⚙️"
 }
