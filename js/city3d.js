@@ -341,20 +341,19 @@
     g.add(mesh(new T.SphereGeometry(1.5 * s, 10, 8), leaf, x, 2.6 * s, z));
   }
 
-  /* ---------- Modèles 3D de voitures (CC0, voir models/CREDITS.md) ---------- */
-  // silhouette → modèle : sport / GT / super / hyper = « muscle car », 4x4 = « monster truck » ; citadines et berlines restent dessinées par le jeu
-  const CAR_MODELS = {
-    muscle: { url: 'models/muscle.glb', pal: 'models/muscle_palette.png', body: [31, 100, 224], len: 4.0, wid: 2.1, eye: 1.62, scale: 1.1, styles: ['sport', 'gt', 'super', 'hyper'] },
-    monster: { url: 'models/monster.glb', pal: 'models/monster_palette.png', body: [255, 122, 18], len: 3.4, wid: 2.2, eye: 2.4, scale: .8, styles: ['suv', 'g'] },
+  /* ---------- Modèles 3D de voitures (models/cars.glb, voir models/CREDITS.md) ---------- */
+  // silhouette → voitures du pack (longueur en mètres) ; la carrosserie est recolorée à la couleur de la voiture du joueur.
+  // Les deux-roues restent dessinés par le jeu.
+  const CAR_PACK = {
+    url: 'models/cars.glb', atlas: 'models/cars_atlas.jpg',
+    cars: { Object545: { body: [204, 204, 204] }, Object548: { body: [36, 120, 120] }, Object551: { body: [180, 84, 48] }, Object554: { body: [48, 72, 84] }, Object557: { body: [120, 60, 60] }, Object566: { body: [24, 60, 72] }, Object568: { body: [36, 132, 132] }, Object570: { body: [36, 132, 96] } },
   };
-  const modelOf = {}; Object.entries(CAR_MODELS).forEach(([k, m]) => m.styles.forEach(st => { modelOf[st] = k; }));
-  async function loadCarModels() {
-    await Promise.all(Object.entries(CAR_MODELS).map(([k, m]) => T.loadModel(k, m).catch(e => console.warn('modèle', k, e))));
-  }
-  function glbCar(mk, color, style) {
-    const m = CAR_MODELS[mk], g = T.cloneModel(mk, color); g.scale.setScalar(m.scale);
-    g.userData.vs = style; g.userData.len = m.len; g.userData.wid = m.wid; g.userData.eye = m.eye; g.userData.seatX = .4;
-    // la voiture est mise à l'échelle : les roues restent des enfants du groupe, leur position est donc déjà à l'échelle
+  const SUV = ['Object545', 'Object548', 'Object551'], SPORT = ['Object566', 'Object568', 'Object570'], SEDAN = ['Object554', 'Object557'];
+  const CAR_STYLES = { suv: [SUV, 5.0], g: [SUV, 4.85], sport: [SPORT, 4.5], gt: [SPORT, 4.75], super: [SPORT, 4.55], hyper: [SPORT, 4.6], sedan: [SEDAN, 4.7], hatch: [SEDAN, 4.1] };
+  async function loadCarModels() { await T.loadModelPack('cars', CAR_PACK); }
+  function glbCar(style, color) {
+    const [list, L] = CAR_STYLES[style], g = T.cloneCar('cars', list[(color >>> 0) % list.length], color, L);
+    g.userData.vs = style; g.userData.eye = g.userData.h + .1; g.userData.seatX = .4; // vue à la 1re personne : juste au-dessus du toit
     return g;
   }
 
@@ -442,7 +441,7 @@
     style = style || (sport ? 'sport' : 'hatch');
     if (style === 'kick' || style === 'scooter' || style === 'moto' || style === 'kart' || style === 'bumper') return twoWheel(color, style);
     const wing = /w$/.test(style), key = style.replace(/w$/, ''), P = PROF[key] || PROF.hatch, smooth = key !== 'g';
-    if (modelOf[key] && T.hasModel(modelOf[key])) return glbCar(modelOf[key], color, style); // modèle 3D chargé
+    if (CAR_STYLES[key] && T.hasModel('cars')) { const g = glbCar(key, color); g.userData.vs = style; return g; } // modèle 3D chargé
     const g = new T.Group();
     const paint = col(color, { metalness: .65, roughness: .22, envMapIntensity: 1.3 }), glass = col(0x0e1620, { metalness: .9, roughness: .04, envMapIntensity: 1.6 }), dark = col(0x161616, { roughness: .75 }), chrome = col(0xe6e9ee, { metalness: 1, roughness: .12 });
     g.add(extrudeSide(P.body, P.W, paint, .09, smooth));

@@ -339,40 +339,44 @@
     const old = SC.environmentTexture; const t = B.CubeTexture.CreateFromImages(faces, SC, false); SC.environmentTexture = t; if (old) setTimeout(() => old.dispose(), 500);
   };
 
-  /* ---------- Modèles glTF / GLB (voitures) : chargés une fois, instanciés à volonté, carrosserie recolorée par la palette ---------- */
-  T.NodeProxy = class extends Object3D { // objet Three.js « branché » sur un nœud Babylon existant (une roue du modèle)
-    constructor(n) { super(); this._n = n; this._c = [NaN, 0, 0, 0, 0, 0, 1, 1, 1]; }
-    _mkNode() { return null; }
-  };
+  /* ---------- Modèles glTF / GLB (voitures) : un fichier = plusieurs voitures qui partagent une palette de couleurs ----------
+   * La carrosserie est recolorée en remplaçant la couleur de carrosserie dans la palette ; les rayures, vitres et pneus gardent la leur. */
   T.models = {};
   const loadImg = url => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error(url)); i.src = url; });
-  T.loadModel = async function (key, o) { // o : { url, pal (palette PNG), body ([r,g,b] de la couleur de carrosserie dans la palette), len, wid, eye, scale }
+  // o : { url, atlas (palette JPG/PNG), cars: { nom du maillage : { body: [r, g, b] couleur de carrosserie dans la palette } } }
+  T.loadModelPack = async function (key, o) {
     const cont = await B.SceneLoader.LoadAssetContainerAsync('', o.url, SC);
-    const img = await loadImg(o.pal), c = document.createElement('canvas'); c.width = img.width; c.height = img.height; const g = c.getContext('2d'); g.drawImage(img, 0, 0);
-    T.models[key] = Object.assign({}, o, { cont, pal: g.getImageData(0, 0, c.width, c.height), vars: {}, n: 0 });
-    return T.models[key];
+    const img = await loadImg(o.atlas), c = document.createElement('canvas'); c.width = img.width; c.height = img.height; const g = c.getContext('2d'); g.drawImage(img, 0, 0);
+    const P = { cont, pal: g.getImageData(0, 0, c.width, c.height), cars: {}, vars: {}, base: cont.materials[0] };
+    // mesure de chaque voiture (taille réelle, centre, dessous), à l'échelle et à l'orientation d'origine : longueur le long de z, avant vers +z
+    const probe = new B.TransformNode('probe', SC);
+    Object.entries(o.cars).forEach(([name, cfg]) => {
+      const src = cont.meshes.find(m => m.name === name); if (!src) return;
+      const m = src.clone('probe_' + name, probe); m.setEnabled(true); probe.computeWorldMatrix(true); m.computeWorldMatrix(true);
+      const bb = m.getHierarchyBoundingVectors(true), sz = bb.max.subtract(bb.min);
+      P.cars[name] = Object.assign({}, cfg, { src, len: sz.z, wid: sz.x, h: sz.y, cx: (bb.min.x + bb.max.x) / 2, cz: (bb.min.z + bb.max.z) / 2, y0: bb.min.y });
+      m.dispose();
+    });
+    probe.dispose(); T.models[key] = P; return P;
   };
-  function variant(M, color) { // matériau de ce modèle dans cette couleur (partagé par toutes les voitures de la même couleur)
-    if (M.vars[color]) return M.vars[color];
-    const base = M.cont.materials[0], m = base.clone('v' + color), im = new ImageData(new Uint8ClampedArray(M.pal.data), M.pal.width, M.pal.height), d = im.data, b = M.body, r = (color >> 16) & 255, gg = (color >> 8) & 255, bb = color & 255;
-    for (let i = 0; i < d.length; i += 4) if (Math.abs(d[i] - b[0]) < 6 && Math.abs(d[i + 1] - b[1]) < 6 && Math.abs(d[i + 2] - b[2]) < 6) { d[i] = r; d[i + 1] = gg; d[i + 2] = bb; }
-    const cv = document.createElement('canvas'); cv.width = M.pal.width; cv.height = M.pal.height; cv.getContext('2d').putImageData(im, 0, 0);
-    const dt = new B.DynamicTexture('pal' + color, cv, SC, false, B.Texture.NEAREST_SAMPLINGMODE); dt.gammaSpace = false; dt.update(false);
-    m.albedoTexture = dt; m.metallicTexture = null; m.metallic = .15; m.roughness = .45; m.environmentIntensity = T.envK; m.sideOrientation = CCW;
-    return (M.vars[color] = m);
+  function variant(P, name, color) { // matériau recoloré (partagé par toutes les voitures de ce modèle et de cette couleur)
+    const k = name + '#' + color; if (P.vars[k]) return P.vars[k];
+    const cfg = P.cars[name], m = P.base.clone('v' + k), im = new ImageData(new Uint8ClampedArray(P.pal.data), P.pal.width, P.pal.height), d = im.data, b = cfg.body, r = (color >> 16) & 255, gg = (color >> 8) & 255, bb = color & 255, tol = cfg.tol || 18;
+    // les pixels de la palette qui ont la couleur de carrosserie du modèle prennent la couleur voulue
+    for (let i = 0; i < d.length; i += 4) if (Math.abs(d[i] - b[0]) < tol && Math.abs(d[i + 1] - b[1]) < tol && Math.abs(d[i + 2] - b[2]) < tol) { d[i] = r; d[i + 1] = gg; d[i + 2] = bb; }
+    const cv = document.createElement('canvas'); cv.width = P.pal.width; cv.height = P.pal.height; cv.getContext('2d').putImageData(im, 0, 0);
+    const dt = new B.DynamicTexture('pal' + k, cv, SC, true, B.Texture.TRILINEAR_SAMPLINGMODE); dt.gammaSpace = false; dt.invertY = false; dt.update(false);
+    m.albedoTexture = dt; m.metallicTexture = null; m.metallic = .1; m.roughness = .55; m.environmentIntensity = T.envK; m.sideOrientation = CCW;
+    return (P.vars[k] = m);
   }
   T.hasModel = key => !!T.models[key];
-  T.cloneModel = function (key, color) { // renvoie un Group Three.js (+ roues sous forme de Group dont les enfants tournent)
-    const M = T.models[key], inst = M.cont.instantiateModelsToScene(n => n, false), root = inst.rootNodes[0], g = new Group(), mat = variant(M, color);
-    root.parent = g._n; g._inst = inst;
-    root.getChildMeshes().forEach(m => { m.material = mat; m.isPickable = false; m.receiveShadows = true; CAST.add(m); if (T.shadowGen) T.shadowGen.addShadowCaster(m); });
-    const wheels = [];
-    ['FL', 'FR', 'RL', 'RR'].forEach(s => {
-      const n = root.getDescendants(false, x => x.name === 'wheel_' + s)[0]; if (!n) return;
-      const w = new Group(); w.position.set(n.position.x, n.position.y, n.position.z); n.position.set(0, 0, 0); if (n.rotationQuaternion) n.rotationQuaternion.set(0, 0, 0, 1);
-      w.add(new T.NodeProxy(n)); g.add(w); wheels.push(w);
-    });
-    g.userData.wheels = wheels; return g;
+  // renvoie un Group Three.js : voiture à l'échelle (longueur L en mètres), posée sur le sol, centrée, avant vers +z
+  T.cloneCar = function (key, name, color, L) {
+    const P = T.models[key], cfg = P.cars[name], g = new Group(), s = L / cfg.len, inner = new B.TransformNode('car_in', SC), m = cfg.src.clone('car_' + name, inner);
+    m.setEnabled(true); m.isPickable = false; m.receiveShadows = true; m.material = variant(P, name, color); CAST.add(m); if (T.shadowGen) T.shadowGen.addShadowCaster(m);
+    inner.scaling.setAll(s); inner.position.set(-cfg.cx * s, -cfg.y0 * s, -cfg.cz * s); inner.parent = g._n;
+    g._inst = { dispose() { try { m.dispose(); inner.dispose(); } catch (e) { } } };
+    g.userData.wheels = []; g.userData.len = L; g.userData.wid = cfg.wid * s; g.userData.h = cfg.h * s; return g;
   };
 
   /* ---------- Lumières, caméra, scène ---------- */
