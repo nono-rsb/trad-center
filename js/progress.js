@@ -26,7 +26,6 @@
   P.event = () => P.EVENTS[today().wd];
   const ev = k => P.event().k === k;
   // lundi : pas de frais
-  ['buy', 'sell', 'open', 'close'].forEach(fn => { const f = G[fn]; G[fn] = function () { if (!ev('nofee')) return f.apply(G, arguments); const a = G.FEE_SPOT, b = G.FEE_LEV; G.FEE_SPOT = 0; G.FEE_LEV = 0; try { return f.apply(G, arguments); } finally { G.FEE_SPOT = a; G.FEE_LEV = b; } }; });
   // week-end : bonus quotidien ×2
   const baseClaim = G.claimBonus;
   G.claimBonus = function () { if (!ev('bonus2')) return baseClaim.apply(G, arguments); const b = G.BONUS; G.BONUS = b * 2; try { return baseClaim.apply(G, arguments); } finally { G.BONUS = b; } };
@@ -142,7 +141,6 @@
   /* ---------- Écoute du jeu ---------- */
   G.on((type, d) => {
     d = d || {};
-    if (type === 'trade' && TC.Bot && TC.Bot.auto) return; // ordre passé par le bot : ne compte pas
     if (type === 'trade') {
       const a = d.id && TC.assetById && TC.assetById[d.id];
       if (['buy', 'sell', 'open', 'close'].includes(d.kind)) { progress('trades'); P.xp(d.id === 'BTC' && ev('btc') ? 15 : 5); }
