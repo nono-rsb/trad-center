@@ -3,9 +3,6 @@
  * à sa dernière valeur connue, sans frais. Le patrimoine reste identique. Les actifs reçus d'un ami plus tard sont convertis de même. */
 (function () {
   const G = TC.Game, fmt = TC.fmt, S = () => G.state;
-  const NO = () => ({ ok: false, msg: 'Le trading a été retiré du jeu.' });
-  G.buy = G.sell = G.open = G.bet = NO;
-  if (TC.Bot) { TC.Bot.panel = () => ''; }
   const r2 = v => Math.round(v * 100) / 100;
   function convert() {
     const s = S(); if (!s || !s.holdings) return;

@@ -224,7 +224,7 @@
       ${NT.subscribed() ? '<button class="btn btn-ghost btn-sm" data-n="off">Ne plus recevoir quand l\'appli est fermée</button>' : ''}
       ${diag}</div>`, { cls: 'wide' });
     const el = md.el;
-    const sel = el.querySelector('#n-asset'); sel.value = TC.UI.sel;
+    const sel = el.querySelector('#n-asset'); 
     const fillPrice = () => { const p = D.eur(sel.value); el.querySelector('#n-price').placeholder = p ? 'actuel : ' + fmt.num(p, p < 1 ? 6 : 2) : 'Prix'; };
     sel.onchange = fillPrice; fillPrice();
     const renderAlerts = () => {

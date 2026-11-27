@@ -11,7 +11,7 @@
     else { TC.toast('⛔ ' + r.msg, 'bad'); TC.sound('click'); }
   }
   function afterAction() {
-    UI.header(); UI.orderLive(); UI.chartHead(); UI.chartLines(); UI.refreshTab(); checkAch(); checkBroke();
+    UI.header(); UI.refreshTab(); checkAch(); checkBroke();
     G.sampleNW();
   }
   function checkAch() {
@@ -31,14 +31,6 @@
     md.el.querySelector('#b-restart').onclick = () => { G.reset(true); md.close(); location.reload(); };
   }
 
-  /* ---------------- Sélection d'actif ---------------- */
-  function select(id) {
-    if (!TC.assetById[id]) return;
-    UI.sel = id;
-    $$('#m-list .mrow').forEach(r => r.classList.toggle('sel', r.dataset.id === id));
-    UI.chartHead(); UI.order(); UI.loadChart();
-    try { localStorage.setItem('tradcenter.sel', id); } catch (e) { }
-  }
   function setTab(t) {
     if (t === 'markets') t = 'portfolio'; // le trading a été retiré du jeu
     if (document.body.classList.contains('gated')) t = 'social'; // pas de compte : connexion d'abord
@@ -48,10 +40,9 @@
     $$('#tabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === t));
     $$('.tab-pane').forEach(p => p.classList.toggle('active', p.id === 'tab-' + t));
     UI.refreshTab();
-    if (t === 'markets') setTimeout(() => window.dispatchEvent(new Event('resize')), 30);
     window.scrollTo({ top: 0 });
   }
-  TC.goto = id => { setTab('markets'); select(id); };
+  TC.goto = id => { setTab('portfolio'); };
   TC.App = { setTab, after: () => afterAction(), snow: f => snow(f) };
 
   /* ---------------- Événements ---------------- */
@@ -59,55 +50,6 @@
     const t = e.target;
     const b = t.closest('button');
     if (t.closest('#tabs button')) return setTab(t.closest('#tabs button').dataset.tab);
-    const fav = t.closest('[data-fav]');
-    if (fav) { e.stopPropagation(); G.toggleFav(fav.dataset.fav); UI.list(); UI.chartHead(); return; }
-    const row = t.closest('.mrow');
-    if (row) { select(row.dataset.id); if (innerWidth < 900) $('.chartp').scrollIntoView({ behavior: 'smooth' }); return; }
-    if (t.closest('#m-cats button')) { UI.cat = t.closest('button').dataset.cat; UI.cats(); UI.list(); return; }
-    if (t.closest('#c-tf button')) { UI.tf = t.closest('button').dataset.tf; UI.tfButtons(); UI.loadChart(); return; }
-    if (t.closest('#c-type button')) { const ty = t.closest('button').dataset.type; $$('#c-type button').forEach(x => x.classList.toggle('active', x.dataset.type === ty)); TC.Chart.setType(ty); UI.chartLines(); return; }
-    if (t.closest('#o-mode button')) { UI.mode = t.closest('button').dataset.mode; UI.order(); return; }
-    if (t.closest('#o-spotside button')) { UI.spotSide = t.closest('button').dataset.side; UI.order(); return; }
-    if (t.closest('#o-levside button')) { UI.levSide = t.closest('button').dataset.side; UI.order(); return; }
-    if (t.closest('#o-betdur button')) { UI.betDur = +t.closest('button').dataset.dur; UI.order(); return; }
-    if (b && b.dataset.lev) { UI.lev = +b.dataset.lev; UI.order(); return; }
-    const quick = t.closest('.quick[data-target] button');
-    if (quick) {
-      const q = quick.parentElement; const inp = $('#' + q.dataset.target); const pct = +quick.dataset.p / 100;
-      if (q.dataset.base === 'cash') inp.value = +(Math.floor(S().cash * pct * 100) / 100).toFixed(2);
-      else { const h = S().holdings[UI.sel]; inp.value = h ? (pct === 1 ? h.qty : +(h.qty * pct).toPrecision(8)) : 0; }
-      UI.orderLive(); return;
-    }
-    if (b && b.id === 'o-go') {
-      let r;
-      if (UI.mode === 'spot' && UI.spotSide === 'buy') r = G.buy(UI.sel, $('#o-amt').value);
-      else if (UI.mode === 'spot') { const h = S().holdings[UI.sel]; let q = +$('#o-qty').value; if (h && q > h.qty) q = h.qty; r = G.sell(UI.sel, q); }
-      else if (UI.mode === 'lev') {
-        const amt = +$('#o-amt').value;
-        if (UI.lev >= 50 && amt > 0 && !(await TC.confirm('⚠️ Levier x' + UI.lev, `Avec un levier x${UI.lev}, un mouvement de seulement <b>${fmt.num(90 / UI.lev, 2)} %</b> contre vous suffit pour perdre toute la marge. On y va ?`, 'Je prends le risque', 'btn-sell'))) return;
-        r = G.open(UI.sel, UI.levSide, amt, UI.lev, $('#o-sl') && $('#o-sl').value, $('#o-tp') && $('#o-tp').value);
-      }
-      notify(r);
-      if (r.ok) { TC.sound(UI.mode === 'spot' && UI.spotSide === 'sell' ? 'sell' : 'buy'); UI.order(); afterAction(); }
-      return;
-    }
-    if (b && b.dataset.bet) {
-      const r = G.bet(UI.sel, b.dataset.bet, $('#o-amt').value, UI.betDur);
-      notify(r); if (r.ok) { TC.sound('buy'); UI.order(); afterAction(); }
-      return;
-    }
-    if (b && b.dataset.close) {
-      const r = G.close(+b.dataset.close); notify(r);
-      if (r.ok) { TC.sound(r.pnl >= 0 ? 'win' : 'lose'); afterAction(); }
-      return;
-    }
-    if (b && b.dataset.goto) return TC.goto(b.dataset.goto);
-    if (b && b.dataset.sellall) {
-      const id = b.dataset.sellall; const h = S().holdings[id]; if (!h) return;
-      if (!(await TC.confirm('Tout vendre ?', `Vendre <b>${fmt.qty(h.qty)} ${id}</b> pour environ <b>${fmt.eur(G.holdingValue(id) * (1 - G.feeSpot(G.holdingValue(id))))}</b> ?`, 'Vendre', 'btn-sell'))) return;
-      const r = G.sell(id, h.qty); notify(r); if (r.ok) { TC.sound('sell'); afterAction(); }
-      return;
-    }
     if (b && b.dataset.shop) { UI.shop(b.dataset.shop); return; }
     if (t.closest('#goalbar')) { setTab('shop'); return; }
     if (b && b.dataset.sort) { UI.shopSort = b.dataset.sort; UI.refreshTab(); return; }
@@ -134,11 +76,6 @@
     if (b && b.dataset.guestsave) return settings();
   });
 
-  document.addEventListener('input', e => {
-    if (e.target.id === 'm-search') { UI.q = e.target.value; UI.list(); }
-    if (e.target.id === 'o-lev') { UI.lev = +e.target.value; $('#o-levv').textContent = 'x' + UI.lev; const go = $('#o-go'); if (go) go.textContent = (UI.levSide === 'long' ? 'Ouvrir Long' : 'Ouvrir Short') + ' x' + UI.lev; $$('.lev-quick button').forEach(x => x.classList.toggle('active', +x.dataset.lev === UI.lev)); UI.orderLive(); }
-    if (['o-amt', 'o-qty'].includes(e.target.id)) UI.orderLive();
-  });
   document.addEventListener('keydown', e => {
     if (e.key === 'Enter' && ['o-amt', 'o-qty', 'o-sl', 'o-tp'].includes(e.target.id)) { const go = $('#o-go'); if (go) go.click(); }
     if (e.key === 'Escape') { const m = $('#modal'); if (m.classList.contains('open')) m.click(); }
@@ -349,7 +286,7 @@
     const pwm = md.el.querySelector('#b-pwmail'); if (pwm) pwm.onclick = async () => { try { await N.resetPassword(N.user.email); TC.toast('📧 E-mail envoyé à ' + esc(N.user.email) + ' : suis le lien pour choisir un nouveau mot de passe.', 'ok', 7000); } catch (e) { TC.toast(N.errMsg(e), 'bad'); } };
     md.el.querySelector('#b-install2').onclick = () => install();
     md.el.querySelector('#b-cheat').onclick = () => TC.Cheats.open();
-    md.el.querySelector('#s-expert').onchange = e => { S().expert = e.target.checked; G.save(); UI.order(); TC.toast(e.target.checked ? '⚡ Mode expert activé : onglet Levier disponible' : 'Mode expert désactivé', 'info'); };
+    md.el.querySelector('#s-expert').onchange = e => { S().expert = e.target.checked; G.save(); TC.toast(e.target.checked ? '⚡ Mode expert activé : onglet Levier disponible' : 'Mode expert désactivé', 'info'); };
     md.el.querySelector('#b-help2').onclick = () => help();
     md.el.querySelector('#b-notif2').onclick = () => TC.Notif.open();
     md.el.querySelector('#b-sound2').onclick = e => { S().sound = !S().sound; G.save(); UI.header(); e.target.textContent = S().sound ? '🔊 Activés — couper' : '🔇 Coupés — activer'; };
@@ -370,47 +307,10 @@
   }
 
   /* ---------------- Boucles ---------------- */
-  let dirty = false, fxDirty = false;
-  D.on(id => {
-    if (id === '__health') { UI.databar(); return; }
-    if (id === '__fx') { fxDirty = true; dirty = true; return; }
-    const p = D.prices[id]; if (p) p._dirty = true;
-    dirty = true;
-    // positions : contrôle immédiat liquidation / SL / TP
-    if (S().positions.some(x => x.asset === id)) {
-      G.checkPositions(id).forEach(r => {
-        if (!r.ok) return;
-        TC.toast((r.tag ? r.tag + ' — ' : '') + r.msg, r.pnl >= 0 ? 'ok' : 'bad', 5000);
-        TC.sound(r.pnl >= 0 ? 'win' : 'lose');
-        afterAction();
-      });
-    }
-    if (id === UI.sel) TC.Chart.tick(D.eur(id));
-  });
-
-  setInterval(() => {
-    if (!dirty) return; dirty = false;
-    UI.listUpdate(fxDirty); fxDirty = false;
-    for (const id in D.prices) D.prices[id]._dirty = false;
-    UI.chartPrice(); UI.orderLive(); UI.header();
-  }, 400);
-
   let slow = 0;
   setInterval(async () => {
     slow++;
-    UI.tickerUpdate(); UI.chartHead();
-    if (slow % 2 === 0) UI.databar();
-    // paris arrivés à échéance
-    const res = await G.checkBets();
-    res.forEach(r => {
-      const a = r.bet.asset;
-      if (r.result === 'win') { TC.toast(`🎯 Pari gagné sur ${a} ! ${fmt.eur(r.bet.start)} → ${fmt.eur(r.end)} : <b>+${fmt.eur(r.pnl)}</b>`, 'ok', 6000); TC.sound('win'); }
-      else if (r.result === 'lose') { TC.toast(`❌ Pari perdu sur ${a}. ${fmt.eur(r.bet.start)} → ${fmt.eur(r.end)} : ${fmt.eur(r.pnl)}`, 'bad', 6000); TC.sound('lose'); }
-      else TC.toast(`↔️ Égalité sur ${a} : mise remboursée`, 'info');
-    });
-    if (res.length) afterAction();
-    UI.orderLive();
-    if (UI.tab !== 'markets' && (slow % 2 === 0 || UI.tab === 'collection')) UI.liveTab();
+    if ((slow % 2 === 0 || UI.tab === 'collection')) UI.liveTab();
     UI.header();
     if (slow % 30 === 0) { G.sampleNW(); G.save(); checkAch(); }
     checkBroke();
@@ -426,10 +326,8 @@
     if (TC.season.noel) setTimeout(noelWelcome, 1800); // fenêtre de l'événement : décembre seulement
     { const tc = document.querySelector('meta[name=theme-color]'); if (tc) { if (TC.season.noel) tc.content = '#0b1d1a'; else tc.content = '#1a1625'; } }
     setTimeout(() => TC.loadImages(), 300);
-    try { const s = localStorage.getItem('tradcenter.sel'); if (s && TC.assetById[s]) UI.sel = s; } catch (e) { }
     // liens ouverts depuis une notification : ?a=BTC ou ?tab=social
     const qs = new URLSearchParams(location.search);
-    if (qs.get('a') && TC.assetById[qs.get('a')]) UI.sel = qs.get('a');
     if (qs.get('tab')) setTimeout(() => setTab(qs.get('tab')), 0);
     if (qs.get('ref')) { try { if (!localStorage.getItem('tradcenter.ref')) localStorage.setItem('tradcenter.ref', qs.get('ref').slice(0, 64)); } catch (e) { } }
     if (qs.toString()) history.replaceState(null, '', location.pathname);
