@@ -1,19 +1,11 @@
 {
-  "id": "ma-vie-2026-11-28",
-  "emoji": "🧍",
-  "title": "Nouveau : Ma vie",
-  "tab": "portfolio",
-  "items": [
-    {
-      "icon": "🍽️",
-      "title": "Les besoins de ton personnage",
-      "text": "Faim, énergie, hygiène : ils baissent en temps réel. Mange, bois un café, douche-toi, dors chez toi (ou sur le canapé). Aucun argent perdu : un personnage à bout travaille juste moins bien."
-    },
-    {
-      "icon": "💼",
-      "title": "Un vrai métier",
-      "text": "Livreur, caissier, serveur… jusqu'à chirurgien. Prends un service, il est payé automatiquement à la fin (cotisations 22 % comprises), même jeu fermé. Des grades améliorent ton salaire."
-    }
-  ],
-  "button": "Voir 🧍"
+  "id": "pause-maj-2026-11-28",
+  "emoji": "🛠️",
+  "title": "Mise à jour en cours",
+  "silent": true,
+  "tab": "markets",
+  "push": {
+    "title": "🛠️ Trad Center est en pause",
+    "body": "Grosse mise à jour en cours : graphismes améliorés et jeu plus rapide. Tes données sont sauvegardées, reviens bientôt !"
+  }
 }
