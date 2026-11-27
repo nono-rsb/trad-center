@@ -28,7 +28,8 @@ service cloud.firestore {
         && getAfter(/databases/$(db)/documents/usernames/$(request.resource.data.pseudoLower)).data.uid == me();
       allow update: if signedIn() && uid == me()
         && request.resource.data.pseudoLower == resource.data.pseudoLower
-        && request.resource.data.pseudo == resource.data.pseudo;
+        && request.resource.data.pseudo == resource.data.pseudo
+        && (!('nw' in request.resource.data) || (request.resource.data.nw is number && request.resource.data.nw < 1e14));
     }
 
     // Sauvegarde privée de la partie
@@ -73,8 +74,14 @@ service cloud.firestore {
         && areFriends(me(), request.resource.data.to)
         && request.resource.data.claimed == false
         && request.resource.data.kind in ['cash', 'asset']
-        && request.resource.data.eur is number && request.resource.data.eur > 0
-        && request.resource.data.qty is number && request.resource.data.qty > 0;
+        && request.resource.data.keys().hasOnly(['from', 'to', 'fromPseudo', 'fromAvatar', 'toPseudo', 'kind', 'asset', 'qty', 'eur', 'msg', 'createdAt', 'claimed', 'availAt'])
+        && request.resource.data.eur is number && request.resource.data.eur > 0 && request.resource.data.eur < 1e12
+        && request.resource.data.qty is number && request.resource.data.qty > 0 && request.resource.data.qty < 1e15
+        && (!('msg' in request.resource.data) || (request.resource.data.msg is string && request.resource.data.msg.size() <= 120))
+        // anti-triche : on ne peut pas envoyer beaucoup plus que son patrimoine publié (le serveur ne voit pas le solde, mais ceci bloque les envois « fabriqués »)
+        && request.resource.data.eur <= get(/databases/$(db)/documents/users/$(me())).data.get('nw', 0) * 2 + 1000
+        // le pseudo de l'expéditeur ne peut pas être usurpé
+        && request.resource.data.fromPseudo == get(/databases/$(db)/documents/users/$(me())).data.pseudo;
       allow update: if signedIn()
         && resource.data.to == me()
         && resource.data.claimed == false

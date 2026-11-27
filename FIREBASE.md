@@ -47,3 +47,10 @@ Ces valeurs ne sont pas secrètes : elles identifient le projet. La sécurité e
 
 ## Tester en local (développeurs)
 `npx firebase-tools emulators:start --only auth,firestore --project demo-tradcenter`, puis dans `js/config.js` mettez une config factice avec `projectId: 'demo-tradcenter'` et `TC.FIREBASE_EMULATOR = '127.0.0.1';`.
+
+## Sécurité de l'économie (offre gratuite)
+Sans serveur payant, le solde reste calculé dans le jeu. Trois garde-fous gratuits :
+1. **Règles Firestore** ([`firebase/firestore.rules`](firebase/firestore.rules)) : un envoi ne peut pas dépasser ~2× le patrimoine publié du joueur, ne peut pas usurper un pseudo et n'accepte que les champs prévus. **À recopier dans la console Firebase → Règles → Publier** à chaque mise à jour du fichier.
+2. **Sentinelle** (workflow `notify.yml`) : repère les fortunes qui explosent, les gains de semaine énormes, les doubles comptes et les demandes abusives, puis fait un rapport dans 🛡️ Mode créateur.
+3. **Journal** : chaque envoi reste dans la collection `transfers` (historique consultable).
+Passer à un vrai serveur (Cloud Functions) demanderait le forfait Blaze.
