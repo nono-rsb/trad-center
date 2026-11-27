@@ -2,3 +2,5 @@ scripts/node_modules/
 scripts/state.json
 scripts/.loop-ok
 scripts/qa-inbox.json
+desktop/node_modules/
+desktop/dist/

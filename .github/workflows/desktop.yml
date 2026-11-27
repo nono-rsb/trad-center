@@ -1,0 +1,78 @@
+name: Appli ordinateur (Windows, Mac, Linux)
+
+# Fabrique l'appli Trad Center pour ordinateur (Electron : une fenêtre qui affiche le site, donc le jeu se met à jour tout seul).
+# Les fichiers sont publiés dans la release « desktop » :
+#   https://github.com/nono-rsb/trad-center/releases/tag/desktop
+# Lancé quand le dossier desktop/ change, ou à la main. Le jeu n'a pas besoin de nouvelle appli à chaque mise à jour.
+on:
+  push:
+    branches: [main]
+    paths: ['desktop/**', '.github/workflows/desktop.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: desktop
+  cancel-in-progress: false
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Numéro de version
+        shell: bash
+        run: echo '{ "code": ${{ github.run_number }} }' > desktop/code.json
+      - name: Installer
+        working-directory: desktop
+        run: npm install --no-audit --no-fund
+      - name: Fabriquer (Windows)
+        if: runner.os == 'Windows'
+        working-directory: desktop
+        run: npx electron-builder --win --x64 --publish never
+      - name: Fabriquer (Mac)
+        if: runner.os == 'macOS'
+        working-directory: desktop
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: npx electron-builder --mac --x64 --arm64 --publish never
+      - name: Fabriquer (Linux)
+        if: runner.os == 'Linux'
+        working-directory: desktop
+        run: npx electron-builder --linux --x64 --publish never
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ runner.os }}
+          path: |
+            desktop/dist/Trad-Center-*.exe
+            desktop/dist/Trad-Center-*.dmg
+            desktop/dist/Trad-Center-*.AppImage
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+          merge-multiple: true
+      - name: Publier dans la release « desktop »
+        run: |
+          ls -la out
+          gh release delete desktop --cleanup-tag -y 2>/dev/null || true
+          gh release create desktop out/* --target main --latest=false --title "${{ github.run_number }}" --notes "Appli Trad Center pour ordinateur, version ${{ github.run_number }}. Le jeu se met à jour tout seul : ces fichiers ne changent que si l'appli elle-même change."
+          echo "Publié : https://github.com/${GITHUB_REPOSITORY}/releases/tag/desktop"
