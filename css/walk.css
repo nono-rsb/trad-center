@@ -97,3 +97,10 @@ body.wk-on { overflow: hidden; }
   .wk-crouch { display: grid; place-items: center; position: absolute; right: 22px; bottom: calc(122px + env(safe-area-inset-bottom)); width: 56px; height: 56px; border-radius: 50%; border: 2px solid rgba(255,255,255,.4); background: rgba(20,12,35,.5); font-size: 22px; pointer-events: auto; }
   .wk-crouch.on { background: linear-gradient(135deg, #ffd23f, #ff9f1c); }
 }
+
+/* Vol (voyage) */
+#wk-fly { position: fixed; inset: 0; z-index: 99990; display: grid; place-items: center; background: radial-gradient(circle at 50% 40%, #243b66, #0c1226); color: #fff; opacity: 0; pointer-events: none; transition: opacity .5s; text-align: center; }
+#wk-fly.on { opacity: 1; pointer-events: auto; }
+#wk-fly b { display: block; font-size: 4rem; animation: flyup 1.4s ease-in-out infinite; }
+#wk-fly span { font-size: 1.1rem; opacity: .9; }
+@keyframes flyup { 50% { transform: translate(18px, -14px) rotate(-8deg); } }

@@ -1322,16 +1322,16 @@
   V.refreshColliders = computeColliders;
   function hit(x, z, r) { for (const c of colliders) if (x > c.x0 - r && x < c.x1 + r && z > c.z0 - r && z < c.z1 + r) return true; return false; }
   function vehHit(x, z, r, skip) { // véhicules garés et circulation
-    if (inside) return false;
+    if (inside || zone) return false;
     for (const v of parkG.list) { if (v === skip) continue; const L = (v.mesh.userData.len || 4) / 2, Wd = (v.mesh.userData.wid || 1.8) / 2, dx = x - v.x, dz = z - v.z, s = Math.sin(v.yaw), c = Math.cos(v.yaw); const lz = dx * s + dz * c, lx = dx * c - dz * s; if (Math.abs(lz) < L + r && Math.abs(lx) < Wd + r) return true; }
     if (race) for (const a of extra) if (Math.hypot(x - a.m.position.x, z - a.m.position.z) < .9 + r) return true;
     for (const c of cars) { const cx = c.axis === 'x' ? c.t : c.line, cz = c.axis === 'x' ? c.line : c.t, L = 2.4, Wd = 1.0, ax = c.axis === 'x'; const dx = Math.abs(x - cx), dz = Math.abs(z - cz); if ((ax ? dx < L + r && dz < Wd + r : dz < L + r && dx < Wd + r)) return true; }
     return false;
   }
   function inBox(x, y, z) { for (const c of colliders) if (y < c.y1 && x > c.x0 && x < c.x1 && z > c.z0 && z < c.z1) return true; return false; }
-  function ground(x, z) { if (inside) return 0;
+  function ground(x, z) { if (zone) return zone.ground(x, z); if (inside) return 0;
     const A = lotPos.autos; if (A && Math.abs(x - A.x) < 10.6 && Math.abs(z - A.z) < 8.6) return .57; for (const b of blockPos) if (Math.abs(x - b.x) < BLOCK / 2 && Math.abs(z - b.z) < BLOCK / 2) return .42; return .05; }
-  const limit = () => inside ? Math.max(room.W, room.D) : HALF + 16;
+  const limit = () => zone ? zone.lim : inside ? Math.max(room.W, room.D) : HALF + 16;
   function lookDir(out) { const cp = Math.cos(Wk.pitch); out.set(Math.sin(Wk.yaw) * cp, -Math.sin(Wk.pitch), Math.cos(Wk.yaw) * cp); return out; }
   const _v = new (function () { this.x = 0; this.y = 0; this.z = 0; this.set = function (a, b, c) { this.x = a; this.y = b; this.z = c; return this; }; })();
   function placeCamera(px, py, pz, eye, dist, minD) {
@@ -1372,6 +1372,7 @@
     Wk.y += (ground(Wk.x, Wk.z) - Wk.y) * Math.min(1, dt * 14);
     avatarW.position.set(Wk.x, Wk.y + Wk.h, Wk.z); avatarW.rotation.y = Wk.face; avatarW.visible = !Wk.fp;
     placeCamera(Wk.x, Wk.y + Wk.h * .5 - (crouch ? .35 : 0), Wk.z, 1.66, Wk.d);
+    if (zone) { Wk.near = null; Wk.nearVeh = null; Wk.nearDoor = false; return; }
     if (inside) { // dans la maison : la porte, la sortie
       Wk.nearDoor = Math.hypot(Wk.x - 0, Wk.z - room.D / 2) < 1.7;
       if (door && door.open && Wk.z > room.D / 2 + .35) { V.exitHouse(); return; }
@@ -1615,7 +1616,7 @@
   let myBub = null, myBubUntil = 0;
   V.say = function (text) { if (!avatarW) return; if (myBub) myBub.parent && myBub.parent.remove(myBub); myBub = bubble(text); myBub.position.y = 2.65; avatarW.add(myBub); myBubUntil = Date.now() + 8000; };
   function stepOthers(dt, t) {
-    if (!othersRoot) return; othersRoot.visible = !inside;
+    if (!othersRoot) return; othersRoot.visible = !inside && !zone;
     const now = Date.now();
     others.forEach(e => {
       const px = e.x, pz = e.z, k = Math.min(1, dt * 2.5);
@@ -1731,10 +1732,202 @@
     if (Wk.mode === 'drive' && Wk.veh) driveStep(dt, t);
     else if (Wk.mode === 'ride' && ride) rideStep(dt, t);
     else if (Wk.mode === 'tir' && tir) tirStep(dt, t);
+    else if (Wk.mode === 'zact' && zone) zoneAct(dt, t);
     else { Wk.mode = 'walk'; walkStep(dt, t); }
+    if (zone) zone.anim.forEach(f => f(t));
     if (race) raceStep(dt); if (bump) bumpStep(dt);
     stepDoor(dt); stepGhost(); stepOthers(dt, t);
     shadowsFollow(Wk.x, Wk.z);
+  }
+  /* ---------- Voyages : zones lointaines (Alpes, Riviera) — ski, télésiège, jet ski ---------- */
+  let zone = null, zoneSave = null;
+  V.ZONES = [['alpes', '🏔️', 'Station des Alpes', 'Ski, télésiège, chalets, hôtel'], ['riviera', '🏝️', 'Riviera', 'Jet ski, marina, yachts, plage']];
+  const hAlpes = (x, z) => { const zz = Math.max(0, Math.min(1, (z + 95) / 190)); let h = 40 * Math.pow(1 - zz, 1.6); h += Math.max(0, Math.abs(x) - 36) * .6; h += Math.sin(x * .13) * Math.cos(z * .1) * 1.3 * (1 - zz); return Math.max(0, h); };
+  function terrain(f, W, D, n, mat) {
+    const pos = [], X = i => -W / 2 + W * i / n, Z = j => -D / 2 + D * j / n;
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+      const x0 = X(i), x1 = X(i + 1), z0 = Z(j), z1 = Z(j + 1);
+      const a = [x0, f(x0, z0), z0], b = [x1, f(x1, z0), z0], c = [x1, f(x1, z1), z1], d = [x0, f(x0, z1), z1];
+      pos.push(...a, ...d, ...c, ...a, ...c, ...b);
+    }
+    const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(new Float32Array(pos), 3)); g.computeVertexNormals();
+    const m = new T.Mesh(g, mat); m.receiveShadow = true; return m;
+  }
+  function addBox(Z, w, h, d, mat, x, y, z, solid = true) { const b = box(w, h, d, mat, x, y, z); Z.g.add(b); if (solid) Z.colliders.push({ x0: x - w / 2, x1: x + w / 2, z0: z - d / 2, z1: z + d / 2, y1: y + h }); return b; }
+  function chalet(Z, x, y, z, w, d, wood) {
+    addBox(Z, w, 3.2, d, col(wood ? 0x8a5a33 : 0xe9dcc4), x, y, z);
+    const r = gable(w + 1.2, 1.8, d + 1.2, col(0x3a2e2a), x, y + 3.2, z); r.rotation.y = 0; Z.g.add(r);
+    const sn = gable(w + 1.4, .35, d + 1.4, col(0xf6faff), x, y + 4.9, z); Z.g.add(sn);
+    for (let i = -1; i <= 1; i += 2) { const wd = box(1.1, 1.1, .1, new T.MeshStandardMaterial({ color: 0xffe9a8, emissive: night ? 0xffcc66 : 0x000000, roughness: .4 }), x + i * w * .25, y + 1.2, z + d / 2 + .05); Z.g.add(wd); }
+  }
+  function buildZone(id) {
+    const g = new T.Group(), Z = { id, g, colliders: [], anim: [], act: null, best: {} }, r = rng('zone' + id);
+    if (id === 'alpes') {
+      Z.sky = [0x4a8fe0, 0xdbe9ff]; Z.fog = [70, 300]; Z.lim = 92; Z.start = { x: 0, z: 74 };
+      Z.ground = hAlpes;
+      g.add(terrain(hAlpes, 210, 210, 54, col(0xf1f6ff, { roughness: .95, envMapIntensity: .25 })));
+      // massifs au loin
+      for (let i = 0; i < 9; i++) { const x = -150 + i * 38 + r() * 14, h = 70 + r() * 50, rad = 42 + r() * 20; g.add(mesh(new T.ConeGeometry(rad, h, 7), col(0x7b8596, { roughness: 1 }), x, h / 2 - 4, -150 - r() * 25, false)); g.add(mesh(new T.ConeGeometry(rad * .42, h * .36, 7), col(0xf8fbff), x, h * .82 - 4, -150 - r() * 0, false)); }
+      // sapins
+      const gc = [new T.ConeGeometry(1.5, 2.0, 7), new T.ConeGeometry(1.15, 1.8, 7), new T.ConeGeometry(.8, 1.6, 7)], gm = col(0x1f5a3a, { roughness: .9 }), tm = col(0x5a3d22);
+      for (let i = 0, n = 0; i < 400 && n < 120; i++) {
+        const x = -96 + r() * 192, z = -92 + r() * 150; if (Math.abs(x) < 9 || (Math.abs(x - 16) < 3.5) || z > 52 && Math.abs(x) < 40) continue;
+        const y = hAlpes(x, z), s = .7 + r() * .8; n++;
+        g.add(cyl(.18 * s, .25 * s, 1.4 * s, tm, x, y, z, 6));
+        gc.forEach((geo, k) => { const m = mesh(geo, gm, x, y + (1.9 + k * 1.15) * s, z, false); m.scale.set(s, s, s); g.add(m); });
+        Z.colliders.push({ x0: x - .5, x1: x + .5, z0: z - .5, z1: z + .5, y1: y + 4 });
+      }
+      // village : chalets et grand hôtel
+      [[-34, 62, 8, 6, 1], [-22, 76, 7, 6, 0], [-8, 84, 7, 6, 1], [10, 86, 8, 6, 0], [26, 72, 7, 6, 1], [34, 60, 8, 6, 0], [-36, 84, 7, 6, 1]].forEach(a => chalet(Z, a[0], 0, a[1], a[2], a[3], a[4]));
+      addBox(Z, 20, 9, 11, col(0xefe6d2), -6, 0, 64); { const rf = gable(22, 3.4, 13, col(0x6b3a2a), -6, 9, 64); g.add(rf); const sg = label('GRAND HÔTEL DES ALPES', { scale: .11, bg: 'rgba(40,30,20,.92)' }); sg.position.set(-6, 10.5, 70); g.add(sg); }
+      // télésiège : gare, pylônes, câble, sièges en mouvement
+      const LX = 16; addBox(Z, 5, 3.4, 4, col(0xc0392b), LX, 0, 80); const sl = label('🚡 TÉLÉSIÈGE', { scale: .09, bg: 'rgba(192,57,43,.95)' }); sl.position.set(LX, 4.6, 80); g.add(sl);
+      const topY = hAlpes(LX, -80); addBox(Z, 5, 3.4, 4, col(0xc0392b), LX, topY, -84, false);
+      for (let zz = 66; zz >= -80; zz -= 24) { const y = hAlpes(LX, zz); g.add(cyl(.22, .3, 8, col(0x444a52), LX, y, zz, 8)); }
+      const cab = new T.Mesh(new T.BoxGeometry(.06, .06, 170), col(0x222222)); cab.position.set(LX, 0, 0); const lift = []; 
+      const seats = []; for (let i = 0; i < 7; i++) { const s = box(1.0, .5, .9, col(0xe74c3c), LX, 0, 0); g.add(s); seats.push(s); }
+      Z.anim.push(t => { seats.forEach((s, i) => { const u = ((t * .03 + i / seats.length) % 1), zz = 78 - u * 160; s.position.set(LX, hAlpes(LX, zz) + 6.6, zz); }); });
+      Z.lift = { x: LX, z0: 78, z1: -80 };
+      // portiques départ / arrivée
+      const gate = (zz, txt, c) => { const y = hAlpes(0, zz); [-5, 5].forEach(x => g.add(cyl(.2, .2, 4.6, col(0x333a44), x, hAlpes(x, zz), zz, 8))); const b = label(txt, { scale: .1, bg: c }); b.position.set(0, y + 5.2, zz); g.add(b); };
+      gate(-72, '⛷️ DÉPART', 'rgba(30,140,60,.95)'); gate(50, '🏁 ARRIVÉE', 'rgba(20,20,20,.95)');
+      Z.sk = { x0: 0, z0: -72, zf: 50 };
+      Z.info = () => {
+        const A = Z.act, k = Wk, near = (x, z, d) => Math.hypot(k.x - x, k.z - z) < d;
+        if (A && A.kind === 'ski') return { hud: A.t0 ? `⛷️ <b>${Math.round(A.v * 3.6)}</b> km/h · ⏱️ ${((performance.now() - A.t0) / 1000).toFixed(1)} s${A.best ? ' · 🏆 ' + A.best.toFixed(1) + ' s' : ''}` : '⛷️ Penche-toi et laisse-toi glisser (A/D tourner, S freiner)', prompts: [['KeyE', 'E', 'Abandonner']] };
+        if (A && A.kind === 'lift') return { hud: '🚡 Montée en télésiège…', prompts: [] };
+        const p = [];
+        if (near(LX, 80, 6)) p.push(['KeyE', 'E', 'Prendre le télésiège 🚡 (gratuit)']);
+        else if (near(0, -72, 7)) p.push(['KeyE', 'E', 'Descendre à ski ⛷️']);
+        else if (near(-6, 64, 14)) p.push(['KeyE', 'E', 'Réserver une chambre au Grand Hôtel 🛎️']);
+        return { hud: null, prompts: p };
+      };
+    } else {
+      Z.sky = [0x2f8fe8, 0xc8ecff]; Z.fog = [90, 360]; Z.lim = 96; Z.start = { x: 0, z: 18 };
+      Z.ground = (x, z) => z > -9 ? .12 : (Math.abs(x) < 3.2 && z > -34 ? .35 : -.5);
+      const sandM = col(0xe9d9a8, { roughness: 1 }), sea = new T.Mesh(new T.PlaneGeometry(420, 420), new T.MeshStandardMaterial({ color: 0x1b7fd0, roughness: .12, metalness: .15, transparent: true, opacity: .9, envMapIntensity: 1.2 }));
+      sea.rotation.x = -Math.PI / 2; sea.position.set(0, -.05, -190); g.add(sea); Z.sea = sea;
+      const sea2 = new T.Mesh(new T.PlaneGeometry(420, 420), new T.MeshStandardMaterial({ color: 0x0f5ea8, roughness: .3 })); sea2.rotation.x = -Math.PI / 2; sea2.position.set(0, -.6, -190); g.add(sea2);
+      g.add(box(220, .3, 120, sandM, 0, -.1, 50)); g.add(box(220, .35, 14, col(0xf0ece4), 0, 0, 18));       // plage et promenade
+      // collines et villas
+      g.add(mesh(new T.ConeGeometry(130, 46, 9), col(0x4f8a4e, { roughness: 1 }), -70, 20, 150, false)); g.add(mesh(new T.ConeGeometry(110, 36, 9), col(0x5a9a58, { roughness: 1 }), 80, 15, 160, false));
+      [[-60, 70], [-38, 92], [-12, 100], [16, 96], [44, 88], [66, 74], [-80, 90]].forEach((a, i) => { const x = a[0], z = a[1], h = 4 + (i % 3) * 1.4; addBox(Z, 14, h, 10, col(0xfafafa), x, 2 + (z - 70) * .15, z); g.add(box(15, .4, 11, col(0x333a44), x, 2 + (z - 70) * .15 + h, z)); g.add(box(8, h * .8, .15, new T.MeshStandardMaterial({ color: 0x9fd0ff, roughness: .1, metalness: .3 }), x, 2 + (z - 70) * .15 + h * .1, z - 5.1)); });
+      for (let i = 0; i < 16; i++) { const x = -90 + i * 12 + r() * 4; if (Math.abs(x) < 8) continue; palm(g, x, 6 + r() * 6); Z.colliders.push({ x0: x - .5, x1: x + .5, z0: 5, z1: 13, y1: 5 }); }
+      // parasols et transats
+      const pc = [0xe74c3c, 0xf1c40f, 0x2ecc71, 0x3498db, 0xff7eb6]; for (let i = 0; i < 14; i++) { const x = -80 + i * 12 + r() * 3, z = 28 + r() * 10; if (Math.abs(x) < 6) continue; g.add(cyl(.05, .05, 2.2, col(0xdddddd), x, 0, z, 6)); g.add(mesh(new T.ConeGeometry(1.5, .5, 10), col(pc[i % 5]), x, 2.4, z, false)); g.add(box(.7, .12, 1.8, col(0xffffff), x + 1.3, .35, z + .3)); }
+      // ponton + yachts
+      g.add(box(5, .3, 28, col(0x9a7448), 0, .1, -22)); for (let zz = -10; zz > -34; zz -= 6) [-2.2, 2.2].forEach(x => g.add(cyl(.12, .12, 1, col(0x6b4a2b), x, -.3, zz, 6)));
+      const yacht = (x, z, s, c) => { const y = new T.Group(); const hull = mesh(new T.BoxGeometry(5 * s, 1.6 * s, 14 * s), col(c), 0, .4, 0); y.add(hull); y.add(mesh(new T.BoxGeometry(4 * s, 1.5 * s, 7 * s), col(0xffffff), 0, 1.9 * s, -1 * s)); y.add(mesh(new T.BoxGeometry(3.4 * s, .8 * s, 3 * s), new T.MeshStandardMaterial({ color: 0x223344, roughness: .1, metalness: .3 }), 0, 3.1 * s, 0)); y.position.set(x, 0, z); g.add(y); Z.colliders.push({ x0: x - 2.6 * s, x1: x + 2.6 * s, z0: z - 7 * s, z1: z + 7 * s, y1: 3 }); Z.anim.push(t => { y.position.y = Math.sin(t * .8 + x) * .08; y.rotation.z = Math.sin(t * .6 + z) * .02; }); };
+      yacht(-13, -22, 1, 0xf4f4f4); yacht(13, -24, 1.2, 0x1c3d6e); yacht(-14, -40, 1.5, 0x2b2b2b); yacht(24, -44, 1, 0xf4f4f4);
+      // murs invisibles : on ne marche pas sur la mer, sauf sur le ponton
+      Z.colliders.push({ x0: -300, x1: -3.2, z0: -300, z1: -9, y1: 9 }, { x0: 3.2, x1: 300, z0: -300, z1: -9, y1: 9 }, { x0: -3.2, x1: 3.2, z0: -300, z1: -35, y1: 9 });
+      const dl = label('🚤 JET SKI', { scale: .09, bg: 'rgba(0,120,220,.95)' }); dl.position.set(0, 2.2, -33); g.add(dl);
+      // bouées
+      Z.buoys = [[-30, -50], [20, -62], [60, -48], [64, -82], [0, -88], [-50, -76]].map((p, i) => { const b = mesh(new T.SphereGeometry(1.2, 12, 10), col(i % 2 ? 0xff5a36 : 0xffd23f), p[0], .3, p[1]); g.add(b); const f = label(String(i + 1), { scale: .08, bg: 'rgba(0,0,0,.6)' }); f.position.set(p[0], 3.2, p[1]); g.add(f); Z.anim.push(t => { b.position.y = .25 + Math.sin(t * 1.5 + i) * .15; }); return { x: p[0], z: p[1], m: b }; });
+      Z.info = () => {
+        const A = Z.act, k = Wk;
+        if (A && A.kind === 'jet') return { hud: `🚤 <b>${Math.round(A.v * 3.6)}</b> km/h · bouées <b>${A.next}/${Z.buoys.length}</b>${A.t0 ? ' · ⏱️ ' + ((performance.now() - A.t0) / 1000).toFixed(1) + ' s' : ''}${A.best ? ' · 🏆 ' + A.best.toFixed(1) + ' s' : ''}`, prompts: [['KeyE', 'E', 'Revenir au ponton']] };
+        const p = []; if (Math.hypot(k.x, k.z + 29) < 5) p.push(['KeyE', 'E', 'Prendre le jet ski 🚤']);
+        else if (Math.abs(k.x) < 30 && k.z > 14 && k.z < 24) p.push(['KeyE', 'E', 'Déjeuner sur la promenade 🍽️ (45 €)']);
+        return { hud: null, prompts: p };
+      };
+    }
+    Z.near = null;
+    return Z;
+  }
+  function zoneSky(Z) {
+    makeEnv(); const nt = night;
+    if (sky) { sky.visible = true; sky.material.uniforms.top.value.set(nt ? 0x050822 : Z.sky[0]); sky.material.uniforms.bot.value.set(nt ? 0x1b2350 : Z.sky[1]); }
+    scene.background = new T.Color(nt ? 0x0b1030 : Z.sky[1]); scene.fog = new T.Fog(nt ? 0x141a3c : Z.sky[1], Z.fog[0], Z.fog[1]);
+    hemi.intensity = nt ? .3 : .55; hemi.color.set(nt ? 0x5566aa : 0xe6f0ff); hemi.groundColor.set(Z.id === 'alpes' ? 0xd5dcea : 0xdccaa0);
+    sun.intensity = nt ? .3 : 1.1; sun.color.set(nt ? 0x8899ff : 0xfff1d6); sun.position.set(60, 90, 40);
+  }
+  V.zoneId = () => zone && zone.id;
+  V.zoneInfo = () => zone ? zone.info() : null;
+  V.travel = function (id) {
+    if (!V.ready || !world || !Wk.on || inside || houseInfo || Wk.mode !== 'walk' || !avatarW) return false;
+    if (zone) V.leaveZone(true);
+    const Z = buildZone(id); zoneSave = { x: Wk.x, z: Wk.z, face: Wk.face, yaw: Wk.yaw, colliders: colliders.slice() };
+    world.visible = false; if (parkRoot) parkRoot.visible = false; if (meWalker) meWalker.visible = false;
+    scene.add(Z.g); zone = Z; colliders.length = 0; Z.colliders.forEach(c => colliders.push(c));
+    zoneSky(Z); Wk.x = Z.start.x; Wk.z = Z.start.z; Wk.y = Z.ground(Wk.x, Wk.z); Wk.h = 0; Wk.vy = 0; Wk.face = Math.PI; Wk.yaw = Math.PI; Wk.mode = 'walk';
+    return true;
+  };
+  V.leaveZone = function (silent) {
+    if (!zone) return;
+    zoneEnd(true); scene.remove(zone.g); T.free(zone.g); zone = null;
+    colliders.length = 0; if (zoneSave) { zoneSave.colliders.forEach(c => colliders.push(c)); Wk.x = zoneSave.x; Wk.z = zoneSave.z; Wk.face = zoneSave.face; Wk.yaw = zoneSave.yaw; }
+    if (world) world.visible = true; if (parkRoot) parkRoot.visible = true; zoneSave = null; Wk.y = ground(Wk.x, Wk.z); Wk.mode = 'walk';
+    setSky(); if (avatarW) { avatarW.userData.pose(null); avatarW.position.set(Wk.x, Wk.y, Wk.z); }
+  };
+  function zoneEnd(silent) {
+    if (!zone || !zone.act) return; const A = zone.act; zone.act = null; Wk.mode = 'walk';
+    if (A.skis) { avatarW.remove(A.skis); T.free(A.skis); }
+    if (A.jet) { scene.remove(A.jet); T.free(A.jet); }
+    avatarW.userData.pose(null); if (avatarW.parent !== scene) scene.add(avatarW); avatarW.position.set(Wk.x, Wk.y, Wk.z); avatarW.rotation.set(0, Wk.face, 0);
+  }
+  V.zoneUse = function () {
+    if (!zone) return; const Z = zone, A = Z.act;
+    if (A) {
+      if (A.kind === 'ski') { zoneEnd(); return; }
+      if (A.kind === 'jet') { zoneEnd(); Wk.x = 0; Wk.z = -26; Wk.y = Z.ground(0, -26); return; }
+      return;
+    }
+    const k = Wk;
+    if (Z.id === 'alpes') {
+      if (Math.hypot(k.x - Z.lift.x, k.z - 80) < 6) { Z.act = { kind: 'lift', t: 0, dur: 8 }; Wk.mode = 'zact'; avatarW.userData.pose('sit'); return; }
+      if (Math.hypot(k.x - 0, k.z + 72) < 7) {
+        const sk = new T.Group(); [-.12, .12].forEach(x => { const s = box(.1, .04, 1.5, col(0xe74c3c), x, .02, .2); sk.add(s); }); avatarW.add(sk);
+        Z.act = { kind: 'ski', yaw: 0, v: 0, t0: 0, skis: sk, best: Z.best.ski || 0 }; Wk.mode = 'zact'; k.x = 0; k.z = -70; k.face = 0; avatarW.userData.pose('stand'); return;
+      }
+      if (Math.hypot(k.x + 6, k.z - 64) < 14) { if (V.onZoneReward) V.onZoneReward('hotel', -120, '🛎️ Nuit au Grand Hôtel des Alpes'); return; }
+    } else {
+      if (Math.hypot(k.x, k.z + 29) < 5) {
+        const jet = new T.Group(); jet.add(mesh(new T.CapsuleGeometry(.38, 1.5, 4, 10), col(0xffd23f, { roughness: .35 }), 0, .35, 0)).rotation.x = Math.PI / 2;
+        jet.add(box(.5, .22, .9, col(0x222831), 0, .55, -.2)); jet.add(box(.7, .08, .1, col(0x222831), 0, 1.05, .45)); jet.add(box(.35, .5, .08, new T.MeshStandardMaterial({ color: 0x9fd0ff, roughness: .1, transparent: true, opacity: .6 }), 0, .85, .55));
+        scene.add(jet); jet.position.set(0, 0, -30); avatarW.userData.pose('ride'); jet.add(avatarW); avatarW.position.set(0, .15, -.15); avatarW.rotation.set(0, 0, 0);
+        Z.act = { kind: 'jet', yaw: Math.PI, v: 0, x: 0, z: -34, next: 0, t0: 0, jet, best: Z.best.jet || 0 }; Wk.mode = 'zact'; jet.rotation.y = Math.PI; return;
+      }
+      if (Math.abs(k.x) < 30 && k.z > 14 && k.z < 24) { if (V.onZoneReward) V.onZoneReward('resto', -45, '🍽️ Déjeuner sur la promenade'); return; }
+    }
+  };
+  function zoneAct(dt, t) {
+    const Z = zone, A = Z.act, k = Wk.keys, j = Wk.joy; if (!A) { Wk.mode = 'walk'; return; }
+    const left = (k.KeyA || k.ArrowLeft ? 1 : 0) - (k.KeyD || k.ArrowRight ? 1 : 0) - j.x, fw = (k.KeyW || k.ArrowUp ? 1 : 0) - (k.KeyS || k.ArrowDown ? 1 : 0) - j.y;
+    if (A.kind === 'lift') {
+      A.t += dt; const u = Math.min(1, A.t / A.dur), zz = Z.lift.z0 + (Z.lift.z1 - Z.lift.z0) * u;
+      Wk.x = Z.lift.x; Wk.z = zz; Wk.y = hAlpes(Wk.x, zz) + 5.4; Wk.face = Math.PI; avatarW.position.set(Wk.x, Wk.y, Wk.z); avatarW.rotation.y = Math.PI; avatarW.userData.step(dt, 0, false, t);
+      Wk.yaw += (Math.PI - Wk.yaw) * Math.min(1, dt * 2); placeCamera(Wk.x, Wk.y, Wk.z, 1.5, 6);
+      if (u >= 1) { zoneEnd(); Wk.x = 4; Wk.z = -72; Wk.y = hAlpes(4, -72); }
+      return;
+    }
+    if (A.kind === 'ski') {
+      A.yaw += left * dt * (1.5 - Math.min(.9, A.v * .03));
+      const sx = Math.sin(A.yaw), cz = Math.cos(A.yaw), g1 = (hAlpes(Wk.x + sx * .6, Wk.z + cz * .6) - hAlpes(Wk.x, Wk.z)) / .6;
+      A.v += (-9.8 * g1 / Math.sqrt(1 + g1 * g1) * .95 - .006 * A.v * A.v - .15 + (fw > 0 && A.v < 9 ? 3 : 0)) * dt;
+      if (fw < 0 || k.Space) A.v *= Math.max(0, 1 - 2.6 * dt); A.v -= Math.abs(left) * A.v * .22 * dt; A.v = Math.max(0, Math.min(34, A.v));
+      if (A.v > .8 && !A.t0) A.t0 = performance.now();
+      const nx = Wk.x + sx * A.v * dt, nz = Wk.z + cz * A.v * dt;
+      if (hit(nx, nz, .4)) { A.v *= .15; A.yaw += .5 * (left || 1); if (!A.hit || performance.now() - A.hit > 800) { A.hit = performance.now(); TC.toast('💥 Aïe, un sapin !', 'bad', 1500); } } else { Wk.x = Math.max(-Z.lim, Math.min(Z.lim, nx)); Wk.z = Math.max(-Z.lim, Math.min(Z.lim, nz)); }
+      Wk.y = hAlpes(Wk.x, Wk.z); Wk.face = A.yaw; avatarW.position.set(Wk.x, Wk.y, Wk.z); avatarW.rotation.set(0, A.yaw, 0); avatarW.userData.turn(left); avatarW.userData.step(dt, 0, false, t);
+      let dy = A.yaw - Wk.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); Wk.yaw += dy * Math.min(1, dt * 3); Wk.dist += A.v * dt * .2;
+      placeCamera(Wk.x, Wk.y, Wk.z, 1.5, 6.5);
+      if (Wk.z > Z.sk.zf && A.t0) { const tm = (performance.now() - A.t0) / 1000, eur = Math.round(4 + Math.max(0, 30 - tm) * .8); Z.best.ski = Z.best.ski ? Math.min(Z.best.ski, tm) : tm; if (V.onZoneReward) V.onZoneReward('ski', eur, `⛷️ Descente en ${tm.toFixed(1)} s`); zoneEnd(); }
+      return;
+    }
+    if (A.kind === 'jet') {
+      A.yaw += left * dt * (.5 + Math.min(1.1, A.v * .06)) * (A.v > 1 ? 1 : .3);
+      A.v += (fw > 0 ? 9 : fw < 0 ? -12 : 0) * dt - A.v * .28 * dt; A.v = Math.max(-3, Math.min(24, A.v));
+      let nx = A.x + Math.sin(A.yaw) * A.v * dt, nz = A.z + Math.cos(A.yaw) * A.v * dt;
+      if (nz > -11 && !(Math.abs(nx) < 3 && nz < -9)) { nz = -11; A.v *= .3; } if (nx < -Z.lim || nx > Z.lim || nz < -Z.lim - 4) { nx = Math.max(-Z.lim, Math.min(Z.lim, nx)); nz = Math.max(-Z.lim - 4, nz); A.v *= .5; }
+      if (Z.colliders.slice(0, 0).length) { /* réservé */ }
+      A.x = nx; A.z = nz; Wk.x = nx; Wk.z = nz; Wk.y = 0; Wk.face = A.yaw; if (A.v > 1 && !A.t0) A.t0 = performance.now();
+      A.jet.position.set(nx, Math.sin(t * 5) * .04 * Math.min(1, A.v / 8), nz); A.jet.rotation.set(0, A.yaw, -left * Math.min(.5, A.v * .03)); A.jet.rotation.x = -Math.min(.15, A.v * .01);
+      avatarW.userData.step(dt, 0, false, t);
+      let dy = A.yaw - Wk.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); Wk.yaw += dy * Math.min(1, dt * 2.5); placeCamera(nx, .6, nz, 2.4, 11);
+      const b = Z.buoys[A.next]; if (b && Math.hypot(nx - b.x, nz - b.z) < 5) { b.m.scale.set(1.5, 1.5, 1.5); A.next++; TC.sound && TC.sound('buy'); }
+      if (A.next >= Z.buoys.length && A.t0) { const tm = (performance.now() - A.t0) / 1000, eur = Math.round(6 + Math.max(0, 70 - tm) * .7); Z.best.jet = Z.best.jet ? Math.min(Z.best.jet, tm) : tm; Z.buoys.forEach(q => q.m.scale.set(1, 1, 1)); if (V.onZoneReward) V.onZoneReward('jet', eur, `🚤 Parcours en ${tm.toFixed(1)} s`); zoneEnd(); Wk.x = 0; Wk.z = -26; Wk.y = Z.ground(0, -26); }
+    }
   }
   V.walk = function (on, opt = {}) {
     if (!V.ready) return false;
@@ -1750,7 +1943,7 @@
       camera.near = .08; camera.far = 1800; camera.fov = 62; camera.updateProjectionMatrix();
       if (opt.vehicle && !parkG.list.length) V.spawnVehicle(opt.vehicle, { x: p.x + 5, z: p.z + BLOCK / 2 + 2.6, yaw: Math.PI / 2 });
     } else {
-      if (race) V.raceEnd(true); if (bump) V.bumpEnd(); if (tir) V.tirEnd(); if (ride) { ride = null; } if (Wk.veh) { Wk.veh.spd = 0; V.exitVehicle(); } if (houseInfo) V.exitHouse();
+      if (zone) V.leaveZone(true); if (race) V.raceEnd(true); if (bump) V.bumpEnd(); if (tir) V.tirEnd(); if (ride) { ride = null; } if (Wk.veh) { Wk.veh.spd = 0; V.exitVehicle(); } if (houseInfo) V.exitHouse();
       Wk.on = false; Wk.keys = {}; Wk.mode = 'walk'; if (avatarW) avatarW.visible = false; if (meWalker) meWalker.visible = true;
       camera.near = 1; camera.far = 3000; camera.fov = 45; camera.updateProjectionMatrix(); setSky();
       if (document.pointerLockElement === canvas) document.exitPointerLock();
