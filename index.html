@@ -54,8 +54,7 @@
   <div class="goalbar" id="goalbar"></div>
 
   <nav class="tabs" id="tabs">
-    <button data-tab="markets" class="active"><i class="ti">📈</i><span>Marchés</span></button>
-    <button data-tab="portfolio"><i class="ti">💼</i><span>Portefeuille</span><i class="badge" id="nb-pos"></i></button>
+    <button data-tab="portfolio" class="active"><i class="ti">💼</i><span>Portefeuille</span><i class="badge" id="nb-pos"></i></button>
     <button data-tab="shop"><i class="ti">🏎️</i><span>Boutique</span></button>
     <button data-tab="city"><i class="ti">🗺️</i><span>Ville</span></button>
     <button data-tab="social"><i class="ti">👥</i><span>Amis</span><i class="badge" id="nb-social"></i></button>
@@ -64,7 +63,7 @@
 
   <main>
     <!-- ================= MARCHÉS ================= -->
-    <section class="tab-pane active" id="tab-markets">
+    <section class="tab-pane" id="tab-markets" hidden>
       <div class="markets">
         <aside class="panel mlist">
           <div class="mlist-head">
@@ -89,7 +88,7 @@
     </section>
 
     <!-- ================= PORTEFEUILLE ================= -->
-    <section class="tab-pane" id="tab-portfolio"></section>
+    <section class="tab-pane active" id="tab-portfolio"></section>
 
     <!-- ================= BOUTIQUES ================= -->
     <section class="tab-pane" id="tab-shop"></section>
@@ -124,6 +123,7 @@
   <script src="js/fr.js"></script>
   <script src="js/corp.js"></script>
   <script src="js/life.js"></script>
+  <script src="js/notrade.js"></script>
   <script src="js/playtime.js"></script>
   <script src="js/chart.js"></script>
   <script src="js/ui.js"></script>

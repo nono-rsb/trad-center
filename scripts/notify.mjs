@@ -587,7 +587,7 @@ async function main() {
     if (live.length && withPrices) {
       if (!lastPx) { lastPx = process.env.MOCK_PRICES ? JSON.parse(process.env.MOCK_PRICES) : await prices(); log(Object.keys(lastPx).length, 'cours récupérés'); }
       const px = lastPx;
-      const events = marketEvents(px, st.fired);
+      const events = []; // le trading a été retiré du jeu : plus de notifications de marché
       if (events.length) log('mouvements :', events.map(e => e.title).join(' | '));
       for (const s of live) {
         const lvl = (s.prefs && s.prefs.prices) || 'normal';
@@ -596,7 +596,7 @@ async function main() {
           for (const e of mine.slice(0, 3)) await push(s, e);
           if (mine.length > 3) await push(s, { title: `📊 ${mine.length - 3} autre(s) gros mouvement(s)`, body: mine.slice(3, 6).map(e => e.title).join(' · '), tag: 'moves', url: './' });
         }
-        for (const al of s.alerts || []) {
+        for (const al of []) {
           const key = s.uid + ':' + al.id; if (st.alerts[key]) continue;
           const p = px[al.asset]; const a = TC.assetById[al.asset];
           if (p && a && (al.op === '>' ? p.eur >= al.price : p.eur <= al.price)) {

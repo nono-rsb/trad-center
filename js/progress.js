@@ -103,7 +103,7 @@
     const s = st(), d = today().id;
     if (!s.day || s.day.id !== d) {
       const friends = TC.Net && TC.Net.friends && TC.Net.friends.length, rent = G.rentPerHour && G.rentPerHour() > 0;
-      const pool = Object.keys(M).filter(k => (!M[k].social || friends) && (!M[k].rent || rent));
+      const pool = Object.keys(M).filter(k => !['trades', 'crypto', 'stock', 'profit', 'gain5', 'fav', 'duel'].includes(k) && (!M[k].social || friends) && (!M[k].rent || rent));
       const pick = []; let h = hash(d + ((TC.Net && TC.Net.user && TC.Net.user.uid) || 'local'));
       while (pick.length < 3 && pool.length) { const i = h % pool.length; pick.push(pool.splice(i, 1)[0]); h = Math.imul(h ^ (h >>> 13), 1103515245) >>> 0; }
       s.day = { id: d, ms: pick.map(k => ({ k, v: 0, done: false })), all: false };
@@ -130,8 +130,8 @@
   P.progress = progress;
 
   /* ---------- Premiers pas (nouveaux joueurs) ---------- */
-  const ONB = [['buy1', 'Achète ton premier actif (le Bitcoin par exemple)'], ['sell1', 'Revends-le (avec un bénéfice, c\'est encore mieux)'], ['bonus', 'Récupère ton bonus quotidien 🎁'], ['avatar', 'Crée ton avatar (touche ton avatar → 🧑 Avatar)'], ['friend', 'Ajoute un ami (onglet Amis)']];
-  P.onbActive = () => { const o = st().onb; return !o.done && (Date.now() - (S().created || 0) < 21 * 86400000 || ((S().stats || {}).trades || 0) < 5); };
+  const ONB = [['bonus', 'Récupère ton bonus quotidien 🎁'], ['avatar', 'Crée ton avatar (touche ton avatar → 🧑 Avatar)'], ['friend', 'Ajoute un ami (onglet Amis)']];
+  P.onbActive = () => { const o = st().onb; return !o.done && Date.now() - (S().created || 0) < 21 * 86400000; };
   function onb(k) {
     const o = st().onb; if (o.done || o[k] || !P.onbActive()) return;
     o[k] = Date.now(); pay(5, '👣 Premiers pas'); TC.toast(`👣 Premier pas réussi : ${esc((ONB.find(x => x[0] === k) || [])[1] || '')} · +5 €`, 'ok', 5000);
