@@ -1,0 +1,21 @@
+{
+  "name": "trad-center-desktop",
+  "productName": "Trad Center",
+  "version": "1.0.0",
+  "description": "Trad Center pour ordinateur : le jeu en grand, en plein écran, toujours à jour.",
+  "main": "main.js",
+  "author": "Trad Center",
+  "license": "UNLICENSED",
+  "scripts": { "start": "electron .", "dist": "electron-builder --publish never" },
+  "devDependencies": { "electron": "33.2.1", "electron-builder": "25.1.8" },
+  "build": {
+    "appId": "fr.tradcenter.desktop",
+    "productName": "Trad Center",
+    "directories": { "output": "dist", "buildResources": "build" },
+    "files": ["main.js", "offline.html", "code.json", "package.json"],
+    "win": { "target": ["nsis"], "artifactName": "Trad-Center-Windows.${ext}" },
+    "nsis": { "oneClick": true, "perMachine": false, "deleteAppDataOnUninstall": false },
+    "mac": { "target": ["dmg"], "category": "public.app-category.games", "artifactName": "Trad-Center-Mac-${arch}.${ext}", "identity": null },
+    "linux": { "target": ["AppImage"], "category": "Game", "artifactName": "Trad-Center-Linux.${ext}" }
+  }
+}
