@@ -318,7 +318,7 @@
 
   /* ---------- Rendu ---------- */
   const LANDMARKS = [
-    { id: 'bourse', e: '🏛️', name: 'Bourse', go: 'markets' },
+    { id: 'bourse', e: '🏛️', name: 'Mairie', go: 'portfolio' },
     { id: 'conc',   e: '🏎️', name: 'Concession', go: 'car' },
     { id: 'agence', e: '🔑', name: 'Agence immo', go: 'estate' },
     { id: 'bijou',  e: '💎', name: 'Bijouterie', go: 'luxury' },

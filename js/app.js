@@ -40,6 +40,7 @@
     try { localStorage.setItem('tradcenter.sel', id); } catch (e) { }
   }
   function setTab(t) {
+    if (t === 'markets') t = 'portfolio'; // le trading a été retiré du jeu
     if (document.body.classList.contains('gated')) t = 'social'; // pas de compte : connexion d'abord
     if (['car', 'estate', 'luxury'].includes(t)) { UI.shopType = t; t = 'shop'; }
     if (t === 'ach') t = 'collection';
@@ -433,15 +434,7 @@
     if (qs.get('ref')) { try { if (!localStorage.getItem('tradcenter.ref')) localStorage.setItem('tradcenter.ref', qs.get('ref').slice(0, 64)); } catch (e) { } }
     if (qs.toString()) history.replaceState(null, '', location.pathname);
     setTimeout(announce, 2500);
-    TC.Chart.init($('#chart')); document.querySelectorAll('#c-type button').forEach(x => x.classList.toggle('active', x.dataset.type === TC.Chart.type()));
-    UI.cats(); UI.list(); UI.tfButtons(); UI.ticker(); UI.databar();
-    UI.chartHead(); UI.order(); UI.header();
-    D.start();
-    // premier chargement du graphique une fois les prix arrivés
-    let tries = 0;
-    const waitPrice = setInterval(() => {
-      if (D.eur(UI.sel) != null || ++tries > 40) { clearInterval(waitPrice); UI.loadChart(); UI.chartHead(); UI.order(); }
-    }, 500);
+    UI.header();
     // loyers accumulés pendant l'absence
     const pend = G.pendingRent();
     if (pend >= 0.01) setTimeout(() => TC.toast(`🏠 ${fmt.eur(pend)} de loyers vous attendent dans votre Collection`, 'info', 6000), 1500);

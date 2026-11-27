@@ -3,7 +3,7 @@
   const { $, $$, esc, fmt } = TC;
   const G = TC.Game, D = TC.Data;
   const UI = TC.UI = {
-    tab: 'markets', cat: 'all', q: '', sel: 'BTC', tf: '1J',
+    tab: 'portfolio', cat: 'all', q: '', sel: 'BTC', tf: '1J',
     mode: 'spot', spotSide: 'buy', levSide: 'long', lev: 10, betDur: 5, shopSort: 'asc',
   };
   const S = () => G.state;
@@ -335,17 +335,11 @@
       if (l.kind === 'betres') det = `${fmt.eur(l.start)} → ${fmt.eur(l.price)} (${l.result === 'win' ? 'gagné' : l.result === 'push' ? 'égalité' : 'perdu'})`;
       return `<tr><td><small>${fmt.time(l.t)}</small></td><td>${LOGL[l.kind] || l.kind}</td><td><b>${esc(name)}</b> <small>${det}</small></td><td>${fmt.eur(l.eur)}</td><td class="${cls(l.pnl)}">${l.pnl != null ? (l.pnl > 0 ? '+' : '') + fmt.eur(l.pnl) : ''}</td></tr>`;
     }).join('');
-    $('#tab-portfolio').innerHTML = (TC.Bot ? TC.Bot.panel() : '') + (TC.Tax && TC.Tax.fortunePanel ? TC.Tax.fortunePanel() : '') + (TC.Life ? TC.Life.panel() : '') + (TC.Fr ? TC.Fr.panel() : '') + (TC.Corp ? TC.Corp.panel() : '') + `
+    $('#tab-portfolio').innerHTML = (TC.Tax && TC.Tax.fortunePanel ? TC.Tax.fortunePanel() : '') + (TC.Life ? TC.Life.panel() : '') + (TC.Fr ? TC.Fr.panel() : '') + (TC.Corp ? TC.Corp.panel() : '') + `
       <div class="cards">${cards.map(c => `<div class="card"><span>${c[2]}</span><label>${c[0]}</label><b>${c[1]}</b></div>`).join('')}</div>
       <div class="panel"><h3>📈 Évolution de votre patrimoine</h3><div id="nw-chart" class="nw-chart"></div></div>
-      ${!rows && !prow && !brow ? '<div class="panel"><div class="empty">Tu n\'as encore rien acheté. Va dans <b>📈 Marchés</b>, choisis un actif et touche <b>Acheter</b>.</div></div>' : ''}
-      ${rows ? `<div class="panel"><h3>📦 Mes actifs</h3><div class="tw"><table><thead><tr><th>Actif</th><th>Quantité</th><th>Prix moyen</th><th>Cours</th><th>Valeur</th><th>+/- value</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></div>` : ''}
-      ${prow ? `<div class="panel"><h3>⚡ Positions à levier</h3><div class="tw"><table><thead><tr><th>Actif</th><th>Sens</th><th>Marge</th><th>Entrée</th><th>Cours</th><th>Liquidation</th><th>P&amp;L</th><th></th></tr></thead><tbody>${prow}</tbody></table></div></div>` : ''}
-      ${brow ? `<div class="panel"><h3>🎲 Paris en cours</h3><div class="tw"><table><thead><tr><th>Actif</th><th>Sens</th><th>Mise</th><th>Entrée</th><th>Cours</th><th>État</th><th>Fin dans</th></tr></thead><tbody>${brow}</tbody></table></div></div>` : ''}
       ${lrow ? `<div class="panel"><h3>📜 Historique</h3><div class="tw"><table class="log"><tbody>${lrow}</tbody></table></div></div>` : ''}
       <div class="panel stats-panel"><details><summary>📊 Statistiques</summary><div class="kv">
-        <span>Ordres passés</span><b>${s.stats.trades}</b><span>Meilleur trade</span><b class="up">${fmt.eur(s.stats.bestTrade)}</b>
-        <span>Liquidations</span><b>${s.stats.liquidations}</b><span>Paris gagnés / perdus</span><b>${s.stats.betsWon} / ${s.stats.betsLost}</b>
         <span>Frais payés</span><b>${fmt.eur(s.stats.fees)}</b><span>Loyers encaissés (nets)</span><b>${fmt.eur(s.stats.rent)}</b><span>Impôts payés <small class="taxl" data-taxinfo>ⓘ</small></span><b>${fmt.eur(s.stats.taxes || 0)}</b>
         <span>Dépensé en boutique</span><b>${fmt.eur(s.stats.spent)}</b><span>Partie commencée le</span><b>${new Date(s.created).toLocaleDateString('fr-FR')}</b></div></details></div>`;
     G.sampleNW();
