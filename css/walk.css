@@ -84,3 +84,16 @@ body.wk-on { overflow: hidden; }
 .bld-bar .bk-lbar { height: 8px; border-radius: 4px; background: rgba(127,127,127,.25); margin: 8px 0 6px; overflow: hidden; } .bld-bar .bk-lbar i { display: block; height: 100%; background: linear-gradient(90deg, #ff7a1a, #ffd23f); }
 .bld-bar small { opacity: .8; margin-right: 8px; }
 .bld-steps { display: flex; flex-direction: column; gap: 6px; margin: 10px 0; } .bld-steps div { padding: 8px 12px; border-radius: 12px; background: rgba(127,127,127,.12); } .bld-steps .cur { background: rgba(255,122,26,.22); font-weight: 800; } .bld-steps .done { opacity: .7; }
+
+/* Gestes, saut, accroupi */
+.wk-emotes { position: absolute; left: 50%; bottom: calc(90px + env(safe-area-inset-bottom)); transform: translateX(-50%); display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; max-width: 94vw; padding: 10px; border-radius: 22px; background: rgba(20,12,35,.7); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,.25); pointer-events: auto; }
+.wk-emotes[hidden] { display: none; }
+.wk-emotes button { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 64px; padding: 8px 6px; border-radius: 16px; border: 1px solid rgba(255,255,255,.2); background: rgba(255,255,255,.1); color: #fff; cursor: pointer; }
+.wk-emotes button span { font-size: 26px; } .wk-emotes button small { font-size: 11px; opacity: .85; }
+.wk-emotes button:hover { background: rgba(255,210,63,.25); }
+.wk-jump, .wk-crouch { display: none; }
+@media (pointer: coarse) {
+  .wk-jump { display: grid; place-items: center; position: absolute; right: 108px; bottom: calc(40px + env(safe-area-inset-bottom)); width: 64px; height: 64px; border-radius: 50%; border: 2px solid rgba(255,255,255,.4); background: rgba(20,12,35,.5); font-size: 26px; pointer-events: auto; }
+  .wk-crouch { display: grid; place-items: center; position: absolute; right: 22px; bottom: calc(122px + env(safe-area-inset-bottom)); width: 56px; height: 56px; border-radius: 50%; border: 2px solid rgba(255,255,255,.4); background: rgba(20,12,35,.5); font-size: 22px; pointer-events: auto; }
+  .wk-crouch.on { background: linear-gradient(135deg, #ffd23f, #ff9f1c); }
+}
