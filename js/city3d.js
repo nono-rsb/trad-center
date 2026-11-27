@@ -301,28 +301,87 @@
     });
     if (me) { const ring = mesh(new T.TorusGeometry(.42, .035, 8, 28), new T.MeshBasicMaterial({ color: 0xffd23f }), 0, .03, 0, false); ring.rotation.x = Math.PI / 2; g.add(ring); g.userData.ring = ring; }
     g.traverse(o => { if (o.isMesh) o.castShadow = true; });
-    let pose = null;
-    function set(ph, amp, run, t) {
-      const s = Math.sin(ph), c = Math.cos(ph), A = run ? .85 : .5, K = run ? 1.5 : .85, B = run ? .8 : .45;
-      J.L.hip.rotation.x = -s * A * amp; J.R.hip.rotation.x = s * A * amp;
-      J.L.kn.rotation.x = Math.max(0, c) * K * amp + .05; J.R.kn.rotation.x = Math.max(0, -c) * K * amp + .05;
-      J.L.sh.rotation.x = s * B * amp; J.R.sh.rotation.x = -s * B * amp;
-      J.L.el.rotation.x = J.R.el.rotation.x = -(run ? 1.3 : .25) * amp - .08;
-      J.L.sh.rotation.z = -.06; J.R.sh.rotation.z = .06;
-      hips.position.y = .95 - (run ? .05 : 0) * amp + Math.abs(c) * (run ? .05 : .025) * amp;
-      spine.rotation.x = (run ? .2 : .04) * amp; spine.rotation.y = s * .08 * amp; hips.rotation.y = -s * .06 * amp;
-      const br = Math.sin(t * 2.2) * .012 * (1 - amp); torso.scale.y = 1 + br; head.rotation.x = -spine.rotation.x * .6;
-      J.L.hip.rotation.z = J.R.hip.rotation.z = 0;
-      if (pose === 'sit') { [J.L, J.R].forEach(j => { j.hip.rotation.x = -1.45; j.kn.rotation.x = 1.35; j.sh.rotation.x = -.95; j.el.rotation.x = -.35; }); hips.position.y = .95; spine.rotation.x = .1; }
-      if (pose === 'ride') { [J.L, J.R].forEach((j, i) => { j.hip.rotation.x = -.9; j.kn.rotation.x = 1.2; j.hip.rotation.z = (i ? -1 : 1) * .12; j.sh.rotation.x = -1.05; j.el.rotation.x = -.3; }); spine.rotation.x = .25; hips.position.y = .95; }
-      if (pose === 'stand') { [J.L, J.R].forEach(j => { j.hip.rotation.x = 0; j.kn.rotation.x = .05; j.sh.rotation.x = -.8; j.el.rotation.x = -.6; }); hips.position.y = .95; spine.rotation.x = .08; }
-      if (pose === 'aim') { J.R.sh.rotation.x = -1.5; J.R.el.rotation.x = 0; J.L.sh.rotation.x = -1.35; J.L.sh.rotation.z = .45; J.L.el.rotation.x = -.35; }
+    let pose = null, emo = null, crouchK = 0, crouchT = 0, airV = null, landT = 0, lean = 0, leanT = 0, ph = 0;
+    const tg = {}, cur = {};
+    const JT = {
+      hipL: [J.L.hip, 'x'], hipR: [J.R.hip, 'x'], hipLz: [J.L.hip, 'z'], hipRz: [J.R.hip, 'z'], knL: [J.L.kn, 'x'], knR: [J.R.kn, 'x'],
+      shL: [J.L.sh, 'x'], shR: [J.R.sh, 'x'], shLz: [J.L.sh, 'z'], shRz: [J.R.sh, 'z'], elL: [J.L.el, 'x'], elR: [J.R.el, 'x'],
+      spX: [spine, 'x'], spY: [spine, 'y'], spZ: [spine, 'z'], hdX: [head, 'x'], hdY: [head, 'y'], hdZ: [head, 'z'], hpY: [hips, 'y'], hpZ: [hips, 'z'],
+    };
+    // gestes : durée (s) et cibles des articulations selon le temps u (les clés non citées gardent la marche / le repos)
+    const EM = {
+      wave: { d: 2.8, f: u => ({ shR: -2.25, shRz: .7, elR: -1.15 + Math.sin(u * 10) * .45, hdZ: .1, hdY: .18, spY: -.08 }) },
+      dance: { d: 5.5, f: u => { const b = u * 7, sb = Math.sin(b); return { py: .89 + Math.abs(sb) * .06, hpZ: sb * .12, hpY: Math.sin(b * .5) * .4, spY: Math.sin(b * .5) * .25, shL: -2 + sb * .8, shR: -2 - sb * .8, shLz: -.5, shRz: .5, elL: -.9, elR: -.9, hipL: sb * .35 - .1, hipR: -sb * .35 - .1, knL: .4 + Math.max(0, sb) * .6, knR: .4 + Math.max(0, -sb) * .6, hdZ: sb * .12 }; } },
+      clap: { d: 3, f: u => { const sb = Math.sin(u * 9); return { shL: -1.1, shR: -1.1, shLz: .4 + sb * .12, shRz: -.4 - sb * .12, elL: -1.4, elR: -1.4, hdX: .05, py: .95 - Math.abs(sb) * .015 }; } },
+      cheer: { d: 3, f: u => { const hop = Math.abs(Math.sin(u * 8)); return { shL: -3, shR: -3, shLz: -.4, shRz: .4, elL: -.2, elR: -.2, py: .93 + hop * .09, knL: .3 + (1 - hop) * .3, knR: .3 + (1 - hop) * .3, hdX: -.2 }; } },
+      bow: { d: 2.2, f: u => { const p = Math.sin(Math.min(1, u / 2.2) * Math.PI); return { spX: 1.15 * p, hdX: .2 * p, shL: .3 * p, shR: .3 * p, hipL: -.15 * p, hipR: -.15 * p }; } },
+      shrug: { d: 2.4, f: u => ({ shL: -.5, shR: -.5, shLz: -.75, shRz: .75, elL: -1.5, elR: -1.5, hdZ: .15 * Math.sin(u * 3), hdY: .2 * Math.sin(u * 2) }) },
+      point: { d: 2.4, f: u => ({ shR: -1.6, elR: -.05, shRz: .1, spY: -.15, hdY: -.1 }) },
+    };
+    const smooth = dt => dt ? 1 - Math.exp(-20 * dt) : 1;
+    function set(ph, amp, run, t, dt) {
+      const s = Math.sin(ph), c = Math.cos(ph), A = run ? .85 : .5, K = run ? 1.5 : .85, B = run ? .8 : .45, idle = 1 - Math.min(1, amp * 1.6);
+      for (const k in JT) tg[k] = 0;
+      tg.py = .95; tg.px = 0;
+      // marche / course
+      tg.hipL = -s * A * amp; tg.hipR = s * A * amp;
+      tg.knL = Math.max(0, c) * K * amp + .05; tg.knR = Math.max(0, -c) * K * amp + .05;
+      tg.shL = s * B * amp; tg.shR = -s * B * amp;
+      tg.elL = tg.elR = -(run ? 1.3 : .25) * amp - .08;
+      tg.shLz = -.06; tg.shRz = .06;
+      tg.py = .95 - (run ? .05 : 0) * amp + Math.abs(c) * (run ? .05 : .025) * amp;
+      tg.spX = (run ? .2 : .04) * amp; tg.spY = s * .08 * amp; tg.hpY = -s * .06 * amp; tg.hpZ = s * .03 * amp;
+      tg.spZ = -lean * .14 * (.5 + amp);                               // se penche dans les virages
+      tg.hdX = -tg.spX * .6; tg.hdY = -tg.spY * .6;                    // la tête reste stable
+      // vie au repos : regarde autour de lui, transfert de poids, bras qui ballent, respiration
+      tg.hdY += Math.sin(t * .43) * Math.sin(t * .17 + 1) * .55 * idle; tg.hdX += Math.sin(t * .31) * .05 * idle;
+      tg.hpZ += Math.sin(t * .6) * .025 * idle; tg.px = Math.sin(t * .6) * .012 * idle;
+      tg.shL += Math.sin(t * 1.3) * .03 * idle; tg.shR += Math.sin(t * 1.3 + 1) * .03 * idle; tg.elL -= .1 * idle; tg.elR -= .1 * idle;
+      torso.scale.y = 1 + Math.sin(t * 2.2) * .012 * (1 - amp);
+      // accroupi
+      if (crouchK > .01) { const k = crouchK; tg.py -= .3 * k; tg.hipL -= 1 * k; tg.hipR -= 1 * k; tg.knL += 1.9 * k; tg.knR += 1.9 * k; tg.spX += .35 * k; tg.shL -= .4 * k; tg.shR -= .4 * k; }
+      // poses (conducteur, debout sur un véhicule, tir)
+      if (pose === 'sit') { tg.hipL = tg.hipR = -1.45; tg.knL = tg.knR = 1.35; tg.shL = tg.shR = -.95; tg.elL = tg.elR = -.35; tg.py = .95; tg.spX = .1; tg.hpZ = 0; }
+      if (pose === 'ride') { tg.hipL = tg.hipR = -.9; tg.knL = tg.knR = 1.2; tg.hipLz = .12; tg.hipRz = -.12; tg.shL = tg.shR = -1.05; tg.elL = tg.elR = -.3; tg.spX = .25; tg.py = .95; tg.hpZ = 0; }
+      if (pose === 'stand') { tg.hipL = tg.hipR = 0; tg.knL = tg.knR = .05; tg.shL = tg.shR = -.8; tg.elL = tg.elR = -.6; tg.py = .95; tg.spX = .08; tg.hpZ = 0; }
+      if (pose === 'aim') { tg.shR = -1.5; tg.elR = 0; tg.shL = -1.35; tg.shLz = .45; tg.elL = -.35; }
+      if (!pose) {
+        // saut : jambes repliées en montée, bras écartés en descente ; réception en flexion
+        if (airV !== null) {
+          const up = airV > 0;
+          tg.hipL = up ? -.6 : -.35; tg.hipR = up ? -.15 : -.1; tg.knL = up ? .9 : .5; tg.knR = up ? .35 : .3;
+          tg.shL = tg.shR = up ? -2.4 : -1.2; tg.shLz = up ? -.35 : -.9; tg.shRz = up ? .35 : .9; tg.elL = tg.elR = -.3; tg.spX = up ? -.05 : .1; tg.py = .95;
+        } else if (landT > 0) {
+          const k = Math.min(1, landT / .22); tg.py -= .14 * k; tg.hipL -= .5 * k; tg.hipR -= .5 * k; tg.knL += 1.1 * k; tg.knR += 1.1 * k; tg.spX += .3 * k; tg.shL -= .4 * k; tg.shR -= .4 * k;
+        }
+        // gestes (fondu d'entrée et de sortie)
+        if (emo) {
+          const E = EM[emo.n], u = emo.u, w = Math.min(1, u / .25, (E.d - u) / .25), et = E.f(u);
+          for (const k in et) { const b = tg[k] === undefined ? 0 : tg[k]; tg[k] = b + (et[k] - b) * Math.max(0, w); }
+        }
+      }
+      // application (lissée pour des transitions douces)
+      const a = smooth(dt);
+      for (const k in JT) { const v = cur[k] === undefined ? tg[k] : cur[k] + (tg[k] - cur[k]) * a; cur[k] = v; JT[k][0].rotation[JT[k][1]] = v; }
+      cur.py = cur.py === undefined ? tg.py : cur.py + (tg.py - cur.py) * a; cur.px = cur.px === undefined ? tg.px : cur.px + (tg.px - cur.px) * a;
+      hips.position.y = cur.py; hips.position.x = cur.px;
     }
-    let ph = 0;
+    function tick(dt) {
+      if (emo) { emo.u += dt; if (emo.u >= EM[emo.n].d) emo = null; }
+      if (landT > 0) landT = Math.max(0, landT - dt);
+      crouchK += (crouchT - crouchK) * Math.min(1, dt * 10); lean += (leanT - lean) * Math.min(1, dt * 8);
+    }
     g.userData.walk = (t, k) => set(t * 5 + k, 1, false, t);
     g.userData.still = t => set(0, 0, false, t || 0);
-    g.userData.step = (dt, speed, run, t) => { ph += dt * (run ? 11 : 7.5) * Math.min(1.4, speed / (run ? 6.5 : 3.2)); set(ph, Math.min(1, speed / 1.2), run, t); };
+    g.userData.step = (dt, speed, run, t) => { tick(dt); ph += dt * (run ? 11 : 7.5) * Math.min(1.4, speed / (run ? 6.5 : 3.2)); set(ph, Math.min(1, speed / 1.2) * (1 - .35 * crouchK), run, t, dt); };
     g.userData.pose = p => { pose = p; };
+    g.userData.emote = name => { if (!EM[name] || pose) return 0; emo = { n: name, u: 0 }; return EM[name].d; };
+    g.userData.emoting = () => !!emo;
+    g.userData.cancelEmote = () => { emo = null; };
+    g.userData.crouch = on => { crouchT = on ? 1 : 0; };
+    g.userData.air = vy => { airV = vy; };                // vitesse verticale pendant le saut, null au sol
+    g.userData.land = () => { landT = .22; };
+    g.userData.turn = v => { leanT = Math.max(-1, Math.min(1, v)); };
     g.userData.joints = J;
     return g;
   }
@@ -1242,7 +1301,7 @@
   V.isNight = () => night;
 
   /* ---------- Balade : à pied, en véhicule, dans les maisons, attractions ---------- */
-  const Wk = V.walkState = { on: false, mode: 'walk', x: 0, y: 0, z: 0, yaw: Math.PI, pitch: .26, d: 4.6, fp: false, keys: {}, joy: { x: 0, y: 0, run: false }, speed: 1, canRun: true, dist: 0, runDist: 0, near: null, nearVeh: null, nearDoor: false, moving: false, face: 0, veh: null, kmh: 0, lookAt: 0 };
+  const Wk = V.walkState = { on: false, mode: 'walk', x: 0, y: 0, z: 0, yaw: Math.PI, pitch: .26, d: 4.6, fp: false, keys: {}, joy: { x: 0, y: 0, run: false }, speed: 1, canRun: true, dist: 0, runDist: 0, near: null, nearVeh: null, nearDoor: false, moving: false, face: 0, veh: null, kmh: 0, lookAt: 0, h: 0, vy: 0, sp: false, emote: null };
   const colliders = [], blockPos = []; let meWalker = null, avatarW = null, avatarOpt = {};
   const parkG = { list: [] }; let parkRoot = null;
   function computeColliders() { // boîtes vues du dessus de tout ce qui est solide (ville, ou intérieur de la maison)
@@ -1288,7 +1347,11 @@
     const k = Wk.keys, j = Wk.joy;
     let f = (k.KeyW || k.ArrowUp ? 1 : 0) - (k.KeyS || k.ArrowDown ? 1 : 0) - j.y, s = (k.KeyD || k.ArrowRight ? 1 : 0) - (k.KeyA || k.ArrowLeft ? 1 : 0) + j.x;
     const len = Math.hypot(f, s); if (len > 1) { f /= len; s /= len; }
-    const run = (k.ShiftLeft || k.ShiftRight || j.run) && Wk.canRun && !inside, v = (run ? 7.2 : 3.4) * Wk.speed * Math.min(1, len);
+    const crouch = !!(k.KeyC || j.crouch) && Wk.h <= 0 && !Wk.fp, run = (k.ShiftLeft || k.ShiftRight || j.run) && Wk.canRun && !inside && !crouch, v = (run ? 7.2 : crouch ? 1.7 : 3.4) * Wk.speed * Math.min(1, len);
+    // saut : barre d'espace (ou bouton), uniquement à pied
+    const jp = !!(k.Space || j.jump); if (jp && !Wk.sp && Wk.h <= 0 && !crouch && Wk.mode === 'walk') { Wk.vy = 6.3; Wk.h = .001; }
+    Wk.sp = jp;
+    if (Wk.h > 0 || Wk.vy > 0) { Wk.vy -= 20 * dt; Wk.h += Wk.vy * dt; if (Wk.h <= 0) { const hard = -Wk.vy; Wk.h = 0; Wk.vy = 0; avatarW.userData.air(null); if (hard > 2.5) avatarW.userData.land(); } else avatarW.userData.air(Wk.vy); }
     const sy = Math.sin(Wk.yaw), cy = Math.cos(Wk.yaw);
     const mx = (sy * f - cy * s), mz = (cy * f + sy * s), ml = Math.hypot(mx, mz) || 1;
     Wk.moving = len > .05;
@@ -1301,10 +1364,14 @@
       const want = Math.atan2(dx, dz); let da = want - Wk.face; da = Math.atan2(Math.sin(da), Math.cos(da)); Wk.face += da * Math.min(1, dt * 12);
     }
     if (Wk.fp) Wk.face = Wk.yaw;
+    if (Wk.moving && Wk.emote) { avatarW.userData.cancelEmote(); Wk.emote = null; }
+    if (Wk.emote && !avatarW.userData.emoting()) Wk.emote = null;
+    { let dtn = Wk.face - (Wk._pf == null ? Wk.face : Wk._pf); dtn = Math.atan2(Math.sin(dtn), Math.cos(dtn)); Wk._pf = Wk.face; avatarW.userData.turn(Wk.moving ? dtn / Math.max(dt, .001) / 6 : 0); }
+    avatarW.userData.crouch(crouch);
     avatarW.userData.step(dt, Wk.moving ? v : 0, run, t);
     Wk.y += (ground(Wk.x, Wk.z) - Wk.y) * Math.min(1, dt * 14);
-    avatarW.position.set(Wk.x, Wk.y, Wk.z); avatarW.rotation.y = Wk.face; avatarW.visible = !Wk.fp;
-    placeCamera(Wk.x, Wk.y, Wk.z, 1.66, Wk.d);
+    avatarW.position.set(Wk.x, Wk.y + Wk.h, Wk.z); avatarW.rotation.y = Wk.face; avatarW.visible = !Wk.fp;
+    placeCamera(Wk.x, Wk.y + Wk.h * .5 - (crouch ? .35 : 0), Wk.z, 1.66, Wk.d);
     if (inside) { // dans la maison : la porte, la sortie
       Wk.nearDoor = Math.hypot(Wk.x - 0, Wk.z - room.D / 2) < 1.7;
       if (door && door.open && Wk.z > room.D / 2 + .35) { V.exitHouse(); return; }
@@ -1536,10 +1603,13 @@
         if (vk) { e.veh = car(+o.v[1] || 0xd00000, false, o.v[0]); othersRoot.add(e.veh); if (e.veh.userData.bike) { e.g.userData.pose(e.veh.userData.pose); e.veh.add(e.g); e.g.position.set(0, e.veh.userData.seat - (e.veh.userData.pose === 'stand' ? 0 : .9), -.3); e.g.rotation.set(0, 0, 0); } else e.g.visible = false; }
         if (!vk) { if (e.g.parent !== othersRoot) othersRoot.add(e.g); e.g.userData.pose(null); e.g.visible = true; }
       }
+      if (o.a && o.at && o.at !== e.at && now - o.at < 8000 && !e.veh) { e.at = o.at; e.g.userData.emote(o.a); }
       if (o.msg && o.mt && o.mt !== e.mt && now - o.mt < 15000) { e.mt = o.mt; if (e.bub) e.g.remove(e.bub); e.bub = bubble(o.msg); e.bub.position.y = 2.65; e.g.add(e.bub); e.bubUntil = now + 8000; }
     });
     others.forEach((e, uid) => { if (!seen.has(uid)) { othersRoot.remove(e.g); if (e.veh) othersRoot.remove(e.veh); others.delete(uid); } });
   };
+  V.EMOTES = [['wave', '👋', 'Salut'], ['dance', '💃', 'Danse'], ['clap', '👏', 'Applaudir'], ['cheer', '🙌', 'Victoire'], ['bow', '🙇', 'Salut poli'], ['shrug', '🤷', 'Bof'], ['point', '👉', 'Là-bas']];
+  V.emote = function (name) { if (!avatarW || Wk.mode !== 'walk') return 0; const d = avatarW.userData.emote(name); if (d) Wk.emote = { n: name, t0: Date.now() }; return d; };
   V.othersCount = () => others.size;
   V.nearFriend = () => { let best = null, bd = 4; others.forEach((e, uid) => { const d = Math.hypot(e.x - Wk.x, e.z - Wk.z); if (d < bd) { bd = d; best = uid; } }); return best; };
   let myBub = null, myBubUntil = 0;

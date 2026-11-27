@@ -52,15 +52,15 @@
     const w = st();
     return `<div class="wk-hud">
       <div class="wk-top"><b>🚶 Trad City</b><span id="wk-cash">${fmt.eur(S().cash)}</span><span class="wk-en" id="wk-en"><i style="width:${Math.max(0, w.en)}%"></i><em>⚡ ${Math.round(w.en)}</em></span><span class="wk-gap"></span>
-        <span id="wk-friends" hidden></span><button data-wkk="KeyT" title="Parler à tes amis (T)">💬</button><button data-wkk="KeyV" title="Vue 1re / 3e personne (V)">👁️ Vue</button><button data-wkk="KeyG" title="Garage (G)">🔑 Garage</button><button data-wkk="KeyB" id="wk-deco" hidden title="Déco (B)">🛋️ Déco</button><button data-wkk="KeyI" title="Sac (I)">🎒 Sac</button><button data-wk="exit">✕ Quitter</button></div>
+        <span id="wk-friends" hidden></span><button data-wkk="KeyT" title="Parler à tes amis (T)">💬</button><button data-wkk="KeyH" title="Gestes (H) · touches 1 à 7">😀 Gestes</button><button data-wkk="KeyV" title="Vue 1re / 3e personne (V)">👁️ Vue</button><button data-wkk="KeyG" title="Garage (G)">🔑 Garage</button><button data-wkk="KeyB" id="wk-deco" hidden title="Déco (B)">🛋️ Déco</button><button data-wkk="KeyI" title="Sac (I)">🎒 Sac</button><button data-wk="exit">✕ Quitter</button></div>
       <div class="wk-cross" id="wk-cross" hidden></div>
       <div class="wk-speed" id="wk-speed" hidden><b>0</b><small>km/h</small></div>
       <div class="wk-game" id="wk-game" hidden></div>
       <div class="wk-prompts" id="wk-prompts"></div>
       <div class="wk-chat" id="wk-chat"></div>
       <div class="wk-say" id="wk-say" hidden><input maxlength="80" placeholder="Message à tes amis…" enterkeyhint="send"><button data-wk="say">Envoyer</button></div>
-      <div class="wk-help" id="wk-help">${touch() ? '🕹️ Joystick pour marcher · glisse l\'écran pour regarder · touche les boutons qui apparaissent' : '<b>ZQSD</b> marcher · <b>Maj</b> courir · <b>clique</b> puis souris pour regarder · <b>V</b> vue 1re personne · <b>E</b> entrer · <b>F</b> véhicule · <b>G</b> garage · <b>I</b> sac · <b>T</b> parler · <b>Échap</b> libère la souris'}</div>
-      <div class="wk-joy" id="wk-joy"><i></i></div><button class="wk-run" data-wk="run">🏃</button><button class="wk-fire" data-wk="fire" hidden>🔫</button>
+      <div class="wk-help" id="wk-help">${touch() ? '🕹️ Joystick pour marcher · glisse l\'écran pour regarder · touche les boutons qui apparaissent' : '<b>ZQSD</b> marcher · <b>Maj</b> courir · <b>Espace</b> sauter · <b>C</b> s\'accroupir · <b>H</b> gestes · <b>clique</b> puis souris pour regarder · <b>V</b> vue 1re personne · <b>E</b> entrer · <b>F</b> véhicule · <b>G</b> garage · <b>I</b> sac · <b>T</b> parler · <b>Échap</b> libère la souris'}</div>
+      <div class="wk-joy" id="wk-joy"><i></i></div><button class="wk-run" data-wk="run">🏃</button><button class="wk-jump" data-wk="jump">🦘</button><button class="wk-crouch" data-wk="crouch">🧎</button><button class="wk-fire" data-wk="fire" hidden>🔫</button>
     </div>`;
   };
   function avatarOpt() {
@@ -153,12 +153,21 @@
   }
 
   /* ---------- Actions ---------- */
+  /* ---------- Gestes (😀) : visibles par les amis ---------- */
+  function emoteMenu() {
+    const v = V(); if (!v || v.walkState.mode !== 'walk') return;
+    let m = $('#wk-emotes'); if (!m) { m = document.createElement('div'); m.id = 'wk-emotes'; m.className = 'wk-emotes'; $('.wk-hud').appendChild(m); }
+    m.innerHTML = v.EMOTES.map(([id, e, n], i) => `<button data-wk="emote" data-e="${id}"><span>${e}</span><small>${touch() ? n : (i + 1) + ' · ' + n}</small></button>`).join('');
+    m.hidden = !m.hidden;
+  }
+  function doEmote(id) { const v = V(); if (!v || !v.emote(id)) return; sfx('place'); publish(true); const m = $('#wk-emotes'); if (m) m.hidden = true; }
   function act(code) {
     const v = V(); if (!v || !on) return;
     const k = v.walkState, h = v.house && v.house();
     if (code === 'KeyV') { v.setView(!k.fp); return; }
     if (code === 'KeyI') return W.bag();
     if (code === 'KeyT') return chatOpen();
+    if (code === 'KeyH') return emoteMenu();
     if (k.mode === 'drive' && k.lock) { if (code === 'Escape') { if (v.raceInfo()) v.raceEnd(true); else v.bumpEnd(); } return; }
     if (code === 'KeyG') return garage();
     if (k.mode === 'tir') { if (code === 'Space') shoot(); return; }
@@ -359,7 +368,8 @@
   }
   function publish(force, msg) {
     if (!online() || !on) return;
-    const w = myWk(), moved = Math.hypot(w.x - (lastPub.x || 0), w.z - (lastPub.z || 0)) > .6 || Math.abs(w.r - (lastPub.r || 0)) > .4 || w.m !== lastPub.m || w.h !== lastPub.h;
+    const w = myWk(), em = V().walkState.emote; if (em && Date.now() - em.t0 < 6000) { w.a = em.n; w.at = em.t0; }
+    const moved = Math.hypot(w.x - (lastPub.x || 0), w.z - (lastPub.z || 0)) > .6 || Math.abs(w.r - (lastPub.r || 0)) > .4 || w.m !== lastPub.m || w.h !== lastPub.h;
     const age = Date.now() - lastPub.t;
     if (!force && !(moved && age > 2500) && age < 15000) return;
     if (msg) { w.msg = msg; w.mt = Date.now(); } else if (lastPub.msg && Date.now() - lastPub.mt < 12000) { w.msg = lastPub.msg; w.mt = lastPub.mt; }
@@ -382,7 +392,7 @@
     const now = Date.now(), list = [];
     friendsLive.forEach(d => {
       const w = d.wk; if (!w || !w.t || now - w.t > 30000 || w.h) return;
-      list.push({ uid: d.uid, pseudo: d.pseudo || d.displayName, avatar: d.avatar, look: d.look, x: +w.x || 0, z: +w.z || 0, r: +w.r || 0, m: w.m, v: w.v, msg: w.msg && clean(w.msg) ? w.msg : null, mt: w.mt });
+      list.push({ uid: d.uid, pseudo: d.pseudo || d.displayName, avatar: d.avatar, look: d.look, x: +w.x || 0, z: +w.z || 0, r: +w.r || 0, m: w.m, v: w.v, a: w.a, at: w.at, msg: w.msg && clean(w.msg) ? w.msg : null, mt: w.mt });
       if (w.msg && w.mt && !seenMsg[d.uid + w.mt] && now - w.mt < 20000) { seenMsg[d.uid + w.mt] = 1; if (clean(w.msg)) addChat(d.pseudo || '?', w.msg); }
     });
     v.setOthers(list);
@@ -533,8 +543,8 @@
   }
 
   /* ---------- Clavier, souris, joystick ---------- */
-  const MOVE = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ShiftLeft', 'ShiftRight', 'Space'];
-  const ACT = ['KeyE', 'KeyF', 'KeyV', 'KeyG', 'KeyB', 'KeyX', 'KeyR', 'KeyI', 'KeyT', 'Enter'];
+  const MOVE = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ShiftLeft', 'ShiftRight', 'Space', 'KeyC'];
+  const ACT = ['KeyE', 'KeyF', 'KeyV', 'KeyG', 'KeyB', 'KeyX', 'KeyR', 'KeyI', 'KeyT', 'KeyH', 'Enter'];
   const typing = e => e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable);
   const modalOpen = () => { const m = $('#modal'); return !!(m && m.classList.contains('open')); };
   document.addEventListener('keydown', e => {
@@ -542,6 +552,7 @@
     if (!on || typing(e) || modalOpen()) return;
     const v = V(); if (!v || !v.walkState) return;
     if (e.code === 'Space') { e.preventDefault(); if (v.walkState.mode === 'tir') { if (!e.repeat) act('Space'); return; } }
+    if (/^Digit[1-7]$/.test(e.code) && !e.repeat && v.walkState.mode === 'walk') { doEmote(v.EMOTES[+e.code.slice(5) - 1][0]); return; }
     if (MOVE.includes(e.code)) { v.walkState.keys[e.code] = true; if (e.code.startsWith('Arrow')) e.preventDefault(); return; }
     if (e.code === 'Escape') { if (v.walkState.mode === 'ride' || v.walkState.lock || (v.decoPlacing && v.decoPlacing())) act('Escape'); return; }
     if (ACT.includes(e.code) && !e.repeat) { e.preventDefault(); act(e.code === 'Enter' ? 'KeyE' : e.code); }
@@ -565,6 +576,9 @@
       if (a === 'exit') return W.stop();
       if (a === 'run') { const v = V(); if (v) { v.walkState.joy.run = !v.walkState.joy.run; b.classList.toggle('on', v.walkState.joy.run); } return; }
       if (a === 'fire') return shoot();
+      if (a === 'jump') { const v = V(); if (v) { v.walkState.joy.jump = true; setTimeout(() => { v.walkState.joy.jump = false; }, 120); } return; }
+      if (a === 'crouch') { const v = V(); if (v) { v.walkState.joy.crouch = !v.walkState.joy.crouch; b.classList.toggle('on', v.walkState.joy.crouch); } return; }
+      if (a === 'emote') { const v = V(); if (v) doEmote(b.dataset.e); const m = $('#wk-emotes'); if (m) m.hidden = true; return; }
       if (a === 'say') return chatSend();
     }
     const v = V();
