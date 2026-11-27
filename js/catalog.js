@@ -152,6 +152,8 @@ TC.SHOP = [
   // ======== LUXE ========
   { id: 'airpods', type: 'luxury', brand: 'Apple', model: 'iPhone Pro Max', price: 1500, emoji: '📱', grad: ['#555','#111'], specs: { Stockage: '1 To' } },
   { id: 'rolex', type: 'luxury', brand: 'Rolex', model: 'Submariner Date', price: 12000, emoji: '⌚', grad: ['#1b5e20','#0a2b0e'], specs: { Boîtier: '41 mm', Matière: 'Oystersteel' } },
+  { id: 'yacht', type: 'luxury', brand: 'Azimut', model: 'Grande 35M yacht', price: 12000000, emoji: '🛥️', grad: ['#1c3d6e','#0a1a33'], specs: { Longueur: '35 m', Cabines: '5' } },
+  { id: 'jetprive', type: 'luxury', brand: 'Gulfstream', model: 'G700 jet privé', price: 75000000, emoji: '🛩️', grad: ['#e8eef7','#5a6b82'], specs: { Autonomie: '13 890 km', Passagers: '19' } },
   { id: 'birkin', type: 'luxury', brand: 'Hermès', model: 'Sac Birkin 30', price: 30000, emoji: '👜', grad: ['#ff8f00','#8a4500'], specs: { Cuir: 'Togo' } },
   { id: 'nautilus', type: 'luxury', brand: 'Patek Philippe', model: 'Nautilus 5811', price: 150000, emoji: '⌚', grad: ['#1e3a5f','#0a1422'], specs: { Boîtier: '41 mm', Matière: 'Or blanc' } },
   { id: 'rm', type: 'luxury', brand: 'Richard Mille', model: 'RM 11-03', price: 320000, emoji: '⌚', grad: ['#ff1744','#4a0012'], specs: { Matière: 'Carbone TPT' } },

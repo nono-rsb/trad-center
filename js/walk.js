@@ -52,7 +52,7 @@
     const w = st();
     return `<div class="wk-hud">
       <div class="wk-top"><b>🚶 Trad City</b><span id="wk-cash">${fmt.eur(S().cash)}</span><span class="wk-en" id="wk-en"><i style="width:${Math.max(0, w.en)}%"></i><em>⚡ ${Math.round(w.en)}</em></span><span class="wk-gap"></span>
-        <span id="wk-friends" hidden></span><button data-wkk="KeyT" title="Parler à tes amis (T)">💬</button><button data-wkk="KeyH" title="Gestes (H) · touches 1 à 7">😀 Gestes</button><button data-wkk="KeyV" title="Vue 1re / 3e personne (V)">👁️ Vue</button><button data-wkk="KeyG" title="Garage (G)">🔑 Garage</button><button data-wkk="KeyB" id="wk-deco" hidden title="Déco (B)">🛋️ Déco</button><button data-wkk="KeyI" title="Sac (I)">🎒 Sac</button><button data-wk="exit">✕ Quitter</button></div>
+        <span id="wk-friends" hidden></span><button data-wkk="KeyT" title="Parler à tes amis (T)">💬</button><button data-wkk="KeyJ" title="Voyager en avion (J)">✈️ Voyager</button><button data-wkk="KeyH" title="Gestes (H) · touches 1 à 7">😀 Gestes</button><button data-wkk="KeyV" title="Vue 1re / 3e personne (V)">👁️ Vue</button><button data-wkk="KeyG" title="Garage (G)">🔑 Garage</button><button data-wkk="KeyB" id="wk-deco" hidden title="Déco (B)">🛋️ Déco</button><button data-wkk="KeyI" title="Sac (I)">🎒 Sac</button><button data-wk="exit">✕ Quitter</button></div>
       <div class="wk-cross" id="wk-cross" hidden></div>
       <div class="wk-speed" id="wk-speed" hidden><b>0</b><small>km/h</small></div>
       <div class="wk-game" id="wk-game" hidden></div>
@@ -75,6 +75,7 @@
     if (TC.City) TC.City.render();
     v.walk(true, avatarOpt());
     v.onBump = sp => { sfx('bump', sp); };
+    v.onZoneReward = zoneReward;
     v.onDoor = open => sfx(open ? 'open' : 'close');
     clearInterval(tickT); tickT = setInterval(tick, 150);
     clearInterval(presT); presT = setInterval(presTick, 1000); lastPub = { t: 0 };
@@ -98,6 +99,7 @@
   // invites à l'écran (et sur le téléphone : boutons)
   function prompts(v) {
     const k = v.walkState, out = [];
+    if (v.zoneId && v.zoneId()) { const zi = v.zoneInfo(); return (zi ? zi.prompts.slice() : []).concat(k.mode === 'zact' ? [] : [['KeyJ', 'J', '✈️ Voyager / rentrer']]); }
     if (k.mode === 'drive' && k.lock) { out.push(['Escape', 'Échap', 'Abandonner']); return out; }
     if (k.mode === 'drive') { out.push(['KeyF', 'F', k.kmh > 11 ? 'Ralentis pour descendre' : 'Descendre du véhicule']); if (!touch()) out.push(['Space', '␣', 'Frein à main']); return out; }
     if (k.mode === 'ride') { out.push(['Escape', 'Échap', k.rideKind === 'manege' ? 'Descendre du manège' : 'Descendre de la grande roue']); return out; }
@@ -146,6 +148,7 @@
     const ri = v.raceInfo && v.raceInfo(), bi = v.bumpInfo && v.bumpInfo();
     if (gm && ri) { gm.hidden = false; gm.innerHTML = ri.countdown ? `<span class="wk-big">${ri.countdown}</span>` : `🏁 Tour <b>${ri.lap}/${ri.laps}</b> · ${ri.pos}<sup>${ri.pos === 1 ? 'er' : 'e'}</sup>/${ri.count} · ⏱️ ${ri.time.toFixed(1)} s${ri.best ? ` · meilleur ${ri.best.toFixed(2)} s` : ''}`; }
     if (gm && bi) { gm.hidden = false; gm.innerHTML = `💥 <b>${bi.hits}</b> chocs · ⏱️ ${bi.left} s`; }
+    const zi = v.zoneInfo && v.zoneInfo(); if (gm && zi) { gm.hidden = !zi.hud; if (zi.hud) gm.innerHTML = zi.hud; }
     engine(k.mode === 'drive' ? k.kmh : 0, k.mode === 'drive' && k.veh ? k.veh.mesh.userData.vs : null);
     const pr = $('#wk-prompts'); if (!pr) return;
     const list = prompts(v), key = JSON.stringify(list) + touch();
@@ -153,6 +156,37 @@
   }
 
   /* ---------- Actions ---------- */
+  /* ---------- ✈️ Voyages : Alpes (ski) et Riviera (jet ski), en jet privé ou en vol de ligne ---------- */
+  const hasJet = () => S().owned.some(o => o.item === 'jetprive');
+  const TICKET = 350;
+  function zoneReward(kind, eur, txt) {
+    if (eur < 0) { if (S().cash < -eur) return TC.toast('Pas assez de cash.', 'bad', 2500); S().cash += eur; S().log.unshift({ t: Date.now(), kind: 'life', eur: -eur, asset: txt }); TC.toast(`${txt} : ${fmt.eur(-eur)}. Repos et bien-être ! (+énergie)`, 'ok', 4500); const w = st(); w.en = Math.min(100, w.en + 30); G.save(true); sfx('place'); return; }
+    S().cash += eur; S().log.unshift({ t: Date.now(), kind: 'life', eur, asset: txt }); if (S().log.length > 300) S().log.length = 300;
+    if (TC.Progress) TC.Progress.xp(10);
+    TC.toast(`${txt} · <b>+${fmt.eur(eur)}</b>`, 'ok', 5000); TC.confetti && TC.confetti(60); G.save(true); sfx('place');
+  }
+  function flight(label, go) {
+    let o = $('#wk-fly'); if (!o) { o = document.createElement('div'); o.id = 'wk-fly'; document.body.appendChild(o); }
+    o.innerHTML = `<div><b>✈️</b><span>${esc(label)}</span></div>`; o.className = 'on';
+    setTimeout(() => { try { go(); } catch (e) { console.warn('vol', e); } }, 1500);
+    setTimeout(() => { o.className = ''; }, 2900);
+  }
+  function travelMenu() {
+    const v = V(); if (!v || v.walkState.mode !== 'walk' || (v.house && v.house())) return TC.toast('Termine ce que tu fais avant de voyager.', 'info', 2500);
+    const here = v.zoneId && v.zoneId(), jet = hasJet(), price = jet ? 0 : TICKET;
+    const md = TC.modal(`<h2>✈️ Voyager</h2><div class="modal-body"><p class="hint">${jet ? '🛩️ Tu as un jet privé : tous les vols sont gratuits et sans attente.' : `Vol de ligne : <b>${fmt.eur(TICKET)}</b> par trajet. Achète un 🛩️ jet privé dans la Boutique (Luxe) pour voyager gratuitement.`}</p>
+      ${here ? `<button class="btn btn-gold" data-tr="home" style="width:100%;margin:6px 0">🏙️ Retour à Trad City</button>` : ''}
+      ${v.ZONES.filter(z => z[0] !== here).map(z => `<button class="btn" data-tr="${z[0]}" style="width:100%;margin:6px 0;text-align:left">${z[1]} <b>${z[2]}</b><br><small>${z[3]} · ${price ? fmt.eur(price) : 'gratuit'}</small></button>`).join('')}</div><div class="modal-actions"><button class="btn btn-ghost" data-close>Fermer</button></div>`);
+    md.el.onclick = e => {
+      if (e.target === md.el || e.target.closest('.modal-x') || e.target.closest('[data-close]')) return md.close();
+      const b = e.target.closest('[data-tr]'); if (!b) return; const to = b.dataset.tr;
+      if (to !== 'home' && S().cash < price) return TC.toast(`Il faut ${fmt.eur(price)} pour le vol.`, 'bad', 3000);
+      md.close(); exitLock();
+      if (to !== 'home' && price) { S().cash -= price; S().log.unshift({ t: Date.now(), kind: 'life', eur: price, asset: '✈️ Billet d\'avion' }); G.save(true); }
+      const z = v.ZONES.find(x => x[0] === to);
+      flight(to === 'home' ? 'Retour à Trad City…' : `${jet ? 'Décollage en jet privé' : 'Embarquement'} · ${z[2]}…`, () => { if (to === 'home') v.leaveZone(); else v.travel(to); });
+    };
+  }
   /* ---------- Gestes (😀) : visibles par les amis ---------- */
   function emoteMenu() {
     const v = V(); if (!v || v.walkState.mode !== 'walk') return;
@@ -168,6 +202,8 @@
     if (code === 'KeyI') return W.bag();
     if (code === 'KeyT') return chatOpen();
     if (code === 'KeyH') return emoteMenu();
+    if (code === 'KeyJ') return travelMenu();
+    if (v.zoneId && v.zoneId()) { if (code === 'KeyE' || code === 'Escape') v.zoneUse(); return; }
     if (k.mode === 'drive' && k.lock) { if (code === 'Escape') { if (v.raceInfo()) v.raceEnd(true); else v.bumpEnd(); } return; }
     if (code === 'KeyG') return garage();
     if (k.mode === 'tir') { if (code === 'Space') shoot(); return; }
@@ -364,7 +400,7 @@
   function online() { return !!(N && N.enabled && N.user && N.profile && N.db && N.db()); }
   function myWk() {
     const v = V(), k = v.walkState, h = v.house && v.house(), drv = k.mode === 'drive' && k.veh && !k.lock;
-    return { t: Date.now(), x: r1(k.x), z: r1(k.z), r: Math.round((drv ? k.veh.yaw : k.face) * 100) / 100, m: drv ? 'drive' : 'walk', v: drv ? [k.veh.mesh.userData.vs, k.veh.color || 0] : null, h: h || k.mode !== 'walk' && k.mode !== 'drive' || k.lock ? 1 : 0 };
+    return { t: Date.now(), x: r1(k.x), z: r1(k.z), r: Math.round((drv ? k.veh.yaw : k.face) * 100) / 100, m: drv ? 'drive' : 'walk', v: drv ? [k.veh.mesh.userData.vs, k.veh.color || 0] : null, h: h || k.mode !== 'walk' && k.mode !== 'drive' || k.lock || (v.zoneId && v.zoneId()) ? 1 : 0 };
   }
   function publish(force, msg) {
     if (!online() || !on) return;
@@ -544,7 +580,7 @@
 
   /* ---------- Clavier, souris, joystick ---------- */
   const MOVE = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ShiftLeft', 'ShiftRight', 'Space', 'KeyC'];
-  const ACT = ['KeyE', 'KeyF', 'KeyV', 'KeyG', 'KeyB', 'KeyX', 'KeyR', 'KeyI', 'KeyT', 'KeyH', 'Enter'];
+  const ACT = ['KeyE', 'KeyF', 'KeyV', 'KeyG', 'KeyB', 'KeyX', 'KeyR', 'KeyI', 'KeyT', 'KeyH', 'KeyJ', 'Enter'];
   const typing = e => e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable);
   const modalOpen = () => { const m = $('#modal'); return !!(m && m.classList.contains('open')); };
   document.addEventListener('keydown', e => {
