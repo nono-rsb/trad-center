@@ -32,7 +32,8 @@ jobs:
           node-version: '20'
       - name: Numéro de version
         shell: bash
-        run: echo '{ "code": ${{ github.run_number }} }' > desktop/code.json
+        run: |
+          printf '{ "code": %s }\n' "${{ github.run_number }}" > desktop/code.json
       - name: Installer
         working-directory: desktop
         run: npm install --no-audit --no-fund
