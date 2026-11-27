@@ -941,3 +941,13 @@ html:not(.noel) .gta[hidden] { display: none; }
 .corp-modal .frin input[type=text], .corp-modal .frin input:not([type]) { flex: 1; }
 
 .gta[hidden] { display: none !important; }
+
+/* Ma vie : besoins et métier */
+.life-row { display: grid; grid-template-columns: 110px 1fr 34px; align-items: center; gap: 8px; margin: 6px 0; }
+.life-row b { text-align: right; font-variant-numeric: tabular-nums; }
+.life-bar { height: 10px; border-radius: 6px; background: rgba(255,255,255,.12); overflow: hidden; }
+.life-bar.big { height: 14px; margin: 8px 0; }
+.life-bar i { display: block; height: 100%; border-radius: 6px; transition: width .6s; }
+.life-shop { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
+.life-shop .btn { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.life-lock { opacity: .55; }

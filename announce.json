@@ -1,19 +1,19 @@
 {
-  "id": "automne-hiver-2026-11-27",
-  "emoji": "🍂",
-  "title": "Nouveau décor : automne / hiver",
-  "tab": "markets",
+  "id": "ma-vie-2026-11-28",
+  "emoji": "🧍",
+  "title": "Nouveau : Ma vie",
+  "tab": "portfolio",
   "items": [
     {
-      "icon": "🍂",
-      "title": "Un thème entre automne et hiver",
-      "text": "Crépuscule bleu ardoise, reflets ambre et givre, feuilles qui tombent et premiers flocons. Toujours avec le verre liquide de l'iOS."
+      "icon": "🍽️",
+      "title": "Les besoins de ton personnage",
+      "text": "Faim, énergie, hygiène : ils baissent en temps réel. Mange, bois un café, douche-toi, dors chez toi (ou sur le canapé). Aucun argent perdu : un personnage à bout travaille juste moins bien."
     },
     {
-      "icon": "🏙️",
-      "title": "La ville aux couleurs d'automne",
-      "text": "Les arbres de Trad City passent à l'orange, la rouille et l'ocre."
+      "icon": "💼",
+      "title": "Un vrai métier",
+      "text": "Livreur, caissier, serveur… jusqu'à chirurgien. Prends un service, il est payé automatiquement à la fin (cotisations 22 % comprises), même jeu fermé. Des grades améliorent ton salaire."
     }
   ],
-  "button": "Voir 🍁"
+  "button": "Voir 🧍"
 }

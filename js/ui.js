@@ -323,7 +323,7 @@
       const p = D.eur(b.asset); const winning = p != null && ((p > b.start) === (b.dir === 'up')) && p !== b.start;
       return `<tr><td><b>${b.asset}</b></td><td>${b.dir === 'up' ? '📈 Hausse' : '📉 Baisse'}</td><td>${fmt.eur(b.stake)}</td><td>${fmt.eur(b.start)}</td><td>${fmt.eur(p)}</td><td class="${winning ? 'up' : 'down'}"><b>${winning ? 'Gagnant' : 'Perdant'}</b></td><td>${fmt.dur(b.end - Date.now())}</td></tr>`;
     }).join('');
-    const LOGL = { tax: '🏛️ Impôt', shop: '🛒 Courses', loan: '🏦 Prêt', repay: '🏦 Remboursement', fine: '🛡️ Correction', buy: '🟢 Achat', sell: '🔴 Vente', open: '⚡ Ouverture', close: '✅ Clôture', liq: '💀 Liquidation', bet: '🎲 Pari', betres: '🎲 Résultat pari', item: '🛍️ Achat', itemsell: '♻️ Revente', rent: '🏠 Loyers', biz: '🏪 Commerces', bonus: '🎁 Bonus', send: '📤 Envoi', recv: '📥 Reçu', corp: '🏢 Entreprise', fr: '🇫🇷 Vie quotidienne' };
+    const LOGL = { tax: '🏛️ Impôt', shop: '🛒 Courses', loan: '🏦 Prêt', repay: '🏦 Remboursement', fine: '🛡️ Correction', buy: '🟢 Achat', sell: '🔴 Vente', open: '⚡ Ouverture', close: '✅ Clôture', liq: '💀 Liquidation', bet: '🎲 Pari', betres: '🎲 Résultat pari', item: '🛍️ Achat', itemsell: '♻️ Revente', rent: '🏠 Loyers', biz: '🏪 Commerces', bonus: '🎁 Bonus', send: '📤 Envoi', recv: '📥 Reçu', corp: '🏢 Entreprise', fr: '🇫🇷 Vie quotidienne', life: '🧍 Ma vie' };
     const lrow = s.log.slice(0, 80).map(l => {
       const name = l.item ? (TC.shopById[l.item].brand + ' ' + TC.shopById[l.item].model) : (l.kind === 'send' || l.kind === 'recv') ? (l.asset ? '' : 'Euros') : (l.asset || '');
       let det = '';
@@ -335,7 +335,7 @@
       if (l.kind === 'betres') det = `${fmt.eur(l.start)} → ${fmt.eur(l.price)} (${l.result === 'win' ? 'gagné' : l.result === 'push' ? 'égalité' : 'perdu'})`;
       return `<tr><td><small>${fmt.time(l.t)}</small></td><td>${LOGL[l.kind] || l.kind}</td><td><b>${esc(name)}</b> <small>${det}</small></td><td>${fmt.eur(l.eur)}</td><td class="${cls(l.pnl)}">${l.pnl != null ? (l.pnl > 0 ? '+' : '') + fmt.eur(l.pnl) : ''}</td></tr>`;
     }).join('');
-    $('#tab-portfolio').innerHTML = (TC.Bot ? TC.Bot.panel() : '') + (TC.Tax && TC.Tax.fortunePanel ? TC.Tax.fortunePanel() : '') + (TC.Fr ? TC.Fr.panel() : '') + (TC.Corp ? TC.Corp.panel() : '') + `
+    $('#tab-portfolio').innerHTML = (TC.Bot ? TC.Bot.panel() : '') + (TC.Tax && TC.Tax.fortunePanel ? TC.Tax.fortunePanel() : '') + (TC.Life ? TC.Life.panel() : '') + (TC.Fr ? TC.Fr.panel() : '') + (TC.Corp ? TC.Corp.panel() : '') + `
       <div class="cards">${cards.map(c => `<div class="card"><span>${c[2]}</span><label>${c[0]}</label><b>${c[1]}</b></div>`).join('')}</div>
       <div class="panel"><h3>📈 Évolution de votre patrimoine</h3><div id="nw-chart" class="nw-chart"></div></div>
       ${!rows && !prow && !brow ? '<div class="panel"><div class="empty">Tu n\'as encore rien acheté. Va dans <b>📈 Marchés</b>, choisis un actif et touche <b>Acheter</b>.</div></div>' : ''}
