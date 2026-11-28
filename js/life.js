@@ -68,7 +68,7 @@
     const l = life(), now = Date.now(); let from = l.at || now;
     if (now - from > L.MAX_CATCHUP) from = now - L.MAX_CATCHUP;
     if (now > from) advance(l, from, now);
-    l.at = now;
+    l.at = now; petTick(now);
     // fin de sommeil
     if (l.sleep && now >= l.sleep.until) { l.sleep = null; TC.toast('😴 Tu te réveilles reposé(e).', 'info', 4000); }
     // fin de service : paie
@@ -80,6 +80,47 @@
     }
     G.save();
   };
+
+  /* ---------- 🐾 Animal de compagnie : il te suit dans Trad City, a faim et envie de jouer. Rien ne meurt : triste, il te suit juste moins bien. ---------- */
+  L.PETS = [
+    { id: 'chien', e: '🐕', n: 'Chien', cost: 250, about: 'Fidèle, il trotte toujours à tes côtés.' },
+    { id: 'chat', e: '🐈', n: 'Chat', cost: 180, about: 'Indépendant, mais jamais très loin.' },
+    { id: 'lapin', e: '🐇', n: 'Lapin', cost: 90, about: 'Il saute partout derrière toi.' },
+    { id: 'perroquet', e: '🦜', n: 'Perroquet', cost: 400, about: 'Il vole autour de toi.' },
+  ];
+  L.pet = () => S().pet || null;
+  L.petDef = id => L.PETS.find(p => p.id === id);
+  L.petInfo = () => { const p = L.pet(); return p ? { type: p.type, name: p.name, seed: p.seed || 0, hunger: p.hunger, joy: p.joy } : null; };
+  const syncPet = () => { try { if (TC.City3D && TC.City3D.setPet) TC.City3D.setPet(L.petInfo()); } catch (e) { } };
+  L.petHappy = () => { const p = L.pet(); return !!(p && p.joy >= 70 && p.hunger >= 40); };
+  function petTick(now) {
+    const p = L.pet(); if (!p) return; const hrs = Math.min(12, Math.max(0, (now - (p.at || now)) / HOUR)); p.at = now;
+    if (hrs <= 0) return;
+    p.hunger = clamp(p.hunger - 3.5 * hrs); p.joy = clamp(p.joy - (p.hunger < 20 ? 6 : 2.5) * hrs);
+    if (now - (p.warn || 0) > 45 * MIN && (p.hunger < 15 || p.joy < 15)) { p.warn = now; TC.toast(`🐾 ${esc(p.name)} ${p.hunger < 15 ? 'a faim' : 's\'ennuie'} ! Ouvre « Ma vie › Animal ».`, 'bad', 6000); }
+  }
+  L.adopt = function (id, name) {
+    const d = L.petDef(id); if (!d) return { ok: false, msg: 'Animal inconnu.' };
+    if (L.pet()) return { ok: false, msg: 'Tu as déjà un compagnon.' };
+    name = String(name || '').trim().slice(0, 14) || d.n;
+    if (typeof TC.Mayor !== 'undefined' && TC.Mayor.clean && !TC.Mayor.clean(name)) return { ok: false, msg: 'Ce nom n\'est pas autorisé.' };
+    if (S().cash < d.cost) return { ok: false, msg: `Il faut ${fmt.eur(d.cost)}.` };
+    S().cash -= d.cost; dlog(d.cost, `${d.e} Adoption : ${name}`);
+    S().pet = { type: id, name, seed: Math.floor(Math.random() * 1e6), hunger: 80, joy: 80, at: Date.now(), playAt: 0 }; G.save(true); syncPet(); return { ok: true };
+  };
+  L.petCare = function (act) {
+    const p = L.pet(), now = Date.now(); if (!p) return { ok: false, msg: 'Pas de compagnon.' }; petTick(now);
+    const A = { feed: { cost: 3, hunger: 45, joy: 3, t: 'a bien mangé' }, treat: { cost: 6, hunger: 10, joy: 18, t: 'adore sa friandise' }, groom: { cost: 25, joy: 30, t: 'est tout beau' }, play: { cost: 0, joy: 25, hunger: -4, t: 's\'est bien amusé' } }[act];
+    if (!A) return { ok: false, msg: 'Action inconnue.' };
+    if (act === 'play' && now - (p.playAt || 0) < 5 * MIN) return { ok: false, msg: `Il est fatigué : réessaie dans ${Math.ceil((5 * MIN - (now - p.playAt)) / MIN)} min.` };
+    if (A.cost && S().cash < A.cost) return { ok: false, msg: `Il faut ${fmt.eur(A.cost)}.` };
+    if (act === 'feed' && p.hunger > 95) return { ok: false, msg: `${p.name} n'a pas faim.` };
+    if (A.cost) { S().cash -= A.cost; dlog(A.cost, `🐾 ${p.name} : ${act === 'feed' ? 'croquettes' : act === 'treat' ? 'friandise' : 'toilettage'}`); }
+    p.hunger = clamp(p.hunger + (A.hunger || 0)); p.joy = clamp(p.joy + (A.joy || 0)); if (act === 'play') p.playAt = now;
+    G.save(true); syncPet(); try { if (TC.City3D && TC.City3D.petReact) TC.City3D.petReact(); } catch (e) { }
+    return { ok: true, msg: `🐾 ${p.name} ${A.t} !` };
+  };
+  L.release = function () { const p = L.pet(); if (!p) return { ok: false }; S().pet = null; G.save(true); syncPet(); return { ok: true }; };
 
   /* ---------- Services ---------- */
   L.mood = () => { const l = life(), m = Math.min(l.hunger, l.energy, l.hygiene); return m >= 70 ? { k: 1.1, t: '😄 En forme (+10 % de salaire)' } : m >= 20 ? { k: 1, t: '🙂 Ça va' } : { k: 0.7, t: '😵 À bout (−30 % de salaire)' }; };
@@ -106,7 +147,7 @@
   function payJob(l) {
     const jb = l.job, j = jb && L.job(jb.id); l.job = null; if (!j) return;
     const m = Math.min(l.hunger, l.energy, l.hygiene) >= 70 ? 1.1 : Math.min(l.hunger, l.energy, l.hygiene) >= 20 ? 1 : 0.7;
-    const brut = r2(L.pay(j.id) * m), net = r2(brut * (1 - L.CHARGES));
+    const brut = r2(L.pay(j.id) * m * (L.petHappy() ? 1.05 : 1)), net = r2(brut * (1 - L.CHARGES));
     l.hrs[j.id] = r2((l.hrs[j.id] || 0) + j.min / 60);
     S().cash += net; dlog(net, `${j.e} Salaire ${j.n} (brut ${fmt.eur(brut)})`);
     if (TC.Progress) TC.Progress.xp(Math.max(3, Math.round(j.min / 3)));
@@ -146,13 +187,22 @@
     if (!S().owned) return '';
     L.tick();
     return `<div class="panel life-panel"><h3>🧍 Ma vie</h3>${bar('hunger')}${bar('energy')}${bar('hygiene')}<p class="hint">${state()}</p>
-      <button class="btn btn-gold btn-sm" data-life="jobs">💼 Métier</button> <button class="btn btn-sm" data-life="needs">🍽️ Besoins</button></div>`;
+      <button class="btn btn-gold btn-sm" data-life="jobs">💼 Métier</button> <button class="btn btn-sm" data-life="needs">🍽️ Besoins</button> <button class="btn btn-sm" data-life="pet">🐾 ${L.pet() ? esc(L.pet().name) : 'Animal'}</button></div>`;
   };
   L.open = function (tab) {
     tab = tab || 'needs';
-    const tabs = [['needs', '🍽️ Besoins'], ['jobs', '💼 Métier']];
+    const tabs = [['needs', '🍽️ Besoins'], ['jobs', '💼 Métier'], ['pet', '🐾 Animal']];
     const body = () => {
       const l = life(), now = Date.now(), asleep = l.sleep && now < l.sleep.until;
+      if (tab === 'pet') {
+        const p = L.pet(), pb = (k, e, n) => `<div class="life-row"><span>${e} ${n}</span><div class="life-bar"><i style="width:${Math.round(p[k])}%;background:${p[k] < 20 ? '#ff6b6b' : '#ffb454'}"></i></div><b>${Math.round(p[k])}</b></div>`;
+        if (!p) return `<div class="fr-card"><b>🐾 Adopter un compagnon</b><p class="hint">Il te suit partout dans Trad City. Nourris-le et joue avec lui : un compagnon heureux te donne <b>+5 % de salaire</b>. Rien ne lui arrive si tu l'oublies : il est juste triste.</p>
+          <input id="pet-name" class="pet-in" maxlength="14" placeholder="Son nom (facultatif)">${L.PETS.map(d => `<button class="btn btn-sm" style="width:100%;margin:5px 0;text-align:left" data-ladopt="${d.id}">${d.e} <b>${d.n}</b> · ${fmt.eur(d.cost)}<br><small>${d.about}</small></button>`).join('')}</div><p class="err" id="life-err"></p>`;
+        const d = L.petDef(p.type), pl = Math.max(0, 5 * MIN - (Date.now() - (p.playAt || 0)));
+        return `<div class="fr-card"><b>${d.e} ${esc(p.name)}</b> <small>${d.n}</small>${pb('hunger', '🍖', 'Faim')}${pb('joy', '💖', 'Bonheur')}<p class="hint">${L.petHappy() ? '😄 Il est heureux : +5 % sur tes salaires.' : p.hunger < 40 ? '🍖 Il a faim.' : '🙂 Il aimerait jouer un peu.'}</p>
+          <div class="life-shop"><button class="btn btn-sm" data-lcare="feed">🍖 Croquettes<small>${fmt.eur(3)}</small></button><button class="btn btn-sm" data-lcare="treat">🦴 Friandise<small>${fmt.eur(6)}</small></button><button class="btn btn-sm" data-lcare="play" ${pl ? 'disabled' : ''}>🎾 Jouer<small>${pl ? Math.ceil(pl / MIN) + ' min' : 'gratuit'}</small></button><button class="btn btn-sm" data-lcare="groom">🛁 Toilettage<small>${fmt.eur(25)}</small></button></div></div>
+          <p class="hint">Il te suit dans Trad City et en voyage. <button class="btn btn-sm btn-ghost" data-lrelease>Le confier à un refuge</button></p><p class="err" id="life-err"></p>`;
+      }
       if (tab === 'needs') return `<div class="fr-card">${bar('hunger')}${bar('energy')}${bar('hygiene')}<p class="hint">${state()}</p></div>
         <div class="fr-card"><h4>🛒 Manger, boire, se laver</h4><div class="life-shop">${L.SHOP.map(x => `<button class="btn btn-sm" data-lbuy="${x.id}" ${asleep ? 'disabled' : ''}>${x.e} ${x.n}<small>${fmt.eur(x.cost)}</small></button>`).join('')}</div></div>
         <div class="fr-card"><h4>🛏️ Dormir</h4>${asleep ? `<p>😴 Tu dors encore ${fmt.dur(l.sleep.until - now)}.</p><button class="btn btn-sm" data-lwake>☀️ Se réveiller</button>`
@@ -172,7 +222,7 @@
       el.querySelector('.fr-tabs').innerHTML = tabs.map(([k, n]) => `<button class="btn btn-sm ${k === tab ? 'btn-gold' : ''}" data-ltab="${k}">${n}</button>`).join('');
       el.querySelector('.fr-body').innerHTML = body();
     };
-    const done = (r, ok) => { if (!r.ok) { const e = el.querySelector('#life-err'); if (e) e.textContent = r.msg; return TC.toast(r.msg, 'bad'); } if (ok) TC.toast(ok, 'ok'); if (TC.App && TC.App.after) TC.App.after(); draw(); };
+    const done = (r, ok) => { if (r.ok && r.msg && !ok) TC.toast(r.msg, 'ok', 2500); if (!r.ok) { const e = el.querySelector('#life-err'); if (e) e.textContent = r.msg; return TC.toast(r.msg, 'bad'); } if (ok) TC.toast(ok, 'ok'); if (TC.App && TC.App.after) TC.App.after(); draw(); };
     el.onclick = e => {
       if (e.target === el || e.target.closest('.modal-x') || e.target.closest('[data-close]')) return md.close();
       const t = e.target.closest('button'); if (!t) return; const d = t.dataset;
@@ -182,6 +232,9 @@
       else if (d.lwake !== undefined) done(L.wake(), '☀️ Réveillé(e)');
       else if (d.lwork) done(L.startJob(d.lwork), '▶ Service commencé');
       else if (d.lstop !== undefined) done(L.stopJob());
+      else if (d.ladopt) done(L.adopt(d.ladopt, (el.querySelector('#pet-name') || {}).value), '🐾 Bienvenue à la maison !');
+      else if (d.lcare) done(L.petCare(d.lcare), null);
+      else if (d.lrelease !== undefined) { if (confirm('Confier ton compagnon à un refuge ? Tu ne le reverras pas.')) done(L.release()); }
     };
     const iv = setInterval(() => { if (!document.body.contains(el)) return clearInterval(iv); L.tick(); const l = life(), n = Date.now(); if (((l.job && n < l.job.end) || (l.sleep && n < l.sleep.until)) && !el.querySelector('#life-err').textContent) draw(); }, 1000);
     draw();

@@ -52,7 +52,7 @@
     const w = st();
     return `<div class="wk-hud">
       <div class="wk-top"><b>🚶 Trad City</b><span id="wk-cash">${fmt.eur(S().cash)}</span><span class="wk-en" id="wk-en"><i style="width:${Math.max(0, w.en)}%"></i><em>⚡ ${Math.round(w.en)}</em></span><span class="wk-gap"></span>
-        <span id="wk-friends" hidden></span><button data-wkk="KeyT" title="Parler à tes amis (T)">💬</button><button data-wkk="KeyJ" title="Voyager en avion (J)">✈️ Voyager</button><button data-wkk="KeyH" title="Gestes (H) · touches 1 à 7">😀 Gestes</button><button data-wkk="KeyV" title="Vue 1re / 3e personne (V)">👁️ Vue</button><button data-wkk="KeyG" title="Garage (G)">🔑 Garage</button><button data-wkk="KeyB" id="wk-deco" hidden title="Déco (B)">🛋️ Déco</button><button data-wkk="KeyI" title="Sac (I)">🎒 Sac</button><button data-wk="exit">✕ Quitter</button></div>
+        <span id="wk-friends" hidden></span><button data-wkk="KeyT" title="Parler à tes amis (T)">💬</button><button data-wkk="KeyJ" title="Voyager en avion (J)">✈️ Voyager</button><button data-life="pet" title="Ton animal de compagnie">🐾</button><button data-wkk="KeyH" title="Gestes (H) · touches 1 à 7">😀 Gestes</button><button data-wkk="KeyV" title="Vue 1re / 3e personne (V)">👁️ Vue</button><button data-wkk="KeyG" title="Garage (G)">🔑 Garage</button><button data-wkk="KeyB" id="wk-deco" hidden title="Déco (B)">🛋️ Déco</button><button data-wkk="KeyI" title="Sac (I)">🎒 Sac</button><button data-wk="exit">✕ Quitter</button></div>
       <div class="wk-cross" id="wk-cross" hidden></div>
       <div class="wk-speed" id="wk-speed" hidden><b>0</b><small>km/h</small></div>
       <div class="wk-game" id="wk-game" hidden></div>
@@ -66,7 +66,7 @@
   function avatarOpt() {
     const uid = N && N.user ? N.user.uid : null, mine = TC.Style ? TC.Style.mine() : {};
     const cars = [...new Set(S().owned.map(o => o.item))].map(id => TC.shopById[id]).filter(i => i && i.type === 'car').sort((a, b) => b.price - a.price);
-    return { uid, avatar: mine.avatar || (N && N.profile && N.profile.avatar), look: mine.look, vehicle: cars[0] || null };
+    return { uid, avatar: mine.avatar || (N && N.profile && N.profile.avatar), look: mine.look, vehicle: cars[0] || null, pet: TC.Life ? TC.Life.petInfo() : null };
   }
   W.start = function () {
     const v = V(); if (!v || !v.ready || v.failed) return TC.toast('La ville 3D doit être affichée pour se balader.', 'bad');

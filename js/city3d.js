@@ -1735,9 +1735,74 @@
     else if (Wk.mode === 'zact' && zone) zoneAct(dt, t);
     else { Wk.mode = 'walk'; walkStep(dt, t); }
     if (zone) { zone.anim.forEach(f => f(t)); if (zone.update) zone.update(dt, t); }
+    petStep(dt, t);
     if (race) raceStep(dt); if (bump) bumpStep(dt);
     stepDoor(dt); stepGhost(); stepOthers(dt, t);
     shadowsFollow(Wk.x, Wk.z);
+  }
+  /* ---------- 🐾 Animal de compagnie : suit le joueur (ville, zones), trotte, s'assoit, réagit quand on s'occupe de lui ---------- */
+  let petG = null, petInfo = null, petS = null;
+  const PETC = { chien: [0xb9824a, 0x2b2420, 0xe0b66d, 0xf1ead9, 0x7a5a3a], chat: [0x8d8d94, 0xe08a3c, 0x23232a, 0xf4f1ea, 0xb8a58c], lapin: [0xf1ece4, 0xb9a48a, 0x8f8f96, 0xd9c4a8], perroquet: [0xd62839, 0x2fb34a, 0x2a7fe0] };
+  function petMesh(type, seed, name) {
+    const pal = PETC[type], c = pal[seed % pal.length], dark = col(0x1d1a18), mc = col(c, { roughness: .9 }), g = new T.Group(), U = { type, legs: [], tail: null, head: null, wings: [] };
+    const part = (geo, mat, x, y, z) => { const m = mesh(geo, mat, x, y, z, false); return m; };
+    if (type === 'perroquet') {
+      const body = part(new T.SphereGeometry(.11, 10, 8), mc, 0, 0, 0); body.scale.set(.8, 1.2, .9); g.add(body);
+      const head = new T.Group(); head.position.set(0, .15, .05); g.add(head); head.add(part(new T.SphereGeometry(.07, 8, 6), mc, 0, 0, 0)); head.add(part(new T.ConeGeometry(.03, .08, 6), col(0xffd23f), 0, -.01, .08)).rotation.x = Math.PI / 2;
+      [-1, 1].forEach(s => { const w = new T.Group(); w.position.set(s * .1, .03, 0); g.add(w); w.add(part(new T.BoxGeometry(.2, .02, .16), col(pal[(seed + 1) % pal.length]), s * .1, 0, -.02)); U.wings.push(w); });
+      g.add(part(new T.BoxGeometry(.05, .02, .3), col(pal[(seed + 2) % pal.length]), 0, -.08, -.22)); U.head = head; U.fly = true;
+    } else {
+      const dog = type === 'chien', cat = type === 'chat', rab = type === 'lapin', s = dog ? 1 : cat ? .7 : .45;
+      const body = part(new T.CapsuleGeometry(.12 * s + (dog ? .02 : 0), (dog ? .38 : cat ? .34 : .24) * (dog ? 1 : 1), 4, 8), mc, 0, (dog ? .36 : cat ? .27 : .17), 0); body.rotation.x = Math.PI / 2; g.add(body); U.body = body;
+      const head = new T.Group(); head.position.set(0, (dog ? .5 : cat ? .38 : .27), (dog ? .36 : cat ? .27 : .2)); g.add(head);
+      head.add(part(new T.SphereGeometry(dog ? .12 : cat ? .1 : .075, 10, 8), mc, 0, 0, 0));
+      if (dog) { head.add(part(new T.BoxGeometry(.09, .07, .12), mc, 0, -.03, .1)); head.add(part(new T.SphereGeometry(.025, 6, 6), dark, 0, -.01, .17)); [-1, 1].forEach(sd => head.add(part(new T.BoxGeometry(.04, .13, .07), col(pal[(seed + 1) % pal.length]), sd * .1, .0, -.02))); }
+      if (cat) { head.add(part(new T.SphereGeometry(.02, 6, 6), col(0xffa8a8), 0, -.02, .09)); [-1, 1].forEach(sd => { const e = part(new T.ConeGeometry(.035, .08, 4), mc, sd * .06, .09, 0); head.add(e); }); }
+      if (rab) [-1, 1].forEach(sd => head.add(part(new T.BoxGeometry(.03, .2, .04), mc, sd * .035, .17, -.02)));
+      [-.045, .045].forEach(x => head.add(part(new T.SphereGeometry(.014, 6, 6), dark, x * (dog ? 1.4 : 1.2), .03, dog ? .1 : .075)));
+      U.head = head;
+      const lh = dog ? .26 : cat ? .2 : .11; [[-1, 1], [1, 1], [-1, -1], [1, -1]].forEach(([sx, sz]) => { const lg = new T.Group(); lg.position.set(sx * .08 * (dog ? 1.1 : s * 1.2), lh, sz * (dog ? .2 : cat ? .17 : .1)); lg.add(part(new T.BoxGeometry(.06 * (dog ? 1 : s * 1.3), lh, .06 * (dog ? 1 : s * 1.3)), mc, 0, -lh / 2, 0)); g.add(lg); U.legs.push(lg); });
+      const tail = new T.Group(); tail.position.set(0, dog ? .46 : cat ? .33 : .2, dog ? -.4 : cat ? -.32 : -.2); tail.add(part(rab ? new T.SphereGeometry(.05, 6, 6) : new T.CylinderGeometry(.018, .028, cat ? .38 : .28, 6), rab ? col(0xffffff) : mc, 0, rab ? 0 : cat ? .17 : .12, 0)); if (!rab) tail.rotation.x = cat ? -.7 : -.9; g.add(tail); U.tail = tail;
+    }
+    g.userData = U; const lb = label('🐾 ' + (name || ''), { scale: .035, bg: 'rgba(0,0,0,.55)' }); lb.position.y = type === 'perroquet' ? .5 : type === 'chien' ? 1.0 : type === 'chat' ? .75 : .6; g.add(lb);
+    return g;
+  }
+  V.setPet = function (info) {
+    petInfo = info && info.type ? info : null;
+    if (petG && scene) { scene.remove(petG); T.free(petG); petG = null; }
+    if (!petInfo || !scene || !avatarW) return;
+    petG = petMesh(petInfo.type, petInfo.seed || 0, petInfo.name); scene.add(petG);
+    const f = Wk.face || 0; petS = { x: Wk.x + Math.cos(f) * 1.2, z: Wk.z - Math.sin(f) * 1.2, yaw: f, sp: 0, ph: 0, sit: 0, hop: 0, hearts: 0 }; petG.position.set(petS.x, 0, petS.z);
+  };
+  V.petReact = function () { if (petS) { petS.hop = 1; petS.hearts = 1.6; } };
+  function petStep(dt, t) {
+    if (!petG || !petS) return;
+    const hidden = !Wk.on || inside || houseInfo || Wk.mode === 'drive' || Wk.mode === 'ride' || Wk.mode === 'tir' || (zone && zone.id === 'foret' && zone.armed);
+    petG.visible = !hidden; if (hidden) return;
+    const S2 = petS, U = petG.userData, sad = petInfo && (petInfo.joy < 20 || petInfo.hunger < 15);
+    const f = Wk.face, tx = Wk.x + Math.sin(f) * .5 + Math.cos(f) * 1.2, tz = Wk.z + Math.cos(f) * .5 - Math.sin(f) * 1.2;
+    let dx = tx - S2.x, dz = tz - S2.z, d = Math.hypot(dx, dz);
+    if (d > 28) { S2.x = tx; S2.z = tz; dx = dz = d = 0; }
+    const run = Wk.moving ? 1 : 0, want = d > .35 ? Math.min(U.fly ? 9 : 8, (d - .2) * 3.2) * (sad ? .5 : 1) : 0;
+    S2.sp += (want - S2.sp) * Math.min(1, dt * 7);
+    if (S2.sp > .15) {
+      const nx = S2.x + dx / d * S2.sp * dt, nz = S2.z + dz / d * S2.sp * dt;
+      if (U.fly || !hit(nx, nz, .25)) { S2.x = nx; S2.z = nz; } else if (!hit(nx, S2.z, .25)) S2.x = nx; else if (!hit(S2.x, nz, .25)) S2.z = nz;
+      const aw = Math.atan2(dx, dz); S2.yaw += Math.atan2(Math.sin(aw - S2.yaw), Math.cos(aw - S2.yaw)) * Math.min(1, dt * 9);
+    } else { const aw = Math.atan2(Wk.x - S2.x, Wk.z - S2.z); S2.yaw += Math.atan2(Math.sin(aw - S2.yaw), Math.cos(aw - S2.yaw)) * Math.min(1, dt * 3); }
+    S2.ph += dt * (3 + S2.sp * 2.2); S2.sit += ((!Wk.moving && S2.sp < .3 && !U.fly ? 1 : 0) - S2.sit) * Math.min(1, dt * 3); S2.hop = Math.max(0, S2.hop - dt * 2.2); S2.hearts = Math.max(0, S2.hearts - dt);
+    let y = ground(S2.x, S2.z);
+    if (U.fly) y += 1.7 + Math.sin(t * 2.1) * .15 + (Wk.h || 0);
+    else if (U.type === 'lapin') y += Math.abs(Math.sin(S2.ph * 1.2)) * .16 * Math.min(1, S2.sp / 2);
+    y += Math.sin(S2.hop * Math.PI) * .45;
+    petG.position.set(S2.x, y, S2.z); petG.rotation.y = S2.yaw;
+    const mv = Math.min(1, S2.sp / 3);
+    U.legs.forEach((l, i) => { l.rotation.x = Math.sin(S2.ph + (i === 1 || i === 2 ? Math.PI : 0)) * .7 * mv; });
+    U.wings.forEach((w, i) => { w.rotation.z = Math.sin(t * 18) * .8 * (i ? -1 : 1); });
+    if (U.tail) U.tail.rotation.z = Math.sin(t * (S2.hop > 0 || !sad ? 9 : 2)) * (U.type === 'chien' ? .5 : .2);
+    if (U.body) U.body.rotation.x = Math.PI / 2 + S2.sit * (U.type === 'chien' ? -.5 : -.12);
+    if (U.head) { U.head.rotation.x = (sad ? .35 : 0) - S2.sit * .15 + Math.sin(t * 1.3) * .04; U.head.rotation.y = Math.sin(t * .7) * .25 * (1 - mv); }
+    if (S2.hearts > 0) { if (!U.heart) { U.heart = emojiSprite('💖', .45); petG.add(U.heart); } U.heart.visible = true; U.heart.position.set(0, .9 + (1.6 - S2.hearts) * .5, 0); } else if (U.heart) U.heart.visible = false;
   }
   /* ---------- Voyages : zones lointaines (Alpes, Riviera) — ski, télésiège, jet ski ---------- */
   let zone = null, zoneSave = null;
@@ -2039,7 +2104,7 @@
       if (inside) V.exit(true);
       avatarOpt = opt;
       if (avatarW) scene.remove(avatarW);
-      avatarW = person(opt.avatar || '😎', opt.color || 0x3a86ff, true, opt.look, opt.uid || 'me'); scene.add(avatarW);
+      avatarW = person(opt.avatar || '😎', opt.color || 0x3a86ff, true, opt.look, opt.uid || 'me'); scene.add(avatarW); if (opt.pet !== undefined) V.setPet(opt.pet);
       if (!parkRoot) { parkRoot = new T.Group(); scene.add(parkRoot); }
       const p = (opt.uid && lotPos[opt.uid]) || lotPos.market || { x: 0, z: 0 };
       Wk.x = p.x; Wk.z = p.z + BLOCK / 2 + 1.5; Wk.y = .05; Wk.yaw = Math.PI; Wk.face = Math.PI; Wk.keys = {}; Wk.joy = { x: 0, y: 0, run: false }; Wk.mode = 'walk'; Wk.pitch = .26;
