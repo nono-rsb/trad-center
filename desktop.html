@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trad Center — appli ordinateur</title>
+<meta name="theme-color" content="#1565c0">
+<style>
+  body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Inter,sans-serif;background:linear-gradient(160deg,#1a1050,#2b2f9e 55%,#0b6cc8);color:#fff;min-height:100vh}
+  main{max-width:520px;margin:0 auto;padding:28px 18px 60px}
+  img{width:96px;height:96px;border-radius:22px;display:block;margin:0 auto 12px}
+  h1{text-align:center;margin:0 0 6px;font-size:1.7rem} .sub{text-align:center;opacity:.85;margin:0 0 22px}
+  .btn{display:block;text-align:center;background:linear-gradient(135deg,#ffd23f,#ff9f1c);color:#2a1a00;font-weight:800;padding:16px;border-radius:16px;text-decoration:none;font-size:1.1rem;margin:14px 0}
+  .card{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);border-radius:18px;padding:14px 16px;margin:12px 0}
+  .card b{display:block;margin-bottom:4px} ol{padding-left:20px;line-height:1.55;margin:6px 0} small{opacity:.8}
+  a.back{color:#ffd23f;display:block;text-align:center;margin-top:20px}
+</style>
+</head>
+<body><main>
+  <img src="icons/icon-192.png" alt="Trad Center">
+  <h1>Trad Center pour ordinateur</h1>
+  <p class="sub">Le jeu en grand, en plein écran, toujours à jour.</p>
+  <a class="btn" id="dl" href="#">⬇️ Télécharger l'appli</a>
+  <p class="sub" id="oth"></p>
+  <div class="card"><b>Comment l'installer</b><ol>
+    <li><b>Windows</b> : ouvre <i>Trad-Center-Windows.exe</i>. Si « Windows a protégé votre PC » s'affiche : <i>Informations complémentaires</i> puis <i>Exécuter quand même</i>.</li>
+    <li><b>Mac</b> : ouvre le .dmg, glisse l'appli dans Applications, puis clic droit → <i>Ouvrir</i> la première fois (Puce Apple : arm64, Mac Intel : x64).</li>
+    <li><b>Linux</b> : rends le fichier .AppImage exécutable (<i>chmod +x</i>) puis lance-le.</li></ol>
+    <small>L'appli n'est pas signée par un éditeur : l'avertissement est normal.</small></div>
+  <div class="card"><b>Raccourcis</b>F11 plein écran · Ctrl + / Ctrl − zoom · Ctrl 0 zoom normal · F5 recharger.</div>
+  <div class="card"><b>Mises à jour</b>Le jeu s'ouvre toujours à sa dernière version : rien à réinstaller à chaque nouveauté. Si l'appli elle-même change, le jeu te le dit.</div>
+  <div class="card"><b>Sur téléphone ?</b>Il existe aussi une <a href="android.html" style="color:#ffd23f">appli Android</a> ; sur iPhone, ouvre le jeu dans Safari puis « Sur l'écran d'accueil ».</div>
+  <a class="back" href="./">← Retour au jeu</a>
+</main>
+<script>
+(function(){var B='https://github.com/nono-rsb/trad-center/releases/download/desktop/',ua=navigator.userAgent,
+ f={win:['Trad-Center-Windows.exe','Windows'],mac:['Trad-Center-Mac-arm64.dmg','Mac (Puce Apple)'],linux:['Trad-Center-Linux.AppImage','Linux']},
+ k=/Win/i.test(ua)?'win':/Mac/i.test(ua)?'mac':'linux',d=document.getElementById('dl');
+ d.href=B+f[k][0];d.textContent='⬇️ Télécharger pour '+f[k][1];
+ var o=[['Windows',f.win[0]],['Mac (Puce Apple)','Trad-Center-Mac-arm64.dmg'],['Mac (Intel)','Trad-Center-Mac-x64.dmg'],['Linux',f.linux[0]]];
+ document.getElementById('oth').innerHTML='Autres : '+o.map(function(x){return '<a style="color:#ffd23f" href="'+B+x[1]+'">'+x[0]+'</a>'}).join(' · ');})();
+</script></body></html>

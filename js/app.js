@@ -1,0 +1,354 @@
+/* Trad Center — orchestration : événements, boucles, notifications */
+(function () {
+  const { $, $$, fmt, esc } = TC;
+  const N = TC.Net;
+  const G = TC.Game, D = TC.Data, UI = TC.UI;
+  const S = () => G.state;
+
+  function notify(r, okType = 'ok') {
+    if (!r) return;
+    if (r.ok) TC.toast(r.msg, r.pnl != null ? (r.pnl >= 0 ? 'ok' : 'bad') : okType);
+    else { TC.toast('⛔ ' + r.msg, 'bad'); TC.sound('click'); }
+  }
+  function afterAction() {
+    UI.header(); UI.refreshTab(); checkAch(); checkBroke();
+    G.sampleNW();
+  }
+  function checkAch() {
+    G.checkAchievements().forEach((a, i) => setTimeout(() => {
+      TC.toast(`<div class="t-ach"><span>${a.icon}</span><div><small>Succès débloqué</small><b>${a.name}</b></div></div>`, 'ach', 5000);
+      TC.sound('ach');
+    }, i * 700));
+  }
+  let brokeShown = false;
+  function checkBroke() {
+    if (!G.isBroke() || brokeShown) return;
+    brokeShown = true;
+    const md = TC.modal(`<div class="center"><div class="big-emoji">💸</div><h2>Faillite !</h2>
+      <p>Votre patrimoine est tombé à ${fmt.eur(G.netWorth())}. Les marchés sont cruels…</p>
+      <p>Vous pouvez attendre votre bonus quotidien (${fmt.dur(G.bonusReadyIn())}) ou repartir de zéro avec <b>10 €</b>. Vos succès sont conservés.</p>
+      <div class="modal-actions"><button class="btn btn-ghost" data-close>Attendre</button><button class="btn btn-gold" id="b-restart">Recommencer avec 10 €</button></div></div>`, { onClose: () => { brokeShown = false; } });
+    md.el.querySelector('#b-restart').onclick = () => { G.reset(true); md.close(); location.reload(); };
+  }
+
+  function setTab(t) {
+    if (t === 'markets') t = 'portfolio'; // le trading a été retiré du jeu
+    if (document.body.classList.contains('gated')) t = 'social'; // pas de compte : connexion d'abord
+    if (['car', 'estate', 'luxury'].includes(t)) { UI.shopType = t; t = 'shop'; }
+    if (t === 'ach') t = 'collection';
+    UI.tab = t;
+    $$('#tabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === t));
+    $$('.tab-pane').forEach(p => p.classList.toggle('active', p.id === 'tab-' + t));
+    UI.refreshTab();
+    window.scrollTo({ top: 0 });
+  }
+  TC.goto = id => { setTab('portfolio'); };
+  TC.App = { setTab, after: () => afterAction(), snow: f => snow(f) };
+
+  /* ---------------- Événements ---------------- */
+  document.addEventListener('click', async e => {
+    const t = e.target;
+    const b = t.closest('button');
+    if (t.closest('#tabs button')) return setTab(t.closest('#tabs button').dataset.tab);
+    if (b && b.dataset.shop) { UI.shop(b.dataset.shop); return; }
+    if (t.closest('#goalbar')) { setTab('shop'); return; }
+    if (b && b.dataset.sort) { UI.shopSort = b.dataset.sort; UI.refreshTab(); return; }
+    if (b && b.dataset.goal) { S().goal = b.dataset.goal; G.save(); UI.header(); UI.refreshTab(); TC.toast('🎯 Nouvel objectif défini', 'info'); return; }
+    if (b && b.dataset.buyitem) {
+      const it = TC.shopById[b.dataset.buyitem];
+      if (!(await TC.confirm(`${it.emoji} ${it.brand} ${it.model}`, `${TC.itemVis(it, 'modal-vis')}Acheter pour <b>${fmt.eur(it.price)}</b> ?<br><small>${TC.SHOP_TYPES[it.type].note}</small>`, 'Acheter 🔑', 'btn-gold'))) return;
+      const r = G.buyItem(it.id); notify(r);
+      if (r.ok) { TC.sound('cash'); TC.confetti(); celebrate(it); afterAction(); }
+      return;
+    }
+    if (b && b.dataset.sellitem) {
+      const o = S().owned.find(x => x.uid === +b.dataset.sellitem); if (!o) return; const it = TC.shopById[o.item];
+      if (!(await TC.confirm('Revendre ?', `Revendre <b>${it.brand} ${it.model}</b> pour <b>${fmt.eur(G.itemResale(o))}</b> ?`, 'Revendre', 'btn-sell'))) return;
+      const r = G.sellItem(o.uid); notify(r); if (r.ok) { TC.sound('sell'); afterAction(); }
+      return;
+    }
+    if (b && b.id === 'b-rent') { const r = G.collectRent(); if (r > 0) { TC.toast(`🏠 +${fmt.eur(r)} de loyers encaissés`, 'ok'); TC.sound('cash'); afterAction(); } return; }
+    if (b && b.id === 'b-bonus') { const r = G.claimBonus(); notify(r); if (r.ok) { TC.sound('cash'); TC.confetti(60); afterAction(); } return; }
+    if (b && b.id === 'b-sound') { S().sound = !S().sound; G.save(); UI.header(); if (S().sound) TC.sound('click'); return; }
+    if (b && b.id === 'b-help') return help();
+    if (b && b.id === 'b-install') return install();
+    if (b && b.id === 'b-settings') return settings();
+    if (b && b.dataset.guestsave) return settings();
+  });
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && ['o-amt', 'o-qty', 'o-sl', 'o-tp'].includes(e.target.id)) { const go = $('#o-go'); if (go) go.click(); }
+    if (e.key === 'Escape') { const m = $('#modal'); if (m.classList.contains('open')) m.click(); }
+  });
+
+  function celebrate(it) {
+    TC.modal(`<div class="center">${TC.itemVis(it, 'modal-vis xl')}
+      <h2>${it.brand} ${it.model}</h2><p>est désormais à vous ! Retrouvez-la dans votre <b>Collection</b>.</p>
+      ${it.type === 'estate' ? `<p>🏠 Ce bien vous rapporte <b>${fmt.eur(it.price * TC.RENT_RATE_PER_HOUR)}</b> de loyer chaque heure.</p>` : ''}
+      <div class="modal-actions"><button class="btn btn-gold" data-close>Génial ! 🎉</button></div></div>`);
+  }
+
+  function help() {
+    TC.modal(`<div class="center"><img src="icons/icon-192.png" class="install-icon" alt=""><h2>Bienvenue sur Trad Center</h2></div>
+      <div class="modal-body help steps">
+        <div class="step"><span>1</span><div><b>Tu commences avec 10 €</b><small>Les prix sont les vrais : Bitcoin, Tesla, CAC 40…</small></div></div>
+        <div class="step"><span>2</span><div><b>Achète quand ça va monter</b><small>Choisis un actif dans Marchés, touche Acheter. Revends quand tu as gagné.</small></div></div>
+        <div class="step"><span>3</span><div><b>Offre-toi des voitures et des maisons</b><small>Dans la Boutique : de la trottinette à la Bugatti. Les maisons rapportent un loyer.</small></div></div>
+        <div class="step"><span>🎁</span><div><b>+${G.BONUS} € chaque jour, +20 € par ami invité</b><small>Bouton 🎁 en haut, et ton lien d'invitation dans Amis.</small></div></div>
+      </div><div class="modal-actions"><button class="btn btn-gold btn-xl" data-close>C'est parti 🚀</button></div>`, { cls: 'wide', onClose: () => { if (!S().seenIntro) { S().seenIntro = true; G.save(); } } });
+  }
+
+  /* ---------------- Bandeau de fêtes : compte à rebours jusqu'à Noël, puis jusqu'au Nouvel An (décembre seulement) ---------------- */
+  const box = (v, l) => `<span class="gta-box"><b>${String(v).padStart(2, '0')}</b><i>${l}</i></span>`;
+  const countdown = ms => { const d = Math.floor(ms / 86400000), h = Math.floor(ms / 3600000) % 24, m = Math.floor(ms / 60000) % 60, s = Math.floor(ms / 1000) % 60; return `<div class="gta-cd">${box(d, 'jours')}${box(h, 'h')}${box(m, 'min')}${box(s, 's')}</div>`; };
+  function noelBanner(el) {
+    const now = new Date(), y = now.getMonth() === 11 ? now.getFullYear() : new Date().getFullYear();
+    const xmas = new Date(y, 11, 25), ny = new Date(y + 1, 0, 1);
+    if (now < xmas) el.innerHTML = `<span class="gta-palm">🎄</span><div class="gta-txt"><small>Noël dans</small><span class="gta-date">25.12.${y}</span></div>${countdown(xmas - now)}<span class="gta-palm r">🎁</span>`;
+    else if (now.getDate() === 25) el.innerHTML = `<span class="gta-palm">🎅</span><div class="gta-txt"><small>Trad Center vous souhaite un</small><b class="gta-out">JOYEUX NOËL 🎄</b></div><span class="gta-palm r">🎁</span>`;
+    else el.innerHTML = `<span class="gta-palm">🎆</span><div class="gta-txt"><small>Nouvel An dans</small><span class="gta-date">01.01.${y + 1}</span></div>${countdown(ny - now)}<span class="gta-palm r">🥂</span>`;
+  }
+  function gta() {
+    const el = $('#gta'); if (!el) return;
+    if (TC.season.noel) { el.title = 'Joyeuses fêtes !'; el.hidden = false; return noelBanner(el); }
+    el.hidden = true; el.innerHTML = ''; // hors décembre : pas de bandeau
+  }
+
+  /* ---------------- Particules : neige (Noël), feuilles d'automne et premiers flocons (thème automne / hiver) ---------------- */
+  function snow(force) {
+    if (document.getElementById('snow')) return;
+    if ((!(TC.season.noel || TC.season.autwin) && !force) || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const leaves = !TC.season.noel && TC.season.autwin;
+    const c = document.createElement('canvas'); c.id = 'snow'; document.body.appendChild(c);
+    const ctx = c.getContext('2d'); let W, H; const flakes = [], lv = [];
+    const resize = () => { const r = devicePixelRatio || 1; W = innerWidth; H = innerHeight; c.width = W * r; c.height = H * r; c.style.width = W + 'px'; c.style.height = H + 'px'; ctx.setTransform(r, 0, 0, r, 0, 0); };
+    resize(); addEventListener('resize', resize);
+    const small = innerWidth < 600, n = leaves ? (small ? 26 : 50) : (small ? 55 : 110), COL = ['#ff9a3c', '#e8622c', '#d9a441', '#b5472a', '#f2c14e', '#c9742e'];
+    for (let i = 0; i < n; i++) flakes.push({ x: Math.random() * W, y: Math.random() * H, r: Math.random() * 2.4 + 0.8, s: Math.random() * 0.6 + 0.35, w: Math.random() * Math.PI * 2 });
+    if (leaves) for (let i = 0; i < (small ? 16 : 30); i++) lv.push({ x: Math.random() * W, y: Math.random() * H, z: Math.random() * 6 + 6, s: Math.random() * 0.7 + 0.5, w: Math.random() * Math.PI * 2, a: Math.random() * 6.28, va: (Math.random() - .5) * .04, c: COL[i % COL.length] });
+    (function loop() {
+      if (!document.hidden) {
+        ctx.clearRect(0, 0, W, H); ctx.fillStyle = 'rgba(255,255,255,.85)';
+        for (const f of flakes) {
+          f.y += f.s; f.w += 0.01; f.x += Math.sin(f.w) * 0.35;
+          if (f.y > H + 5) { f.y = -5; f.x = Math.random() * W; }
+          ctx.globalAlpha = 0.35 + f.r / 4; ctx.beginPath(); ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2); ctx.fill();
+        }
+        for (const l of lv) { // feuille : deux courbes pointues + une nervure, qui tourne en tombant
+          l.y += l.s; l.w += 0.015; l.x += Math.sin(l.w) * 0.9; l.a += l.va;
+          if (l.y > H + 14) { l.y = -14; l.x = Math.random() * W; }
+          ctx.save(); ctx.translate(l.x, l.y); ctx.rotate(l.a); ctx.globalAlpha = .8; ctx.fillStyle = l.c; ctx.beginPath(); ctx.moveTo(0, -l.z); ctx.quadraticCurveTo(l.z * .85, 0, 0, l.z); ctx.quadraticCurveTo(-l.z * .85, 0, 0, -l.z); ctx.fill();
+          ctx.strokeStyle = 'rgba(80,30,10,.45)'; ctx.lineWidth = .8; ctx.beginPath(); ctx.moveTo(0, -l.z * .9); ctx.lineTo(0, l.z * 1.15); ctx.stroke(); ctx.restore();
+        }
+      }
+      requestAnimationFrame(loop);
+    })();
+  }
+  function noelWelcome() {
+    if (!TC.season.noel) return;
+    const key = 'tradcenter.noel.' + new Date().getFullYear();
+    if (!TC.season.preview && localStorage.getItem(key)) return;
+    if ($('#modal').classList.contains('open')) { setTimeout(noelWelcome, 4000); return; }
+    if (!TC.season.preview) try { localStorage.setItem(key, '1'); } catch (e) { }
+    TC.modal(`<div class="center"><div class="big-emoji">🎄</div><h2>C'est Noël sur Trad Center !</h2>
+      <p>Jusqu'au 31 décembre, ton <b>bonus quotidien est doublé : 20 € par jour</b> 🎁</p>
+      <p>🗓️ <b>Calendrier de l'Avent</b> : une case à ouvrir chaque jour jusqu'au 24.<br>🏆 <b>Course de Noël</b> : le plus gros gain du mois devient Champion.<br>🎅 Le <b>25</b> : cadeau sous le sapin, Père Noël secret, pari x3 et un traîneau en édition limitée.</p>
+      <p><b>Touche le bandeau en haut</b> pour tout voir.</p>
+      <div class="modal-actions"><button class="btn btn-gold btn-xl" data-close>Joyeuses fêtes ! ✨</button></div></div>`);
+  }
+
+  /* ---------------- Annonces (fichier announce.json du site) ---------------- */
+  async function announce() {
+    try {
+      const a = await (await fetch('announce.json?t=' + Date.now(), { cache: 'no-store' })).json();
+      if (!a || !a.id || localStorage.getItem('tradcenter.announce') === a.id) return;
+      if (a.silent) { localStorage.setItem('tradcenter.announce', a.id); return; } // notification seulement (l'événement s'affiche tout seul)
+      if ($('#modal').classList.contains('open')) { setTimeout(announce, 5000); return; }
+      localStorage.setItem('tradcenter.announce', a.id);
+      TC.modal(`<div class="center"><div class="big-emoji">${a.emoji || '📣'}</div><h2>${TC.esc(a.title)}</h2>
+        ${a.text ? `<p>${TC.esc(a.text)}</p>` : ''}
+        ${Array.isArray(a.items) ? `<div class="news">${a.items.map(i => `<div class="news-i"><span>${TC.esc(i.icon || '✨')}</span><div><b>${TC.esc(i.title)}</b>${i.text ? `<small>${TC.esc(i.text)}</small>` : ''}</div></div>`).join('')}</div>` : ''}
+        <div class="modal-actions"><button class="btn btn-ghost" data-close>Plus tard</button><button class="btn btn-gold" id="b-ann">${TC.esc(a.button || 'OK')}</button></div></div>`);
+      $('#b-ann').onclick = () => { $('#modal').click(); if (typeof a.url === 'string' && /^https:\/\//.test(a.url)) window.open(a.url, '_blank', 'noopener'); if (a.tab === 'shop') UI.shopType = 'chest'; if (a.tab) setTab(a.tab); if (a.share && TC.Share) setTimeout(() => TC.Share.popup(true), 350); };
+    } catch (e) { }
+  }
+
+  /* ---------------- Installation (écran d'accueil) ---------------- */
+  let deferredPrompt = null;
+  const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; $('#b-install').hidden = false; });
+  window.addEventListener('appinstalled', () => { $('#b-install').hidden = true; TC.toast('📲 Trad Center est installé sur votre écran d\'accueil !', 'ok'); });
+  async function install() {
+    if (deferredPrompt) { deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; return; }
+    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    TC.modal(`<div class="center"><img src="icons/icon-192.png" class="install-icon" alt=""><h2>Mettre Trad Center sur l'écran d'accueil</h2></div>
+      <div class="modal-body help">${ios ? `
+        <p><b>Sur iPhone / iPad (Safari) :</b></p>
+        <p>1. Touchez le bouton <b>Partager</b> <span class="kbd">⬆️</span> en bas de Safari.</p>
+        <p>2. Choisissez <b>« Sur l'écran d'accueil »</b> <span class="kbd">➕</span>.</p>
+        <p>3. Touchez <b>Ajouter</b>. L'icône Trad Center apparaît comme une vraie appli, en plein écran.</p>` : `
+        <p><b>Sur Android (Chrome) :</b> menu <span class="kbd">⋮</span> → <b>« Installer l'application »</b> ou <b>« Ajouter à l'écran d'accueil »</b>.</p>
+        <p><b>Sur ordinateur (Chrome / Edge) :</b> icône d'installation <span class="kbd">⊕</span> à droite de la barre d'adresse.</p>`}
+      </div><div class="modal-actions"><button class="btn btn-gold" data-close>OK</button></div>`);
+  }
+
+  function changePw() {
+    const md = TC.modal(`<h2>🔑 Changer mon mot de passe</h2><div class="modal-body">
+      <label class="fld">Mot de passe actuel<div class="inp pw"><input id="pw-old" type="password" autocomplete="current-password"><button type="button" class="eye" data-eye="pw-old" aria-label="Afficher">👁️</button></div></label>
+      <label class="fld">Nouveau mot de passe<div class="inp pw"><input id="pw-new" type="password" autocomplete="new-password" placeholder="6 caractères minimum"><button type="button" class="eye" data-eye="pw-new" aria-label="Afficher">👁️</button></div></label>
+      <div class="auth-err" id="pw-err"></div>
+      <div class="modal-actions"><button class="btn btn-ghost" data-close>Annuler</button><button class="btn btn-gold" id="pw-ok">Enregistrer</button></div>
+      <p class="hint">Touche 👁️ pour voir ce que tu tapes. Mot de passe actuel oublié ? Utilise « Mot de passe oublié » dans les paramètres.</p></div>`);
+    md.el.querySelector('#pw-ok').onclick = async e => {
+      const b = e.target; b.disabled = true; const err = md.el.querySelector('#pw-err'); err.textContent = '';
+      try { await N.changePassword(md.el.querySelector('#pw-old').value, md.el.querySelector('#pw-new').value); md.close(); TC.toast('✅ Mot de passe changé', 'ok'); }
+      catch (x) { err.textContent = /wrong-password|invalid-credential|invalid-login/.test(String(x.code || x.message)) ? 'Mot de passe actuel incorrect.' : N.errMsg(x); b.disabled = false; }
+    };
+  }
+  // bouton 👁️ : afficher / masquer le mot de passe pendant qu'on le tape
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-eye]'); if (!b) return;
+    e.preventDefault(); const i = document.getElementById(b.dataset.eye); if (!i) return;
+    i.type = i.type === 'password' ? 'text' : 'password'; b.textContent = i.type === 'password' ? '👁️' : '🙈';
+  });
+  function settings() {
+    const h = D.health;
+    const md = TC.modal(`<h2>⚙️ Paramètres</h2><div class="modal-body">
+      <h4>Sources de données</h4>
+      <div class="kv"><span>Crypto (Binance)</span><b>${h.binance}</b><span>Bourse (Yahoo Finance)</span><b>${h.yahoo}</b><span>Devises</span><b>${D.fxStatus}</b><span>1 € =</span><b>${fmt.num(D.fx.USD, 4)} $</b></div>
+      <p class="hint">${h.relay === 'ok' ? '✅ Ton réseau bloque les sources directes : le jeu utilise les cours relayés par le serveur du jeu (différés de quelques minutes). Tu peux trader.' : 'Si ton réseau (école, box, contrôle parental, Wi-Fi public) bloque une source, le jeu bascule sur les cours relayés du jeu ; sans eux, tu ne peux pas trader. Astuce : essaie avec les données mobiles.'}</p>
+      ${TC.Apk ? TC.Apk.settingsHtml() : ''}
+      ${TC.Desk ? TC.Desk.settingsHtml() : ''}
+      <div class="modal-actions left"><button class="btn" id="b-help2">❔ Aide</button><button class="btn" id="b-notif2">🔔 Notifications</button></div>
+      ${N && N.isGuest && N.isGuest() ? `<h4>👤 Mon compte</h4><div class="kv"><span>Pseudo</span><b>${esc((N.profile && N.profile.pseudo) || '')} <span class="guesttag">Invité</span></b></div>
+      <p class="hint">Tu joues en invité : tu es dans les classements et le championnat, mais sans e-mail ta partie est perdue si tu changes de téléphone ou vides ton navigateur. Crée ton compte : tu gardes tout (argent, objets, amis).</p>
+      <label class="fld">E-mail<div class="inp"><input id="g-email" type="email" autocomplete="email" placeholder="toi@exemple.fr"></div></label>
+      <label class="fld">Mot de passe (6 caractères min.)<div class="inp pw"><input id="g-pw" type="password" autocomplete="new-password"><button type="button" class="eye" data-eye="g-pw">👁️</button></div></label>
+      <div class="auth-err" id="g-err"></div>
+      <button class="btn btn-gold logout-btn" id="b-upgrade">✅ Créer mon compte (je garde ma partie)</button>
+      <button class="btn btn-ghost btn-sm" id="b-login">🔐 J'ai déjà un compte : me connecter</button>` : N && N.user && N.user.email ? `<h4>👤 Mon compte</h4>
+      <div class="kv"><span>Pseudo</span><b>${esc((N.profile && N.profile.pseudo) || '')}</b><span>E-mail</span><b>${esc(N.user.email)}</b><span>Mot de passe</span><b>••••••••</b></div>
+      <p class="hint">🔒 Ton mot de passe n'est jamais enregistré en clair, même pas par le jeu : personne ne peut le lire. Si tu l'as oublié, change-le ou reçois un e-mail pour le réinitialiser.</p>
+      <div class="modal-actions left"><button class="btn" id="b-pw">🔑 Changer mon mot de passe</button><button class="btn btn-ghost" id="b-pwmail">📧 Mot de passe oublié</button></div>
+      <button class="btn btn-sell logout-btn" id="b-logout">🚪 Se déconnecter</button>
+      <button class="btn btn-ghost btn-sm del-btn" id="b-delacc">🗑️ Supprimer mon compte</button>` : N && N.enabled ? `<h4>👤 Mon compte</h4><p class="hint">Tu joues en invité : ta partie n'est que sur cet appareil.</p><button class="btn btn-gold logout-btn" id="b-login">🔐 Se connecter ou créer un compte</button>` : ''}
+      <h4>Jeu</h4>
+      <button class="btn" id="b-cheat">🎮 Entrer un code de triche</button>
+      <label class="tgl"><input type="checkbox" id="s-expert" ${S().expert ? 'checked' : ''}><span>⚡ Mode expert : trading à levier (x2 à x100, plus risqué)</span></label>
+      <h4>Application</h4>
+      <button class="btn" id="b-install2">📲 Installer sur l'écran d'accueil</button>
+      <h4>Son et vibrations</h4>
+      <button class="btn" id="b-sound2">${S().sound ? '🔊 Activés — couper' : '🔇 Coupés — activer'}</button>
+      <h4>🎵 Musique de fond</h4>
+      <label class="tgl"><input type="checkbox" id="s-music" ${S().music !== false ? 'checked' : ''}><span>Petite musique lounge pendant que tu joues</span></label>
+      <label class="mus-vol">🔈<input type="range" id="s-musvol" min="5" max="100" step="5" value="${TC.Music ? TC.Music.vol() : 35}" aria-label="Volume de la musique">🔊</label>
+      <h4>Sauvegarde</h4>
+      <div class="modal-actions left"><button class="btn" id="b-export">📤 Exporter</button><button class="btn" id="b-import">📥 Importer</button></div>
+      <h4>🔒 Confidentialité</h4>
+      <p class="hint">Ce que le jeu fait de tes données, tes droits et les règles du jeu.</p>
+      <a class="btn" href="confidentialite.html">📄 Confidentialité et conditions</a>
+      <h4>Zone dangereuse</h4>
+      <button class="btn btn-sell" id="b-reset">🗑️ Recommencer une partie à 10 €</button>
+      </div>`);
+    const pwb = md.el.querySelector('#b-pw'); if (pwb) pwb.onclick = () => changePw();
+    const da = md.el.querySelector('#b-delacc'); if (da) da.onclick = () => {
+      const m2 = TC.modal(`<h2>🗑️ Supprimer mon compte</h2><div class="modal-body">
+        <p>Ta partie, ton argent, tes objets, tes amis et ton adresse e-mail seront <b>définitivement effacés</b>. C'est irréversible.</p>
+        <p class="hint">Astuce : tu peux d'abord exporter ta sauvegarde (Paramètres → Sauvegarde → Exporter).</p>
+        <label class="fld">Ton mot de passe, pour confirmer<div class="inp pw"><input id="del-pw" type="password" autocomplete="current-password"><button type="button" class="eye" data-eye="del-pw">👁️</button></div></label>
+        <label class="fld">Écris <b>SUPPRIMER</b><div class="inp"><input id="del-ok" autocomplete="off"></div></label>
+        <div class="auth-err" id="del-err"></div>
+        <div class="modal-actions"><button class="btn btn-ghost" data-close>Annuler</button><button class="btn btn-sell" id="del-go">Supprimer définitivement</button></div></div>`);
+      m2.el.querySelector('#del-go').onclick = async e => {
+        const b = e.target, err = m2.el.querySelector('#del-err');
+        if (m2.el.querySelector('#del-ok').value.trim().toUpperCase() !== 'SUPPRIMER') { err.textContent = 'Écris SUPPRIMER pour confirmer.'; return; }
+        b.disabled = true; err.textContent = '';
+        try { await N.deleteAccount(m2.el.querySelector('#del-pw').value); } catch (x) { err.textContent = x.userMsg || N.errMsg(x); b.disabled = false; }
+      };
+    };
+    const li = md.el.querySelector('#b-login'); if (li) li.onclick = async () => {
+      if (N.isGuest && N.isGuest()) { // se connecter à un autre compte : la partie invité serait perdue
+        if (!(await TC.confirm('Se connecter à un autre compte ?', 'Ta partie d\'invité sera <b>perdue</b> (crée plutôt ton compte pour la garder).', 'Continuer', 'btn-sell'))) return;
+        try { localStorage.removeItem('tradcenter.guest'); } catch (e) { } try { await N.signOut(); } catch (e) { location.reload(); } return;
+      }
+      try { localStorage.removeItem('tradcenter.guest'); } catch (e) { } location.reload();
+    };
+    const up = md.el.querySelector('#b-upgrade'); if (up) up.onclick = async () => {
+      const err = md.el.querySelector('#g-err'); err.textContent = ''; up.disabled = true;
+      try { await N.upgradeGuest(md.el.querySelector('#g-email').value, md.el.querySelector('#g-pw').value); md.close(); TC.toast('✅ Compte créé ! Ta partie est sauvegardée avec ton e-mail.', 'ok', 6000); TC.sound('ach'); }
+      catch (e) { err.textContent = e.userMsg || (N.errMsg ? N.errMsg(e) : e.message); up.disabled = false; }
+    };
+    const lo = md.el.querySelector('#b-logout'); if (lo) lo.onclick = async () => {
+      if (!(await TC.confirm('Se déconnecter ?', 'Ta partie reste sauvegardée sur ton compte : tu la retrouveras en te reconnectant. Cet appareil revient à l\'écran de connexion.', 'Se déconnecter', 'btn-sell'))) return;
+      try { localStorage.removeItem('tradcenter.guest'); } catch (e) { }
+      try { await N.signOut(); } catch (e) { TC.toast(N.errMsg(e), 'bad'); }
+    };
+    const pwm = md.el.querySelector('#b-pwmail'); if (pwm) pwm.onclick = async () => { try { await N.resetPassword(N.user.email); TC.toast('📧 E-mail envoyé à ' + esc(N.user.email) + ' : suis le lien pour choisir un nouveau mot de passe.', 'ok', 7000); } catch (e) { TC.toast(N.errMsg(e), 'bad'); } };
+    md.el.querySelector('#b-install2').onclick = () => install();
+    md.el.querySelector('#b-cheat').onclick = () => TC.Cheats.open();
+    md.el.querySelector('#s-expert').onchange = e => { S().expert = e.target.checked; G.save(); TC.toast(e.target.checked ? '⚡ Mode expert activé : onglet Levier disponible' : 'Mode expert désactivé', 'info'); };
+    md.el.querySelector('#b-help2').onclick = () => help();
+    md.el.querySelector('#b-notif2').onclick = () => TC.Notif.open();
+    md.el.querySelector('#b-sound2').onclick = e => { S().sound = !S().sound; G.save(); UI.header(); e.target.textContent = S().sound ? '🔊 Activés — couper' : '🔇 Coupés — activer'; };
+    md.el.querySelector('#s-music').onchange = e => TC.Music.setOn(e.target.checked);
+    const mv = md.el.querySelector('#s-musvol'); mv.oninput = () => TC.Music.setVol(+mv.value); mv.onchange = () => G.save();
+    md.el.querySelector('#b-reset').onclick = async () => {
+      if (await TC.confirm('Tout effacer ?', 'Votre argent, vos positions et vos biens seront perdus. Les succès sont conservés.', 'Recommencer', 'btn-sell')) { G.reset(true); location.reload(); }
+    };
+    md.el.querySelector('#b-export').onclick = () => {
+      const blob = new Blob([JSON.stringify(S())], { type: 'application/json' });
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'tradcenter-sauvegarde.json'; a.click();
+    };
+    md.el.querySelector('#b-import').onclick = () => {
+      const i = document.createElement('input'); i.type = 'file'; i.accept = '.json,application/json';
+      i.onchange = async () => { try { const j = JSON.parse(await i.files[0].text()); if (j.v !== 1) throw 0; localStorage.setItem('tradcenter.save.v1', JSON.stringify(j)); location.reload(); } catch (e) { TC.toast('Fichier invalide', 'bad'); } };
+      i.click();
+    };
+  }
+
+  /* ---------------- Boucles ---------------- */
+  let slow = 0;
+  setInterval(async () => {
+    slow++;
+    if ((slow % 2 === 0 || UI.tab === 'collection')) UI.liveTab();
+    UI.header();
+    if (slow % 30 === 0) { G.sampleNW(); G.save(); checkAch(); }
+    checkBroke();
+  }, 1000);
+
+  /* ---------------- Démarrage ---------------- */
+  function boot() {
+    // le bouton d'installation est dans les réglages
+    TC.Net.init();
+    if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => { });
+    TC.onImages(() => { if (['shop', 'collection'].includes(UI.tab)) UI.refreshTab(); UI.header(); });
+    gta(); setInterval(gta, 1000); snow();
+    if (TC.season.noel) setTimeout(noelWelcome, 1800); // fenêtre de l'événement : décembre seulement
+    { const tc = document.querySelector('meta[name=theme-color]'); if (tc) { if (TC.season.noel) tc.content = '#0b1d1a'; else tc.content = '#1a1625'; } }
+    setTimeout(() => TC.loadImages(), 300);
+    // liens ouverts depuis une notification : ?a=BTC ou ?tab=social
+    const qs = new URLSearchParams(location.search);
+    if (qs.get('tab')) setTimeout(() => setTab(qs.get('tab')), 0);
+    if (qs.get('ref')) { try { if (!localStorage.getItem('tradcenter.ref')) localStorage.setItem('tradcenter.ref', qs.get('ref').slice(0, 64)); } catch (e) { } }
+    if (qs.toString()) history.replaceState(null, '', location.pathname);
+    setTimeout(announce, 2500);
+    UI.header();
+    // loyers accumulés pendant l'absence
+    const pend = G.pendingRent();
+    if (pend >= 0.01) setTimeout(() => TC.toast(`🏠 ${fmt.eur(pend)} de loyers vous attendent dans votre Collection`, 'info', 6000), 1500);
+    if (!S().seenIntro) setTimeout(help, 400);
+    setInterval(guestNudge, 60000);
+  }
+  /* Invité qui progresse : rappel discret (au plus une fois par jour) de créer son compte pour ne pas perdre sa partie */
+  function guestNudge() {
+    const N = TC.Net;
+    if (document.hidden || !N || !N.isGuest || !N.isGuest() || $('#modal.open') || document.body.classList.contains('gated')) return;
+    const nw = G.netWorth(), trades = (S().stats && S().stats.trades) || 0;
+    if (nw < 25 && trades < 5) return; // rien d'important à perdre pour l'instant
+    let last = 0; try { last = +localStorage.getItem('tradcenter.guestnudge') || 0; } catch (e) { }
+    if (Date.now() - last < 24 * 3600000) return;
+    try { localStorage.setItem('tradcenter.guestnudge', String(Date.now())); } catch (e) { }
+    TC.toast(`💾 Ta partie d'invité (${fmt.eur(nw)}) disparaît si tu changes de téléphone. <button class="btn btn-sm btn-gold" data-guestsave="1">Créer mon compte</button>`, 'info', 12000);
+  }
+  boot();
+})();

@@ -1,0 +1,11 @@
+{
+  "id": "pause-maj-2026-11-28",
+  "emoji": "🛠️",
+  "title": "Mise à jour en cours",
+  "silent": true,
+  "tab": "markets",
+  "push": {
+    "title": "🛠️ Trad Center est en pause",
+    "body": "Grosse mise à jour en cours : graphismes améliorés et jeu plus rapide. Tes données sont sauvegardées, reviens bientôt !"
+  }
+}

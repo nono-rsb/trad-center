@@ -1,0 +1,17 @@
+{
+  "name": "Trad Occaz",
+  "short_name": "Trad Occaz",
+  "description": "Achète et revends des articles d'occasion pour t'entraîner, avec l'argent de ton compte Trad Center.",
+  "lang": "fr",
+  "id": "./occaz.html",
+  "start_url": "./occaz.html",
+  "scope": "./occaz",
+  "display": "standalone",
+  "background_color": "#fff7f0",
+  "theme_color": "#fff7f0",
+  "categories": ["shopping", "games"],
+  "icons": [
+    { "src": "icons/occaz-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/occaz-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
