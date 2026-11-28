@@ -75,7 +75,7 @@
     if (TC.City) TC.City.render();
     v.walk(true, avatarOpt());
     v.onBump = sp => { sfx('bump', sp); };
-    v.onZoneReward = zoneReward;
+    v.onZoneReward = zoneReward; v.huntPermit = () => !!(S().hunt && S().hunt.permit); v.onZoneSound = k => sfx(k);
     v.onDoor = open => sfx(open ? 'open' : 'close');
     clearInterval(tickT); tickT = setInterval(tick, 150);
     clearInterval(presT); presT = setInterval(presTick, 1000); lastPub = { t: 0 };
@@ -143,7 +143,7 @@
     const sp = $('#wk-speed'); if (sp) { sp.hidden = k.mode !== 'drive'; if (k.mode === 'drive') sp.querySelector('b').textContent = Math.round(k.kmh); }
     const cr = $('#wk-cross'); if (cr) cr.hidden = !(k.fp || k.mode === 'tir');
     const dc = $('#wk-deco'); if (dc) { const h = v.house && v.house(); dc.hidden = !(h && h.me && !h.apt); }
-    const fire = document.querySelector('.wk-fire'); if (fire) fire.hidden = k.mode !== 'tir';
+    const zf = v.zoneInfo && v.zoneInfo(), fire = document.querySelector('.wk-fire'); if (fire) fire.hidden = !(k.mode === 'tir' || (zf && zf.fire));
     const gm = $('#wk-game'); if (gm) { gm.hidden = !(k.mode === 'ride' || k.mode === 'tir' || k.lock); if (k.mode === 'ride') gm.innerHTML = k.rideKind === 'manege' ? `🎠 Manège · encore <b>${Math.ceil(k.rideLeft || 0)} s</b>` : `🎡 Grande roue · encore <b>${Math.ceil(k.rideLeft || 0)} s</b> · regarde la ville !`; }
     const ri = v.raceInfo && v.raceInfo(), bi = v.bumpInfo && v.bumpInfo();
     if (gm && ri) { gm.hidden = false; gm.innerHTML = ri.countdown ? `<span class="wk-big">${ri.countdown}</span>` : `🏁 Tour <b>${ri.lap}/${ri.laps}</b> · ${ri.pos}<sup>${ri.pos === 1 ? 'er' : 'e'}</sup>/${ri.count} · ⏱️ ${ri.time.toFixed(1)} s${ri.best ? ` · meilleur ${ri.best.toFixed(2)} s` : ''}`; }
@@ -160,6 +160,7 @@
   const hasJet = () => S().owned.some(o => o.item === 'jetprive');
   const TICKET = 350;
   function zoneReward(kind, eur, txt) {
+    if (kind === 'permis') { if (S().cash < 180) return TC.toast('Il faut 180 € pour le permis de chasse.', 'bad', 3000); S().cash -= 180; S().hunt = { permit: true, t: Date.now() }; S().log.unshift({ t: Date.now(), kind: 'life', eur: 180, asset: txt }); TC.toast('📜 Permis de chasse obtenu ! Reviens au pavillon pour prendre un fusil.', 'ok', 5000); G.save(true); sfx('place'); return; }
     if (eur < 0) { if (S().cash < -eur) return TC.toast('Pas assez de cash.', 'bad', 2500); S().cash += eur; S().log.unshift({ t: Date.now(), kind: 'life', eur: -eur, asset: txt }); TC.toast(`${txt} : ${fmt.eur(-eur)}. Repos et bien-être ! (+énergie)`, 'ok', 4500); const w = st(); w.en = Math.min(100, w.en + 30); G.save(true); sfx('place'); return; }
     S().cash += eur; S().log.unshift({ t: Date.now(), kind: 'life', eur, asset: txt }); if (S().log.length > 300) S().log.length = 300;
     if (TC.Progress) TC.Progress.xp(10);
@@ -361,7 +362,7 @@
       TC.toast(touch() ? '🎯 Touche les cibles pour tirer ! Les canards 🦆 valent 25 points.' : '🎯 Clique dans la ville pour viser à la souris, puis clique (ou Espace) pour tirer. Les canards 🦆 valent 25 points.', 'ok', 6000);
     } });
   }
-  function shoot(cx, cy) { const v = V(); if (!v) return; const got = v.tirShoot(cx, cy); if (got == null) return; sfx('shot'); if (got) setTimeout(() => sfx('ding'), 80); }
+  function shoot(cx, cy) { const v = V(); if (!v) return; const zi = v.zoneInfo && v.zoneInfo(); if (zi && zi.fire) { const g = v.huntShoot(); if (g != null) { return; } return; } const got = v.tirShoot(cx, cy); if (got == null) return; sfx('shot'); if (got) setTimeout(() => sfx('ding'), 80); }
 
   /* ---------- 🛋️ Déco de la maison ---------- */
   function decoMenu() {
@@ -602,7 +603,7 @@
   document.addEventListener('pointerlockchange', () => { const h = $('#wk-help'); if (h) h.classList.toggle('locked', !!document.pointerLockElement); });
   document.addEventListener('mousedown', e => {
     const v = V(); if (!on || !v || e.button !== 0) return;
-    if (document.pointerLockElement === v.canvas()) { if (v.walkState.mode === 'tir') shoot(); else if (v.decoPlacing && v.decoPlacing()) act('KeyE'); }
+    if (document.pointerLockElement === v.canvas()) { const zi = v.zoneInfo && v.zoneInfo(); if (zi && zi.fire) shoot(); else if (v.walkState.mode === 'tir') shoot(); else if (v.decoPlacing && v.decoPlacing()) act('KeyE'); }
   });
   document.addEventListener('click', e => {
     const b = e.target.closest('[data-wk], [data-wkk]');

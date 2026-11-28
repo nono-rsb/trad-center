@@ -1734,14 +1734,14 @@
     else if (Wk.mode === 'tir' && tir) tirStep(dt, t);
     else if (Wk.mode === 'zact' && zone) zoneAct(dt, t);
     else { Wk.mode = 'walk'; walkStep(dt, t); }
-    if (zone) zone.anim.forEach(f => f(t));
+    if (zone) { zone.anim.forEach(f => f(t)); if (zone.update) zone.update(dt, t); }
     if (race) raceStep(dt); if (bump) bumpStep(dt);
     stepDoor(dt); stepGhost(); stepOthers(dt, t);
     shadowsFollow(Wk.x, Wk.z);
   }
   /* ---------- Voyages : zones lointaines (Alpes, Riviera) — ski, télésiège, jet ski ---------- */
   let zone = null, zoneSave = null;
-  V.ZONES = [['alpes', '🏔️', 'Station des Alpes', 'Ski, télésiège, chalets, hôtel'], ['riviera', '🏝️', 'Riviera', 'Jet ski, marina, yachts, plage']];
+  V.ZONES = [['alpes', '🏔️', 'Station des Alpes', 'Ski, télésiège, chalets, hôtel'], ['riviera', '🏝️', 'Riviera', 'Jet ski, marina, yachts, plage'], ['foret', '🦌', 'Domaine de chasse', 'Chasse : cerf, sanglier, lapin, faisan']];
   const hAlpes = (x, z) => { const zz = Math.max(0, Math.min(1, (z + 95) / 190)); let h = 40 * Math.pow(1 - zz, 1.6); h += Math.max(0, Math.abs(x) - 36) * .6; h += Math.sin(x * .13) * Math.cos(z * .1) * 1.3 * (1 - zz); return Math.max(0, h); };
   function terrain(f, W, D, n, mat) {
     const pos = [], X = i => -W / 2 + W * i / n, Z = j => -D / 2 + D * j / n;
@@ -1802,7 +1802,7 @@
         else if (near(-6, 64, 14)) p.push(['KeyE', 'E', 'Réserver une chambre au Grand Hôtel 🛎️']);
         return { hud: null, prompts: p };
       };
-    } else {
+    } else if (id === 'riviera') {
       Z.sky = [0x2f8fe8, 0xc8ecff]; Z.fog = [90, 360]; Z.lim = 96; Z.start = { x: 0, z: 18 };
       Z.ground = (x, z) => z > -9 ? .12 : (Math.abs(x) < 3.2 && z > -34 ? .35 : -.5);
       const sandM = col(0xe9d9a8, { roughness: 1 }), sea = new T.Mesh(new T.PlaneGeometry(420, 420), new T.MeshStandardMaterial({ color: 0x1b7fd0, roughness: .12, metalness: .15, transparent: true, opacity: .9, envMapIntensity: 1.2 }));
@@ -1831,6 +1831,82 @@
         else if (Math.abs(k.x) < 30 && k.z > 14 && k.z < 24) p.push(['KeyE', 'E', 'Déjeuner sur la promenade 🍽️ (45 €)']);
         return { hud: null, prompts: p };
       };
+    } else if (id === 'foret') {
+      Z.sky = [0x6fa8d8, 0xe8dcc0]; Z.fog = [55, 230]; Z.lim = 92; Z.start = { x: 0, z: 88 };
+      const hF = (x, z) => Math.sin(x * .07) * Math.cos(z * .06) * 1.6 + Math.sin(x * .2 + z * .13) * .25;
+      Z.ground = hF;
+      g.add(terrain(hF, 220, 220, 44, col(0x7a8a3f, { roughness: 1, envMapIntensity: .25 })));
+      // forêt d'automne
+      const trunkM = col(0x5a3d22), leaf = [0xe8892c, 0xc9542b, 0xd9a441, 0x8a9a3b, 0xb8452a, 0x4f7a3a].map(c => col(c, { roughness: .95 })), canopy = new T.SphereGeometry(2.2, 8, 6), pg = [new T.ConeGeometry(1.5, 2.2, 7), new T.ConeGeometry(1.1, 1.9, 7)], pm = col(0x24563a);
+      for (let i = 0, n = 0; i < 700 && n < 170; i++) {
+        const x = -100 + r() * 200, z = -100 + r() * 190; if (Math.abs(x) < 14 && z > 60) continue; if (Math.hypot(x, z - 10) < 12) continue;
+        const y = hF(x, z), s = .8 + r() * .8; n++;
+        g.add(cyl(.22 * s, .3 * s, 2.4 * s, trunkM, x, y, z, 6));
+        if (r() < .3) pg.forEach((geo, k) => { const m = mesh(geo, pm, x, y + (2.4 + k * 1.3) * s, z, false); m.scale.set(s, s, s); g.add(m); });
+        else { const m = mesh(canopy, leaf[(r() * leaf.length) | 0], x, y + 3.4 * s, z, false); m.scale.set(s * 1.1, s * .95, s * 1.1); g.add(m); }
+        Z.colliders.push({ x0: x - .5, x1: x + .5, z0: z - .5, z1: z + .5, y1: y + 4 });
+      }
+      // pavillon de chasse
+      const LZ = 80; addBox(Z, 13, 3.6, 8, col(0x7a4f2c), 0, 0, LZ); g.add(gable(14.4, 2.6, 9.4, col(0x3b2a1d), 0, 3.6, LZ)); g.add(box(1.2, 3, 1.2, col(0x6b6b6b), 4, 3.6, LZ - 2));
+      const sg = label('🦌 PAVILLON DE CHASSE', { scale: .1, bg: 'rgba(60,38,20,.95)' }); sg.position.set(0, 7.4, LZ + 5); g.add(sg);
+      g.add(box(2.4, 1, .5, col(0x4a2f18), -3, 0, LZ + 4.6)); [-3.6, -3, -2.4].forEach(x => g.add(box(.08, .9, .08, col(0x222831), x, 1, LZ + 4.5)));
+      Z.lodge = { x: 0, z: LZ };
+      // gibier
+      const ANI = {
+        lapin: { n: 'Lapin', e: '🐇', val: 14, len: .45, w: .22, leg: .1, c: 0x9c8a74, walk: .6, run: 8, flee: 14, count: 6 },
+        faisan: { n: 'Faisan', e: '🦃', val: 20, len: .5, w: .22, leg: .18, c: 0x9a5b2a, walk: .6, run: 5, flee: 12, count: 4 },
+        sanglier: { n: 'Sanglier', e: '🐗', val: 60, len: 1.3, w: .6, leg: .35, c: 0x4a3a30, walk: 1.1, run: 7, flee: 14, count: 3 },
+        cerf: { n: 'Cerf', e: '🦌', val: 110, len: 1.7, w: .6, leg: .85, c: 0x8a5a33, walk: 1.2, run: 9, flee: 22, count: 2 },
+      };
+      const mkAnimal = type => {
+        const P = ANI[type], ag = new T.Group(), body = mesh(new T.CapsuleGeometry(P.w / 2, P.len - P.w, 4, 8), col(P.c, { roughness: .9 }), 0, P.leg + P.w * .55, 0, false); body.rotation.x = Math.PI / 2; ag.add(body);
+        const head = mesh(new T.SphereGeometry(P.w * .38, 8, 6), col(P.c, { roughness: .9 }), 0, P.leg + P.w * (type === 'cerf' ? 1.35 : .7), P.len / 2 + P.w * .25, false); ag.add(head);
+        if (type === 'cerf') { [-1, 1].forEach(s => { const a = mesh(new T.CylinderGeometry(.015, .02, .6, 5), col(0xcdb28a), s * .12, P.leg + P.w * 1.95, P.len / 2 + P.w * .2, false); a.rotation.z = s * -.4; ag.add(a); }); const neck = mesh(new T.CylinderGeometry(.1, .14, .55, 6), col(P.c), 0, P.leg + P.w * 1.05, P.len / 2 - .05, false); neck.rotation.x = .5; ag.add(neck); }
+        if (type === 'lapin') [-1, 1].forEach(s => ag.add(mesh(new T.BoxGeometry(.04, .2, .05), col(P.c), s * .05, P.leg + P.w * 1.3, P.len / 2 + .02, false)));
+        if (type === 'faisan') ag.add(mesh(new T.BoxGeometry(.06, .05, .4), col(0x6b3a1a), 0, P.leg + .2, -P.len / 2 - .15, false));
+        if (type === 'sanglier') ag.add(mesh(new T.BoxGeometry(.18, .15, .22), col(0x2e2420), 0, P.leg + P.w * .6, P.len / 2 + .3, false));
+        const legs = []; [[-1, 1], [1, 1], [-1, -1], [1, -1]].forEach(([sx, sz]) => { const l = mesh(new T.BoxGeometry(P.w * .18, P.leg, P.w * .18), col(0x2a211a), sx * P.w * .3, P.leg / 2, sz * P.len * .3, false); ag.add(l); legs.push(l); });
+        return { g: ag, P, type, body, head, legs, x: 0, z: 0, yaw: r() * 6.28, tx: 0, tz: 0, sp: 0, wait: 0, dead: 0, ph: r() * 6, alert: 0 };
+      };
+      const spawn = a => { let x, z, k = 0; do { x = -85 + r() * 170; z = -85 + r() * 130; k++; } while ((Math.hypot(x - Wk.x, z - Wk.z) < 30 || hit(x, z, .8)) && k < 30); a.x = x; a.z = z; a.tx = x; a.tz = z; a.dead = 0; a.g.rotation.set(0, a.yaw, 0); a.g.visible = true; a.gone = 0; };
+      Z.animals = []; Object.keys(ANI).forEach(t => { for (let i = 0; i < ANI[t].count; i++) { const a = mkAnimal(t); g.add(a.g); Z.animals.push(a); } });
+      Z.pendingSpawn = true; Z.ANI = ANI; Z.bag = {}; Z.ammo = 6; Z.reload = 0; Z.armed = false; Z.cd = 0; Z.recoil = 0; Z.flash = 0;
+      Z.update = (dt, t) => {
+        if (Z.pendingSpawn) { Z.pendingSpawn = false; Z.animals.forEach(spawn); }
+        const alertR = Wk.moving ? 1.2 : .7;
+        Z.animals.forEach(a => {
+          const P = a.P;
+          if (a.dead > 0) { a.dead -= dt; a.g.rotation.z = Math.min(1.5, a.g.rotation.z + dt * 6); a.g.position.y = hF(a.x, a.z) - Math.min(.2, (1.5 - a.g.rotation.z) * 0 + .05); if (a.dead <= 0) { a.g.visible = false; a.gone = 22; } return; }
+          if (a.gone > 0) { a.gone -= dt; if (a.gone <= 0) spawn(a); return; }
+          const dx = Wk.x - a.x, dz = Wk.z - a.z, d = Math.hypot(dx, dz); a.alert = Math.max(0, a.alert - dt);
+          let sp = 0;
+          if (a.alert > 0 || d < P.flee * alertR) { const aw = Math.atan2(-dx, -dz) + Math.sin(t * 2 + a.ph) * .5; a.yaw += (Math.atan2(Math.sin(aw - a.yaw), Math.cos(aw - a.yaw))) * Math.min(1, dt * 6); sp = P.run; }
+          else {
+            a.wait -= dt;
+            if (a.wait <= 0) { a.wait = 3 + r() * 5; if (r() < .45) { a.tx = a.x; a.tz = a.z; } else { a.tx = a.x + (r() - .5) * 24; a.tz = a.z + (r() - .5) * 24; } }
+            const ex = a.tx - a.x, ez = a.tz - a.z; if (Math.hypot(ex, ez) > .6) { const aw = Math.atan2(ex, ez); a.yaw += Math.atan2(Math.sin(aw - a.yaw), Math.cos(aw - a.yaw)) * Math.min(1, dt * 3); sp = P.walk; }
+          }
+          if (sp) {
+            const nx = a.x + Math.sin(a.yaw) * sp * dt, nz = a.z + Math.cos(a.yaw) * sp * dt;
+            if (Math.abs(nx) > Z.lim || Math.abs(nz) > Z.lim || hit(nx, nz, .5)) { a.yaw += 1.4; a.tx = a.x; a.tz = a.z; sp = 0; } else { a.x = nx; a.z = nz; }
+          }
+          a.sp = sp; a.ph += dt * (sp ? 4 + sp * 1.4 : 0);
+          a.g.position.set(a.x, hF(a.x, a.z), a.z); a.g.rotation.y = a.yaw;
+          a.legs.forEach((l, i) => { l.rotation.x = Math.sin(a.ph + (i % 2 ? 0 : Math.PI)) * .6 * Math.min(1, sp / 2); });
+          a.head.position.y = P.leg + P.w * (a.type === 'cerf' ? 1.35 : .7) - (sp === 0 && a.type !== 'faisan' ? .15 + Math.sin(t * .8 + a.ph) * .03 : 0);
+        });
+        if (Z.armed && gun) { Z.recoil = Math.max(0, Z.recoil - dt * 8); gun.position.z = -.32 + Z.recoil * .05; gun.rotation.x = Z.recoil * .3; Z.flash -= dt; gun.userData.flash.visible = Z.flash > 0; Z.cd = Math.max(0, Z.cd - dt); if (Z.ammo <= 0) { Z.reload -= dt; if (Z.reload <= 0) Z.ammo = 6; } }
+      };
+      Z.info = () => {
+        const near = Math.hypot(Wk.x - Z.lodge.x, Wk.z - Z.lodge.z) < 10, p = [], permit = !!(V.huntPermit && V.huntPermit());
+        if (Z.armed) {
+          const tot = Object.keys(Z.bag).reduce((s, k) => s + Z.bag[k] * ANI[k].val, 0), list = Object.keys(Z.bag).map(k => ANI[k].e + Z.bag[k]).join(' ') || 'rien encore';
+          if (near) p.push(['KeyE', 'E', 'Rendre le fusil et vendre le gibier (' + tot + ' €)']);
+          return { hud: `🔫 ${Z.ammo > 0 ? Z.ammo + '/6' : 'rechargement…'} · gibier : ${list}${tot ? ' · 💰 ' + tot + ' €' : ''}`, prompts: p, fire: true };
+        }
+        if (near) p.push(permit ? ['KeyE', 'E', 'Prendre le fusil et chasser 🔫'] : ['KeyE', 'E', 'Acheter le permis de chasse 📜 (180 €)']);
+        return { hud: null, prompts: p };
+      };
     }
     Z.near = null;
     return Z;
@@ -1842,7 +1918,7 @@
     hemi.intensity = nt ? .3 : .55; hemi.color.set(nt ? 0x5566aa : 0xe6f0ff); hemi.groundColor.set(Z.id === 'alpes' ? 0xd5dcea : 0xdccaa0);
     sun.intensity = nt ? .3 : 1.1; sun.color.set(nt ? 0x8899ff : 0xfff1d6); sun.position.set(60, 90, 40);
   }
-  V.zoneId = () => zone && zone.id;
+  V.zoneId = () => zone && zone.id; V._zone = () => zone;
   V.zoneInfo = () => zone ? zone.info() : null;
   V.travel = function (id) {
     if (!V.ready || !world || !Wk.on || inside || houseInfo || Wk.mode !== 'walk' || !avatarW) return false;
@@ -1855,7 +1931,7 @@
   };
   V.leaveZone = function (silent) {
     if (!zone) return;
-    zoneEnd(true); scene.remove(zone.g); T.free(zone.g); zone = null;
+    huntDisarm(false); zoneEnd(true); scene.remove(zone.g); T.free(zone.g); zone = null;
     colliders.length = 0; if (zoneSave) { zoneSave.colliders.forEach(c => colliders.push(c)); Wk.x = zoneSave.x; Wk.z = zoneSave.z; Wk.face = zoneSave.face; Wk.yaw = zoneSave.yaw; }
     if (world) world.visible = true; if (parkRoot) parkRoot.visible = true; zoneSave = null; Wk.y = ground(Wk.x, Wk.z); Wk.mode = 'walk';
     setSky(); if (avatarW) { avatarW.userData.pose(null); avatarW.position.set(Wk.x, Wk.y, Wk.z); }
@@ -1866,6 +1942,28 @@
     if (A.jet) { scene.remove(A.jet); T.free(A.jet); }
     avatarW.userData.pose(null); if (avatarW.parent !== scene) scene.add(avatarW); avatarW.position.set(Wk.x, Wk.y, Wk.z); avatarW.rotation.set(0, Wk.face, 0);
   }
+  function huntArm() {
+    const Z = zone; gun = makeGun(); gun.scale.set(1.15, 1.15, 2.3); camera.add(gun); gun.position.set(.16, -.15, -.32); gun.rotation.y = .06; if (camera.parent !== scene) scene.add(camera);
+    Z.armed = true; Z.ammo = 6; Z.bag = {}; Wk.prevFp = Wk.fp; Wk.fp = true; if (avatarW) avatarW.visible = false;
+  }
+  function huntDisarm(sell) {
+    const Z = zone; if (!Z || !Z.armed) return; Z.armed = false;
+    if (gun) { camera.remove(gun); gun = null; }
+    Wk.fp = !!Wk.prevFp; if (avatarW) avatarW.visible = !Wk.fp;
+    if (sell) { const tot = Object.keys(Z.bag).reduce((s, k) => s + Z.bag[k] * Z.ANI[k].val, 0), list = Object.keys(Z.bag).map(k => Z.ANI[k].e + ' ' + Z.bag[k]).join(' '); if (tot && V.onZoneReward) V.onZoneReward('chasse', tot, `🦌 Gibier vendu (${list})`); }
+    Z.bag = {};
+  }
+  V.huntShoot = function () {
+    const Z = zone; if (!Z || !Z.armed || Z.ammo <= 0 || Z.cd > 0) return null;
+    Z.ammo--; Z.cd = .45; Z.recoil = 1; Z.flash = .06; if (Z.ammo <= 0) Z.reload = 1.8;
+    Z.animals.forEach(a => { if (!a.dead && Math.hypot(a.x - Wk.x, a.z - Wk.z) < 40) a.alert = 6; });
+    const rc = new T.Raycaster(); rc.setFromCamera(new T.Vector2(0, 0), camera);
+    const targets = []; Z.animals.forEach(a => { if (!a.dead && !a.gone) { a.g.updateMatrixWorld(true); targets.push(a.body, a.head); } });
+    const h = rc.intersectObjects(targets, false)[0]; let got = 0;
+    if (h) { const a = Z.animals.find(x => x.body === h.object || x.head === h.object); if (a && h.distance < 70) { a.dead = 1.6; a.alert = 0; Z.bag[a.type] = (Z.bag[a.type] || 0) + 1; got = a.P.val; if (V.onZoneSound) V.onZoneSound('ding'); TC.toast(`${a.P.e} ${a.P.n} ! +${a.P.val} € à la vente`, 'ok', 1800); } }
+    if (V.onZoneSound) V.onZoneSound('shot');
+    return got;
+  };
   V.zoneUse = function () {
     if (!zone) return; const Z = zone, A = Z.act;
     if (A) {
@@ -1881,6 +1979,12 @@
         Z.act = { kind: 'ski', yaw: 0, v: 0, t0: 0, skis: sk, best: Z.best.ski || 0 }; Wk.mode = 'zact'; k.x = 0; k.z = -70; k.face = 0; avatarW.userData.pose('stand'); return;
       }
       if (Math.hypot(k.x + 6, k.z - 64) < 14) { if (V.onZoneReward) V.onZoneReward('hotel', -120, '🛎️ Nuit au Grand Hôtel des Alpes'); return; }
+    } else if (Z.id === 'foret') {
+      if (Math.hypot(k.x - Z.lodge.x, k.z - Z.lodge.z) < 10) {
+        if (Z.armed) { huntDisarm(true); return; }
+        if (!(V.huntPermit && V.huntPermit())) { if (V.onZoneReward) V.onZoneReward('permis', -180, '📜 Permis de chasse'); return; }
+        huntArm();
+      }
     } else {
       if (Math.hypot(k.x, k.z + 29) < 5) {
         const jet = new T.Group(); jet.add(mesh(new T.CapsuleGeometry(.38, 1.5, 4, 10), col(0xffd23f, { roughness: .35 }), 0, .35, 0)).rotation.x = Math.PI / 2;
